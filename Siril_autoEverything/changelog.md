@@ -1,3 +1,8 @@
+2025-12-30 15:36:36 UTC
+- README im Repository-Root zu einem Verweis auf den Projektordner umgebaut und Hauptdokumentation in `Siril_autoEverything/README.md` konsolidiert.
+- `Siril_autoEverything/README.md` um Repo-Übersicht, Dokumentationspfade und Changelog-Hinweis ergänzt, damit die verschobenen Dateien auffindbar bleiben.
+- changelog nach `Siril_autoEverything/changelog.md` verschoben und mit diesem Eintrag aktualisiert, um die Dokumentstruktur abzubilden.
+
 2025-12-30 15:21:31 UTC
 - Blueprint-Default `Siril_autoEverything/blueprint_default.json` aus der Naztronomy-Referenz hinterlegt; Python-Pipeline lädt es automatisch, wenn kein eigenes Preset angegeben ist.
 - `Siril_autoEverything/siril_auto_everything.py` um Blueprint-Erkennung erweitert und Tests (`Siril_autoEverything/tests/test_metrics.py`) hinzugefügt, die den Default-Load verifizieren.

@@ -1,5 +1,8 @@
 # ScriptBase
-## Übersicht
-- **Siril_autoEverything/**: Leitfaden und Aufgabenbasis zur Automatisierung eines Siril-Skripts für die vollautomatische Verarbeitung von Deep-Sky-Bildern ab einem gestackten FITS. Enthält Prozessschritte, Qualitätsmetriken, eine Aufgabenliste (`task.md`), `REFERENCE_Naztronomy.md` als Funktions- und Architektur-Referenz sowie zwei lauffähige Skriptvarianten: das Bash-Skript `siril_auto_everything.sh` und das Python-Pendant `siril_auto_everything.py`. Abgedeckte Anforderungen: kurzfristige Aufgaben 1–5 (CLI/Logging, QC-Kapselung, lineare Pipeline, Stretch & Farbe, Exporte/QC-Berichte), mittelfristige Aufgaben 1–4 (Session-Handling, Preset-/Konfig-System, Qualitäts-Feedback-Schleife, Referenz-Hooks für Exportnamen/UI-State) sowie langfristige Aufgaben 1–2 (UI-/Frontend-Hooks und erste automatisierte Tests samt Beispiel-Preset/Session-Dateien).
-Aktueller Aufgabenstand: Alle in `Siril_autoEverything/task.md` dokumentierten kurz-, mittel- und langfristigen Anforderungen sind umgesetzt; weitere Arbeiten entstehen erst mit neuen Vorgaben. Standardmäßig nutzt die Python-Pipeline ohne eigenes Preset die Blueprint-Konfiguration `Siril_autoEverything/blueprint_default.json`, die aus der Naztronomy-Referenz abgeleitet ist.
-Weitere Inhalte werden hier ergänzt, sobald zusätzliche Projekte hinzukommen.
+
+## Dokumentationsablage
+- Die vollständige Projektbeschreibung und Nutzungshinweise liegen jetzt im Projektordner: [`Siril_autoEverything/README.md`](Siril_autoEverything/README.md).
+- Das Änderungsprotokoll wurde in [`Siril_autoEverything/changelog.md`](Siril_autoEverything/changelog.md) verschoben.
+
+## Projektverzeichnis
+- **Siril_autoEverything/**: Automatisiertes Siril-Skript (Bash & Python) für die Verarbeitung gestackter Deep-Sky-FITS inklusive Preset-/QC-System, Beispielartefakte und Tests.
