@@ -1,0 +1,9 @@
+{
+  "asinh_strength": 0.22,
+  "saturation_boost": 0.16,
+  "background_order_high": 4,
+  "background_order_low": 3,
+  "drizzle": false,
+  "feather": false,
+  "export_name_template": "{object}_{session}_{date}"
+}

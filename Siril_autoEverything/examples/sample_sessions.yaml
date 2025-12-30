@@ -1,0 +1,5 @@
+sessions:
+  - name: session_a
+    input: /data/example/stack_session_a.fit
+  - name: session_b
+    input: /data/example/stack_session_b.fit
