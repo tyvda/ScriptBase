@@ -82,6 +82,7 @@ Falls der WebSocket‑Status in der UI auf „connecting…“ stehen bleibt, Br
 - Das Canvas zeigt ein feines Grid zur optischen Pixeltrennung.【F:esp32Hub75/main.sketch†L92-L105】
 - Die Farbpalette setzt die aktive Zeichenfarbe; das Canvas ist intern 64×32 und wird nur optisch skaliert.【F:esp32Hub75/main.sketch†L120-L356】
 - `Reinit` initialisiert das Display neu und löscht die Canvas/Panel‑Daten (Pixelart startet sauber neu).【F:esp32Hub75/main.sketch†L368-L377】【F:esp32Hub75/main.sketch†L820-L825】
+- Doppelklick auf das Canvas zeichnet die aktuelle Pixelart erneut auf das Panel.【F:esp32Hub75/main.sketch†L300-L455】
 
 ## 7.1) Helligkeit einstellen
 

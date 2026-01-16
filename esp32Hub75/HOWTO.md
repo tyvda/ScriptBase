@@ -39,6 +39,10 @@ Einzelpixel kannst du via JSON‑Nachricht auf `/ws` senden:
 
 `c` ist RGB888 (`0xRRGGBB`).【F:esp32Hub75/main.sketch†L712-L726】
 
+## Pixelart erneut auf Panel zeichnen
+
+Bei Bedarf kann die aktuelle Pixelart‑Canvas erneut ans Panel gesendet werden: Doppelklick auf das Canvas triggert einen kompletten Re‑Draw (JSON `px` für alle Pixel).【F:esp32Hub75/main.sketch†L300-L455】
+
 ## Animation abspielen
 
 1. `anim.bin` per `POST /uploadAnim` hochladen.

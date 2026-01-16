@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-01-16 13:31:29 +0000
+- Panel-Redraw ergänzt: Pixelart-Canvas kann per Doppelklick vollständig via `px` neu an das Panel gesendet werden. Quelle: `main.sketch`.
+- Dokumentation für Panel-Redraw ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-16 12:48:57 +0000
 - Bild-Upload nutzt Pixelart-Mechanik (Image → Canvas → 64×32 → `px` Updates) für robuste Projektion. Quelle: `main.sketch`.
 - Reinit leert Canvas und Panel über `clear`, damit Pixelart nach Neustart zuverlässig funktioniert. Quelle: `main.sketch`.
