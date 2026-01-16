@@ -82,6 +82,35 @@ static uint16_t animFrameIndex = 0;
 static uint32_t animNextMs = 0;
 
 // =====================
+// FX (WLED-like Animations)
+// =====================
+enum FxType : uint8_t {
+  FX_NONE=0,
+  FX_MATRIX,
+  FX_BLINK,
+  FX_FADE,
+  FX_RAINBOW,
+  FX_FIRE
+};
+
+struct FxState {
+  FxType type = FX_NONE;
+  bool active = false;
+  uint16_t speedMs = 140;
+  uint8_t density = 35;
+  uint8_t duty = 50;
+  uint8_t intensity = 200;
+  uint8_t brightness = 200;
+  uint32_t color1 = 0x00ff66;
+  uint32_t color2 = 0x003300;
+  uint32_t lastMs = 0;
+};
+
+static FxState fx{};
+static int8_t matrixY[PANEL_RES_X];
+static uint8_t fireHeat[PANEL_RES_X * PANEL_RES_Y];
+
+// =====================
 // HTML UI
 // =====================
 static const char INDEX_HTML[] PROGMEM = R"HTML(
@@ -139,6 +168,12 @@ a{color:#9bd7ff}
       <button id="clear">Clear</button>
       <button id="fill">Fill</button>
       <button id="reinit">Reinit</button>
+    </div>
+
+    <div class="row">
+      <button id="exportJson">Pixelart JSON Export</button>
+      <button id="importJsonBtn">Pixelart JSON Import</button>
+      <input id="importJson" type="file" accept="application/json" style="display:none">
     </div>
 
     <small>
@@ -230,6 +265,62 @@ a{color:#9bd7ff}
       <div id="info"></div>
       <div id="err"></div>
     </div>
+
+    <hr>
+
+    <div>
+      <b>Animationen (WLED‑ähnlich)</b><br/>
+      <div class="row">
+        <label for="fxSel">Effekt</label>
+        <select id="fxSel">
+          <option value="matrix">Matrix‑Kinofilm</option>
+          <option value="blink">Blink</option>
+          <option value="fade">Colorfading</option>
+          <option value="rainbow">Rainbow</option>
+          <option value="fire">Kaminfeuer</option>
+        </select>
+      </div>
+      <div class="row">
+        <label>Speed</label>
+        <input id="fxSpeed" type="range" min="20" max="1500" value="140">
+        <span class="val" id="fxSpeedVal">140</span>
+      </div>
+      <div class="row">
+        <label>Density</label>
+        <input id="fxDensity" type="range" min="1" max="100" value="35">
+        <span class="val" id="fxDensityVal">35</span>
+      </div>
+      <div class="row">
+        <label>Duty</label>
+        <input id="fxDuty" type="range" min="5" max="95" value="50">
+        <span class="val" id="fxDutyVal">50</span>
+      </div>
+      <div class="row">
+        <label>Intensity</label>
+        <input id="fxIntensity" type="range" min="20" max="255" value="200">
+        <span class="val" id="fxIntensityVal">200</span>
+      </div>
+      <div class="row">
+        <label>Brightness</label>
+        <input id="fxBrightness" type="range" min="20" max="255" value="200">
+        <span class="val" id="fxBrightnessVal">200</span>
+      </div>
+      <div class="row">
+        <label>Color A</label>
+        <input id="fxColor1" type="color" value="#00ff66">
+        <label>Color B</label>
+        <input id="fxColor2" type="color" value="#003300">
+      </div>
+      <div class="row">
+        <button id="fxStart">Start Effekt</button>
+        <button id="fxStop">Stop Effekt</button>
+      </div>
+      <small>
+        Matrix nutzt Speed + Density + Colors, Blink nutzt Speed + Duty + Colors,
+        Colorfading nutzt Speed + Colors, Rainbow nutzt Speed + Brightness,
+        Kaminfeuer nutzt Speed + Intensity + Colors.
+      </small>
+    </div>
   </div>
 </div>
 
@@ -262,6 +353,23 @@ a{color:#9bd7ff}
   const boostVal=document.getElementById('boostVal');
 
   const brushSel=document.getElementById('brush');
+  const exportJsonBtn=document.getElementById('exportJson');
+  const importJsonBtn=document.getElementById('importJsonBtn');
+  const importJsonInput=document.getElementById('importJson');
+
+  const fxSel=document.getElementById('fxSel');
+  const fxSpeed=document.getElementById('fxSpeed');
+  const fxDensity=document.getElementById('fxDensity');
+  const fxDuty=document.getElementById('fxDuty');
+  const fxIntensity=document.getElementById('fxIntensity');
+  const fxBrightness=document.getElementById('fxBrightness');
+  const fxColor1=document.getElementById('fxColor1');
+  const fxColor2=document.getElementById('fxColor2');
+  const fxSpeedVal=document.getElementById('fxSpeedVal');
+  const fxDensityVal=document.getElementById('fxDensityVal');
+  const fxDutyVal=document.getElementById('fxDutyVal');
+  const fxIntensityVal=document.getElementById('fxIntensityVal');
+  const fxBrightnessVal=document.getElementById('fxBrightnessVal');
 
   window.addEventListener('error', (e)=>{ errEl.textContent = "JS error: " + e.message; });
 
@@ -307,6 +415,61 @@ a{color:#9bd7ff}
   function hexToRgb(hex){
     const h=hex.replace("#","");
     return (parseInt(h.slice(0,2),16)<<16)|(parseInt(h.slice(2,4),16)<<8)|parseInt(h.slice(4,6),16);
+  }
+
+  function rgb888To565Raw(rrggbb){
+    const r=(rrggbb>>16)&255, g=(rrggbb>>8)&255, b=rrggbb&255;
+    return ((r&0xF8)<<8) | ((g&0xFC)<<3) | (b>>3);
+  }
+
+  function buildFrameFromPix(){
+    const out = new Uint8Array(1 + W*H*2);
+    out[0] = 0x46;
+    let o=1;
+    for(let i=0;i<pix.length;i++){
+      const c565 = rgb888To565Raw(pix[i]);
+      out[o++] = c565 & 255;
+      out[o++] = (c565 >> 8) & 255;
+    }
+    return out;
+  }
+
+  function downloadBlob(filename, blob){
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+  }
+
+  function exportPixelartJson(){
+    const payload = {
+      version: 1,
+      width: W,
+      height: H,
+      pixels: Array.from(pix),
+      brush: parseInt(brushSel.value,10) || 1,
+      color: document.getElementById('col').value
+    };
+    downloadBlob("pixelart-64x32.json", new Blob([JSON.stringify(payload)], {type:"application/json"}));
+  }
+
+  async function importPixelartJson(file){
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if (!data || data.width !== W || data.height !== H || !Array.isArray(data.pixels) || data.pixels.length !== W*H) {
+      alert("Ungültiges JSON-Format (erwartet 64×32 + pixels).");
+      return;
+    }
+    for(let i=0;i<pix.length;i++){
+      const v = data.pixels[i] >>> 0;
+      pix[i] = v & 0xFFFFFF;
+    }
+    if (data.brush) brushSel.value = String(data.brush);
+    if (typeof data.color === "string") document.getElementById('col').value = data.color;
+    redraw();
+    sendFrameBinary(buildFrameFromPix());
   }
 
   // ===== Gamma + Boost LUT (applies to Images + GIF) =====
@@ -412,6 +575,51 @@ a{color:#9bd7ff}
   };
 
   document.getElementById('reinit').onclick=async()=>{ await fetch('/api/reinit'); };
+
+  exportJsonBtn.onclick=()=>{ exportPixelartJson(); };
+  importJsonBtn.onclick=()=>{ importJsonInput.click(); };
+  importJsonInput.addEventListener('change', async ()=>{
+    const f=importJsonInput.files?.[0];
+    if(!f) return;
+    try {
+      await importPixelartJson(f);
+    } catch (err) {
+      alert("JSON Import fehlgeschlagen.");
+    } finally {
+      importJsonInput.value = "";
+    }
+  });
+
+  function updateFxVals(){
+    fxSpeedVal.textContent = fxSpeed.value;
+    fxDensityVal.textContent = fxDensity.value;
+    fxDutyVal.textContent = fxDuty.value;
+    fxIntensityVal.textContent = fxIntensity.value;
+    fxBrightnessVal.textContent = fxBrightness.value;
+  }
+  [fxSpeed, fxDensity, fxDuty, fxIntensity, fxBrightness].forEach(el=>{
+    el.addEventListener('input', updateFxVals);
+  });
+  updateFxVals();
+
+  function sendFx(active){
+    sendJson({
+      t:"fx",
+      name: fxSel.value,
+      on: active,
+      params: {
+        speed: parseInt(fxSpeed.value,10) || 120,
+        density: parseInt(fxDensity.value,10) || 30,
+        duty: parseInt(fxDuty.value,10) || 50,
+        intensity: parseInt(fxIntensity.value,10) || 180,
+        brightness: parseInt(fxBrightness.value,10) || 200,
+        c1: hexToRgb(fxColor1.value),
+        c2: hexToRgb(fxColor2.value)
+      }
+    });
+  }
+  document.getElementById('fxStart').onclick=()=>{ sendFx(true); };
+  document.getElementById('fxStop').onclick=()=>{ sendFx(false); };
 
   // ===== Aspect/Scale mapping =====
   function desiredAspectValue(sel) {
@@ -689,6 +897,126 @@ static void fill_color565(uint16_t c565) {
   draw_full_frame();
 }
 
+static inline void set_pixel565(int x, int y, uint16_t c565) {
+  if (x<0 || x>=PANEL_RES_X || y<0 || y>=PANEL_RES_Y) return;
+  fb[y*PANEL_RES_X + x] = c565;
+}
+
+static inline uint32_t color_lerp(uint32_t c1, uint32_t c2, uint8_t t) {
+  uint8_t r1 = (c1>>16)&0xFF, g1 = (c1>>8)&0xFF, b1 = c1&0xFF;
+  uint8_t r2 = (c2>>16)&0xFF, g2 = (c2>>8)&0xFF, b2 = c2&0xFF;
+  uint8_t r = r1 + ((int16_t)(r2 - r1) * t) / 255;
+  uint8_t g = g1 + ((int16_t)(g2 - g1) * t) / 255;
+  uint8_t b = b1 + ((int16_t)(b2 - b1) * t) / 255;
+  return (r<<16)|(g<<8)|b;
+}
+
+static uint32_t hsv_to_rgb(uint8_t h, uint8_t s, uint8_t v) {
+  uint8_t region = h / 43;
+  uint8_t remainder = (h - (region * 43)) * 6;
+  uint8_t p = (v * (255 - s)) >> 8;
+  uint8_t q = (v * (255 - ((s * remainder) >> 8))) >> 8;
+  uint8_t t = (v * (255 - ((s * (255 - remainder)) >> 8))) >> 8;
+  switch (region) {
+    case 0: return (v<<16)|(t<<8)|p;
+    case 1: return (q<<16)|(v<<8)|p;
+    case 2: return (p<<16)|(v<<8)|t;
+    case 3: return (p<<16)|(q<<8)|v;
+    case 4: return (t<<16)|(p<<8)|v;
+    default: return (v<<16)|(p<<8)|q;
+  }
+}
+
+static void fx_render_matrix() {
+  memset(fb, 0, sizeof(fb));
+  const uint8_t tail = 4;
+  const uint16_t head565 = rgb888_to_565(fx.color1);
+  const uint16_t tail565 = rgb888_to_565(fx.color2);
+  for (int x=0; x<PANEL_RES_X; x++) {
+    if (matrixY[x] < 0 && random(0,100) < fx.density) matrixY[x] = 0;
+    if (matrixY[x] >= 0) {
+      matrixY[x]++;
+      for (int t=0; t<tail; t++) {
+        int y = matrixY[x] - t;
+        if (y>=0 && y<PANEL_RES_Y) set_pixel565(x, y, (t==0)?head565:tail565);
+      }
+      if (matrixY[x] - tail > PANEL_RES_Y) matrixY[x] = -1;
+    }
+  }
+  draw_full_frame();
+}
+
+static void fx_render_blink(uint32_t now) {
+  uint16_t cycle = fx.speedMs < 20 ? 20 : fx.speedMs;
+  uint32_t phase = now % cycle;
+  bool on = phase < (uint32_t)cycle * fx.duty / 100;
+  uint16_t c = rgb888_to_565(on ? fx.color1 : fx.color2);
+  fill_color565(c);
+}
+
+static void fx_render_fade(uint32_t now) {
+  uint16_t cycle = fx.speedMs < 20 ? 20 : fx.speedMs;
+  uint32_t t = (now / cycle) % 512;
+  uint8_t v = (t > 255) ? (511 - t) : t;
+  uint32_t c = color_lerp(fx.color1, fx.color2, v);
+  fill_color565(rgb888_to_565(c));
+}
+
+static void fx_render_rainbow(uint32_t now) {
+  uint8_t base = (uint8_t)((now / (fx.speedMs < 20 ? 20 : fx.speedMs)) & 0xFF);
+  uint8_t val = fx.brightness;
+  for (int y=0; y<PANEL_RES_Y; y++) {
+    for (int x=0; x<PANEL_RES_X; x++) {
+      uint8_t hue = base + (x * 6) + (y * 3);
+      uint32_t rgb = hsv_to_rgb(hue, 255, val);
+      fb[y*PANEL_RES_X + x] = rgb888_to_565(rgb);
+    }
+  }
+  draw_full_frame();
+}
+
+static void fx_render_fire() {
+  for (int x=0; x<PANEL_RES_X; x++) {
+    fireHeat[(PANEL_RES_Y-1)*PANEL_RES_X + x] = random(0, fx.intensity);
+  }
+  uint8_t cooling = 12 + (255 - fx.intensity) / 6;
+  for (int y=PANEL_RES_Y-2; y>=0; y--) {
+    for (int x=0; x<PANEL_RES_X; x++) {
+      int idx = y*PANEL_RES_X + x;
+      int below = (y+1)*PANEL_RES_X + x;
+      int left = (y+1)*PANEL_RES_X + (x==0 ? PANEL_RES_X-1 : x-1);
+      int right = (y+1)*PANEL_RES_X + (x==PANEL_RES_X-1 ? 0 : x+1);
+      int heat = (fireHeat[below] + fireHeat[left] + fireHeat[right]) / 3;
+      heat -= random(0, cooling);
+      if (heat < 0) heat = 0;
+      fireHeat[idx] = (uint8_t)heat;
+    }
+  }
+  for (int y=0; y<PANEL_RES_Y; y++) {
+    for (int x=0; x<PANEL_RES_X; x++) {
+      uint8_t h = fireHeat[y*PANEL_RES_X + x];
+      uint32_t rgb = color_lerp(fx.color2, fx.color1, h);
+      fb[y*PANEL_RES_X + x] = rgb888_to_565(rgb);
+    }
+  }
+  draw_full_frame();
+}
+
+static void fx_update(uint32_t now) {
+  if (!fx.active || fx.type == FX_NONE) return;
+  uint16_t step = fx.speedMs < 10 ? 10 : fx.speedMs;
+  if (fx.lastMs != 0 && (uint32_t)(now - fx.lastMs) < step) return;
+  fx.lastMs = now;
+  switch (fx.type) {
+    case FX_MATRIX: fx_render_matrix(); break;
+    case FX_BLINK: fx_render_blink(now); break;
+    case FX_FADE: fx_render_fade(now); break;
+    case FX_RAINBOW: fx_render_rainbow(now); break;
+    case FX_FIRE: fx_render_fire(); break;
+    default: break;
+  }
+}
+
 static void predrive_gpio_low(const HubPins& p) {
   const int pins[] = { p.r1,p.g1,p.b1,p.r2,p.g2,p.b2, p.a,p.b,p.c,p.d, p.clk,p.lat,p.oe };
   for (int pin: pins) {
@@ -783,6 +1111,7 @@ void onWsEvent(AsyncWebSocket*, AsyncWebSocketClient*, AwsEventType type, void *
     if (info->final) {
       if (info->len == frame_rx_expected && frame_rx[0] == 0x46) {
         animPlaying = false;
+        fx.active = false;
         memcpy((uint8_t*)fb, frame_rx + 1, PANEL_RES_X*PANEL_RES_Y*2);
         draw_full_frame();
       }
@@ -798,6 +1127,7 @@ void onWsEvent(AsyncWebSocket*, AsyncWebSocketClient*, AwsEventType type, void *
 
   if (!strcmp(t,"px")) {
     animPlaying = false;
+    fx.active = false;
     int x = doc["x"] | -1;
     int y = doc["y"] | -1;
     uint32_t c = doc["c"] | 0;
@@ -808,15 +1138,46 @@ void onWsEvent(AsyncWebSocket*, AsyncWebSocketClient*, AwsEventType type, void *
     }
   } else if (!strcmp(t,"clear")) {
     animPlaying = false;
+    fx.active = false;
     memset(fb,0,sizeof(fb));
     dma_display->clearScreen();
   } else if (!strcmp(t,"fill")) {
     animPlaying = false;
+    fx.active = false;
     uint32_t ccol = doc["c"] | 0;
     fill_color565(rgb888_to_565(ccol));
   } else if (!strcmp(t,"stop")) {
     animPlaying = false;
+    fx.active = false;
     if (animFile) animFile.close();
+  } else if (!strcmp(t,"fx")) {
+    const char* name = doc["name"] | "";
+    bool on = doc["on"] | false;
+    if (!on) {
+      fx.active = false;
+      return;
+    }
+    if (!strcmp(name,"matrix")) fx.type = FX_MATRIX;
+    else if (!strcmp(name,"blink")) fx.type = FX_BLINK;
+    else if (!strcmp(name,"fade")) fx.type = FX_FADE;
+    else if (!strcmp(name,"rainbow")) fx.type = FX_RAINBOW;
+    else if (!strcmp(name,"fire")) fx.type = FX_FIRE;
+    else fx.type = FX_NONE;
+
+    if (fx.type != FX_NONE) {
+      JsonObject params = doc["params"];
+      fx.speedMs = params["speed"] | fx.speedMs;
+      fx.density = params["density"] | fx.density;
+      fx.duty = params["duty"] | fx.duty;
+      fx.intensity = params["intensity"] | fx.intensity;
+      fx.brightness = params["brightness"] | fx.brightness;
+      fx.color1 = params["c1"] | fx.color1;
+      fx.color2 = params["c2"] | fx.color2;
+      fx.lastMs = 0;
+      animPlaying = false;
+      if (animFile) animFile.close();
+      fx.active = true;
+    }
   }
 }
 
@@ -901,6 +1262,9 @@ void setup() {
   LittleFS.begin(true);
 
   init_display_with_pins(basePins);
+  randomSeed(micros());
+  for (int x=0; x<PANEL_RES_X; x++) matrixY[x] = -1;
+  memset(fireHeat, 0, sizeof(fireHeat));
 
   setup_wifi();
   reinit_display_now(); // boot fix
@@ -919,8 +1283,10 @@ void loop() {
   // ElegantOTA (safe to call; required in some builds)
   ElegantOTA.loop();
 
-  if (animPlaying) {
-    uint32_t now = millis();
+  uint32_t now = millis();
+  if (fx.active) {
+    fx_update(now);
+  } else if (animPlaying) {
     if (animNextMs == 0 || (int32_t)(now - animNextMs) >= 0) {
       uint16_t delayMs = 100;
       bool ok = animReadNextFrameAndRender(delayMs);

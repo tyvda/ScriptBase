@@ -29,6 +29,13 @@ Einzelpixel kannst du via JSON‑Nachricht auf `/ws` senden:
 
 `c` ist RGB888 (`0xRRGGBB`).【F:esp32Hub75/main.sketch†L712-L726】
 
+## Pixelart JSON Import/Export (Client)
+
+- **Export**: Button „Pixelart JSON Export“ speichert den aktuellen Canvas‑State als JSON Datei.
+- **Import**: Button „Pixelart JSON Import“ lädt eine JSON Datei (64×32) und sendet sie als Full‑Frame an das Panel.
+
+Die Umsetzung ist in der Web‑UI‑Logik enthalten (Import/Export + Full‑Frame Upload).【F:esp32Hub75/main.sketch†L129-L520】
+
 ## Animation abspielen
 
 1. `anim.bin` per `POST /uploadAnim` hochladen.
@@ -36,6 +43,14 @@ Einzelpixel kannst du via JSON‑Nachricht auf `/ws` senden:
 3. `GET /api/anim/stop` stoppen.
 
 Das File wird aus LittleFS gelesen und als RLE‑RGB565 gerendert.【F:esp32Hub75/main.sketch†L827-L854】【F:esp32Hub75/main.sketch†L645-L689】
+
+## WLED‑ähnliche Effekte starten/stoppen
+
+1. Effekt auswählen (Matrix, Blink, Colorfading, Rainbow, Kaminfeuer).
+2. Parameter (Speed, Density/Duty/Intensity/Brightness, Colors) setzen.
+3. „Start Effekt“ klicken, „Stop Effekt“ beendet den Modus.
+
+Die Steuerung läuft über WebSocket JSON (`t:"fx"`).【F:esp32Hub75/main.sketch†L233-L931】
 
 ## Animationen neu generieren (GIF)
 
@@ -63,7 +78,7 @@ Die UI nutzt Line‑Scanning per Offscreen‑Buffer und `requestAnimationFrame`,
 
 ## Ausblick (geplante Features)
 
-- **Pixelart Editor Load/Save**: JSON‑Import/Export direkt vom Nutzergerät.
-- **WLED‑ähnliche Animationen**: Matrix‑Kinofilm, Blink, Colorfading, Rainbow, Kaminfeuer – jeweils mit Parametern (z. B. Geschwindigkeit, Intensität, Farbpalette).
+- Presets & Parameter‑Feintuning für Effekte.
+- Performance‑Profiling/Monitoring in der UI.
 
-Konkrete Umsetzungsschritte sind in `task.md` gesammelt (inkl. „Nächste Aufgaben“).
+Konkrete Umsetzungsschritte sind in `task.md` gesammelt (Abschnitt „Nächste Aufgaben“).

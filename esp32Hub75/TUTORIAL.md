@@ -78,13 +78,18 @@ Die UI wird vom ESP32 ausgeliefert.【F:esp32Hub75/main.sketch†L815-L818】
 - Brush‑Größe 1×1 bis 4×4.
 - `Clear` leert das Panel, `Fill` füllt alles mit der aktuellen Farbe.【F:esp32Hub75/main.sketch†L90-L365】
 
-## 8) Bild senden
+## 8) Pixelart JSON Import/Export
+
+- **Export**: „Pixelart JSON Export“ speichert den aktuellen Canvas‑State als JSON Datei.
+- **Import**: „Pixelart JSON Import“ lädt eine JSON Datei (64×32) und sendet sie ans Panel.【F:esp32Hub75/main.sketch†L129-L520】
+
+## 9) Bild senden
 
 1. PNG/JPG/WebP auswählen.
 2. Optional Aspect (Auto/4:3/16:9) und Mapping (Cover/Contain) wählen.
 3. `Preview` zeichnet in die UI, `Send to Panel` überträgt das Frame (RGB565).【F:esp32Hub75/main.sketch†L142-L512】
 
-## 9) GIF vorbereiten & abspielen
+## 10) GIF vorbereiten & abspielen
 
 1. GIF auswählen.
 2. `Prepare & Upload` erstellt `anim.bin` im Browser und lädt es hoch.
@@ -92,7 +97,13 @@ Die UI wird vom ESP32 ausgeliefert.【F:esp32Hub75/main.sketch†L815-L818】
 
 Die GIF‑Dekodierung nutzt `gifuct-js` via CDN.【F:esp32Hub75/main.sketch†L222-L612】
 
-## 10) OTA Update
+## 11) WLED‑ähnliche Effekte starten/stoppen
+
+- Effekt auswählen (Matrix, Blink, Colorfading, Rainbow, Kaminfeuer).
+- Parameter (Speed/Density/Duty/Intensity/Brightness/Colors) einstellen.
+- „Start Effekt“ startet, „Stop Effekt“ beendet den Modus.【F:esp32Hub75/main.sketch†L233-L931】
+
+## 12) OTA Update
 
 Im Browser `http://<ip>/update` öffnen und Firmware hochladen (ElegantOTA).【F:esp32Hub75/main.sketch†L860-L862】
 
@@ -106,7 +117,7 @@ Die im Tutorial beschriebenen Funktionen (HUB75‑Betrieb, Pixelart, Bild‑Uplo
 
 ## Ausblick (geplante Features)
 
-- **Pixelart Editor Load/Save**: JSON‑Import/Export direkt vom Nutzergerät.
-- **WLED‑ähnliche Animationen**: Matrix‑Kinofilm, Blink, Colorfading, Rainbow, Kaminfeuer – jeweils mit Parametern (z. B. Geschwindigkeit, Intensität, Farbpalette).
+- Presets & Parameter‑Feintuning für Effekte.
+- Performance‑Profiling/Monitoring in der UI.
 
-Siehe `task.md` für die detaillierten Umsetzungsschritte (inkl. „Nächste Aufgaben“).
+Siehe `task.md` für die detaillierten Umsetzungsschritte (Abschnitt „Nächste Aufgaben“).

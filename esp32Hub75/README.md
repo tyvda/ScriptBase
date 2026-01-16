@@ -11,9 +11,11 @@ Kein Cloud‑Zwang, kein WLED, kein externer Server.
 ## Features
 
 - Web‑UI mit Pixel‑Editor (Brush, Clear/Fill, Reinit).【F:esp32Hub75/main.sketch†L67-L377】
+- Pixelart JSON Load/Save direkt im Browser (Import/Export vom Nutzergerät).【F:esp32Hub75/main.sketch†L129-L520】
 - Bild‑Upload (PNG/JPG/WebP) mit Aspect‑Mapping (Auto/4:3/16:9) und Cover/Contain‑Scaling.【F:esp32Hub75/main.sketch†L142-L454】
 - GIF‑Upload inkl. browserseitiger Dekodierung und RLE‑Kompression für schnelle Wiedergabe am ESP32.【F:esp32Hub75/main.sketch†L222-L612】
 - WebSocket‑Streaming von Full‑Frames (RGB565) und Einzelpixel‑Updates (JSON).【F:esp32Hub75/main.sketch†L318-L760】
+- WLED‑ähnliche Animationen (Matrix, Blink, Colorfading, Rainbow, Kaminfeuer) mit Parametern über WebSocket.【F:esp32Hub75/main.sketch†L233-L931】
 - OTA‑Update über ElegantOTA (async).【F:esp32Hub75/main.sketch†L9-L860】
 
 ## Implementierungscheck (Sketch-Abgleich)
@@ -183,6 +185,25 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 - **Reinit**: Neuinitialisiert das Panel‑GPIO‑Setup per `/api/reinit`.【F:esp32Hub75/main.sketch†L368-L369】【F:esp32Hub75/main.sketch†L822-L825】
 - **Gamma/Boost**: LUT‑basiert, beeinflusst Bilder & GIF‑Frames im Browser (Preview + Upload).【F:esp32Hub75/main.sketch†L151-L314】
 - **Preview‑Redraw**: Line‑Scanning per Offscreen‑Buffer + `requestAnimationFrame` rendert das Pixel‑Preview zuverlässig zeilenweise.【F:esp32Hub75/main.sketch†L268-L315】
+- **Pixelart JSON**: Export/Import des aktuellen Canvas‑States als Datei direkt im Browser.【F:esp32Hub75/main.sketch†L129-L520】
+- **Effekte**: Start/Stop WLED‑ähnlicher Animationen inkl. Parametern in der UI.【F:esp32Hub75/main.sketch†L233-L931】
+
+## Pixelart JSON‑Format (Client)
+
+Beispiel‑Struktur für den Import/Export:
+
+```json
+{
+  "version": 1,
+  "width": 64,
+  "height": 32,
+  "pixels": [16711680, 0, 0, "..."],
+  "brush": 2,
+  "color": "#ffcc00"
+}
+```
+
+`pixels` ist ein Array mit `64×32` Einträgen im RGB888‑Format (`0xRRGGBB`).【F:esp32Hub75/main.sketch†L305-L520】
 
 ## Netzwerk‑API (HTTP + WebSocket)
 
@@ -204,6 +225,7 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
   - `{"t":"clear"}` – Display löschen.【F:esp32Hub75/main.sketch†L727-L730】
   - `{"t":"fill","c":0xRRGGBB}` – Fill‑Farbe setzen.【F:esp32Hub75/main.sketch†L731-L735】
   - `{"t":"stop"}` – Animation stoppen.【F:esp32Hub75/main.sketch†L736-L739】
+  - `{"t":"fx","name":"matrix","on":true,"params":{...}}` – WLED‑ähnliche Effekte starten/stoppen.【F:esp32Hub75/main.sketch†L823-L931】
 
 ## Animationen (anim.bin)
 
@@ -276,16 +298,11 @@ Die Bewertung basiert auf der Architektur (FrameBuffer + RLE + WebSocket).【F:e
 
 ## Zukünftige Features (geplant)
 
-- **Pixelart Editor: Load/Save beim User**  
-  Speichern und Laden eines Pixel‑Art‑JSONs direkt auf dem Client (lokale Datei vom Nutzergerät importieren/exportieren).
-- **Animationen wie WLED (mit Parametern)**  
-  - Matrix‑Kinofilm (z. B. Zeichen‑Streams, Fallgeschwindigkeit, Dichte).  
-  - Blink (z. B. Frequenz, Duty‑Cycle, Farben).  
-  - Colorfading (z. B. Geschwindigkeit, Palettenauswahl).  
-  - Rainbow (z. B. Scroll‑Speed, Sättigung, Helligkeit).  
-  - Kaminfeuer (z. B. Intensität, Flacker‑Rate, Wärme‑Gradient).
+- Presets für Effekte speichern (lokal im Browser).
+- Parameter‑Feintuning pro Effekt (Default‑Werte, Grenzen).
+- Performance‑Profiling/FPS‑Anzeige in der UI.
 
-Weiterführende Umsetzungsschritte stehen in `task.md` (inkl. Abschnitt „Nächste Aufgaben“).
+Weiterführende Umsetzungsschritte stehen in `task.md` (Abschnitt „Nächste Aufgaben“).
 
 ## Zusammenfassung
 

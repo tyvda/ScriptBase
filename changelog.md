@@ -1,3 +1,6 @@
+2026-01-16 17:22:36 UTC
+- esp32Hub75 Pixelart JSON Import/Export und WLED-ähnliche Effekte implementiert; Dokumentation und Taskliste angepasst.
+
 2026-01-16 17:05:43 UTC
 - esp32Hub75 task.md um "Nächste Aufgaben" ergänzt und Doku-Verweise aktualisiert.
 

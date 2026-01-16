@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-01-16 17:22:36 +0000
+- Pixelart JSON Import/Export implementiert und WLED‑ähnliche Effekte (Matrix, Blink, Fade, Rainbow, Fire) mit Parametern ergänzt; UI & WS‑Steuerung aktualisiert. Quelle: `main.sketch`.
+- Dokumentation und Taskliste auf umgesetzte Features und neue Ausblicke aktualisiert. Quelle: `README.md`, `HOWTO.md`, `TUTORIAL.md`, `task.md`.
+
 ## 2026-01-16 17:05:43 +0000
 - Nächste Aufgaben in `task.md` ergänzt und Doku‑Verweise aktualisiert. Quelle: `task.md`, `README.md`, `HOWTO.md`, `TUTORIAL.md`.
 

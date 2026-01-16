@@ -2,12 +2,17 @@
 
 Diese Tasks beschreiben die geplanten Features für den Pixelart‑Editor (JSON Load/Save) sowie WLED‑ähnliche Animationen. Die Umsetzungsschritte sind so strukturiert, dass die Änderungen nachvollziehbar in Code, UI und Dokumentation abgebildet werden können.
 
+## Status (umgesetzt)
+
+- **Pixelart JSON Load/Save**: Client‑seitiger Import/Export inkl. UI‑Buttons und Full‑Frame‑Upload.
+- **WLED‑ähnliche Effekte**: Matrix‑Kinofilm, Blink, Colorfading, Rainbow, Kaminfeuer inkl. Parametern und WS‑Steuerung.
+
 ## Nächste Aufgaben (Priorität)
 
-1. **JSON‑Schema festlegen** (Canvas‑State + Metadaten) und Beispiel‑Payload definieren.
-2. **UI‑Import/Export**: File‑Picker + Download‑Button in der Web‑UI skizzieren.
-3. **Animations‑API entwerfen**: JSON‑Message‑Format + Parameter‑Defaults für erste Effekte.
-4. **Dokumentations‑Check**: README/How‑To/Tutorial auf geplante UX‑Flows abstimmen.
+1. **Parameter‑Feintuning**: sinnvolle Default‑Werte & Grenzwerte je Effekt validieren.
+2. **Preset‑Speicherung**: UI‑Presets für Effekte (lokal im Browser).
+3. **Performance‑Profiling**: FPS & CPU‑Last pro Effekt dokumentieren.
+4. **UX‑Verbesserungen**: Kontext‑Hinweise je Effekt (welche Parameter wirken).
 
 ## A) Pixelart‑Editor: JSON Load/Save (Client‑seitig)
 
@@ -31,7 +36,7 @@ Diese Tasks beschreiben die geplanten Features für den Pixelart‑Editor (JSON 
 ## B) Animationen wie WLED (mit Parametern)
 
 1. **Animations‑Framework definieren**
-   - API‑Konzept (z. B. JSON‑Message `{"t":"anim","name":"matrix","params":{...}}`).
+   - API‑Konzept (JSON‑Message `{"t":"fx","name":"matrix","params":{...}}`).
    - Parameter‑Defaults und erlaubte Werte.
 2. **Matrix‑Kinofilm**
    - Parameter: Fallgeschwindigkeit, Dichte, Zeichen‑Set, Farbmodus.
