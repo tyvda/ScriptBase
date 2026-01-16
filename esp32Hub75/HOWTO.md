@@ -21,6 +21,10 @@ Der Sketch akzeptiert binäre Frames mit folgendem Format:
 
 Beim Empfang wird der Frame direkt in den Framebuffer kopiert und gerendert.【F:esp32Hub75/main.sketch†L62-L65】【F:esp32Hub75/main.sketch†L693-L707】
 
+## Bild‑Upload korrekt mappen
+
+Der Bild‑Upload nutzt denselben Mapping‑Ablauf wie GIFs: Bild wird erst auf ein Canvas gezeichnet und dann auf 64×32 gemappt, bevor der RGB565‑Frame erzeugt wird.【F:esp32Hub75/main.sketch†L549-L563】
+
 ## WebSocket‑Status prüfen
 
 In der UI zeigt der Status‑Pill „WS: connecting…/connected“. Falls er dauerhaft auf „connecting…“ bleibt, Browser‑Konsole prüfen und sicherstellen, dass die aktuellste Sketch‑Version geladen wird (Cache leeren, neu flashen).【F:esp32Hub75/main.sketch†L242-L536】

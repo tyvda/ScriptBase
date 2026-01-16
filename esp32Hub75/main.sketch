@@ -548,8 +548,17 @@ a{color:#9bd7ff}
 
   function buildImageFrame(){
     if(!imgEl) return null;
-    const imgData = mapImageTo64x32(imgEl, imgEl.width, imgEl.height, srcAspectImg, scaleModeImg);
-    lastImageFrame = buildFramePayload(imgData);
+    const iw = imgEl.naturalWidth || imgEl.width;
+    const ih = imgEl.naturalHeight || imgEl.height;
+    if(!iw || !ih) return null;
+
+    const tmp=document.createElement('canvas');
+    tmp.width=iw; tmp.height=ih;
+    const tctx=tmp.getContext('2d',{willReadFrequently:true});
+    tctx.drawImage(imgEl, 0, 0, iw, ih);
+
+    const mappedData = mapImageTo64x32(tmp, iw, ih, srcAspectImg, scaleModeImg);
+    lastImageFrame = buildFramePayload(mappedData);
     return lastImageFrame;
   }
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-01-16 12:36:23 +0000
+- Bild-Upload Pipeline an GIF-Workflow angeglichen (Image → Canvas → Mapping) für korrektes 64×32-Projizieren. Quelle: `main.sketch`.
+- Dokumentation für Bild-Mapping aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-16 10:50:39 +0000
 - GIF-Mapping-Variable umbenannt, um JavaScript-Syntaxfehler zu vermeiden, der das WebSocket-Setup blockieren konnte. Quelle: `main.sketch`.
 - Troubleshooting für WebSocket-Status ergänzt (connecting bleibt stehen) in den MD-Dokumenten. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.

@@ -91,6 +91,7 @@ Im Bereich "Bild / GIF Tuning" steht ein Helligkeits‑Regler zur Verfügung. Di
 1. PNG/JPG/WebP auswählen.
 2. Optional Aspect (Auto/4:3/16:9) und Mapping (Cover/Contain) wählen.
 3. `Preview` zeichnet in die UI, `Send to Panel` überträgt das Frame (RGB565).【F:esp32Hub75/main.sketch†L142-L512】
+   Die Bildpipeline zeichnet das Original zuerst auf ein Canvas und mappt dann auf 64×32 (gleiches Mapping wie bei GIFs).【F:esp32Hub75/main.sketch†L549-L563】
 
 ## 9) GIF vorbereiten & abspielen
 
