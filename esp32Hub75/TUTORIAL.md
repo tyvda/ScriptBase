@@ -88,6 +88,24 @@ Falls der WebSocket‑Status in der UI auf „connecting…“ stehen bleibt, Br
 
 Im Bereich "Bild / GIF Tuning" steht ein Helligkeits‑Regler zur Verfügung. Dieser steuert die Panel‑Helligkeit direkt per WebSocket (`bright`).【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
 
+## 7.2) Pixelart JSON exportieren/importieren
+
+1. **Export JSON** lädt die aktuelle Pixelart als Datei herunter.
+2. **Import JSON** lädt eine Datei, validiert sie und aktualisiert Canvas + Panel.
+
+**JSON‑Schema (Version 1)**
+
+```json
+{
+  "version": 1,
+  "width": 64,
+  "height": 32,
+  "pixels": [0, 16711680, {"r":0,"g":255,"b":0}]
+}
+```
+
+`pixels` akzeptiert `0xRRGGBB` oder `{r,g,b}`. Fehler werden im UI angezeigt.【F:esp32Hub75/main.sketch†L131-L495】
+
 ## 8) Bild senden
 
 1. PNG/JPG/WebP auswählen.
@@ -109,11 +127,6 @@ Die im Tutorial beschriebenen Funktionen (HUB75‑Betrieb, Pixelart, Bild‑Uplo
 
 ## Zukünftige Features (Roadmap)
 
-### Pixelart‑Editor: Load/Save auf Client
-
-- **Export**: Pixelart als JSON vom Browser herunterladen (Datei auf dem Client speichern).
-- **Import**: JSON vom Client laden und als Pixelart ins Canvas + Panel übertragen.
-
 ### Animationen im Stil von WLED
 
 - **Matrix Kino‑Film** (Digit‑Regen mit Trails): Parameter z. B. Geschwindigkeit, Dichte, Trail‑Länge, Farbpalette/Grün‑Tint.
@@ -131,10 +144,10 @@ Die im Tutorial beschriebenen Funktionen (HUB75‑Betrieb, Pixelart, Bild‑Uplo
 
 ### Pixelart‑Editor: Load/Save auf Client
 
-1. **JSON‑Schema definieren**: 64×32 Pixel als Array (RGB888), Metadaten (Version, Breite/Höhe).
-2. **Export‑Button in UI**: Pixelart aus `pix[]` als JSON speichern und herunterladen.
-3. **Import‑Flow in UI**: JSON laden, validieren, Pixel ins Canvas schreiben und per `px` ans Panel senden.
-4. **Fehlerhandling**: UI‑Meldungen + optional Vorschau.
+1. **JSON‑Schema definieren**: 64×32 Pixel als Array (RGB888), Metadaten (Version, Breite/Höhe). ✅
+2. **Export‑Button in UI**: Pixelart aus `pix[]` als JSON speichern und herunterladen. ✅
+3. **Import‑Flow in UI**: JSON laden, validieren, Pixel ins Canvas schreiben und per `px` ans Panel senden. ✅
+4. **Fehlerhandling**: UI‑Meldungen + optional Vorschau. ✅
 
 ### WLED‑ähnliche Animationen
 
