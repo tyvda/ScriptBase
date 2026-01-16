@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-01-16 14:03:32 +0000
+- Preview‑Redraw robuster gemacht (Offscreen‑Buffer + requestAnimationFrame) und Doku‑Hinweise ergänzt. Quelle: `main.sketch`, `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-01-16 12:48:44 +0000
+- Taskliste für geplante Features ergänzt und in README/How‑To/Tutorial referenziert. Quelle: `task.md`, `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-01-16 12:41:36 +0000
+- Zukünftige Features dokumentiert (Pixelart JSON Load/Save; WLED‑ähnliche Animationen mit Parametern) in README, How‑To und Tutorial ergänzt. Quelle: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-16 07:37:49 +0000
 - Implementierungscheck ergänzt (HUB75, Pixelart, Bild‑Upload, GIF‑Import, OTA) und in README/Tutorial/How‑To verlinkt. Quelle: `main.sketch`.
 

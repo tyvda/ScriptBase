@@ -56,3 +56,14 @@ Details zur Implementierung sind im Sketch dokumentiert.【F:esp32Hub75/main.ske
 ## Implementierungscheck (Sketch-Abgleich)
 
 Die How‑To‑Rezepte entsprechen den implementierten Endpoints, WebSocket‑Formaten und der Animation‑Pipeline im Sketch.【F:esp32Hub75/main.sketch†L62-L739】【F:esp32Hub75/main.sketch†L827-L862】
+
+## Hinweis: Preview‑Redraw
+
+Die UI nutzt einen Offscreen‑Buffer und `requestAnimationFrame`, damit das Pixel‑Preview zuverlässig vollständig neu gezeichnet wird.【F:esp32Hub75/main.sketch†L268-L309】
+
+## Ausblick (geplante Features)
+
+- **Pixelart Editor Load/Save**: JSON‑Import/Export direkt vom Nutzergerät.
+- **WLED‑ähnliche Animationen**: Matrix‑Kinofilm, Blink, Colorfading, Rainbow, Kaminfeuer – jeweils mit Parametern (z. B. Geschwindigkeit, Intensität, Farbpalette).
+
+Konkrete Umsetzungsschritte sind in `task.md` gesammelt.

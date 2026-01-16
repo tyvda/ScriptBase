@@ -182,6 +182,7 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 - **Clear/Fill**: Clear leert das Panel, Fill füllt mit der aktiven Farbe.【F:esp32Hub75/main.sketch†L352-L364】
 - **Reinit**: Neuinitialisiert das Panel‑GPIO‑Setup per `/api/reinit`.【F:esp32Hub75/main.sketch†L368-L369】【F:esp32Hub75/main.sketch†L822-L825】
 - **Gamma/Boost**: LUT‑basiert, beeinflusst Bilder & GIF‑Frames im Browser (Preview + Upload).【F:esp32Hub75/main.sketch†L151-L314】
+- **Preview‑Redraw**: Offscreen‑Buffer + `requestAnimationFrame` sorgen für robuste Voll‑Redraws des Pixel‑Previews im Browser.【F:esp32Hub75/main.sketch†L268-L309】
 
 ## Netzwerk‑API (HTTP + WebSocket)
 
@@ -272,6 +273,19 @@ Die Bewertung basiert auf der Architektur (FrameBuffer + RLE + WebSocket).【F:e
 - Animation Builder im UI.
 - MQTT / REST API.
 - Helligkeit per UI.
+
+## Zukünftige Features (geplant)
+
+- **Pixelart Editor: Load/Save beim User**  
+  Speichern und Laden eines Pixel‑Art‑JSONs direkt auf dem Client (lokale Datei vom Nutzergerät importieren/exportieren).
+- **Animationen wie WLED (mit Parametern)**  
+  - Matrix‑Kinofilm (z. B. Zeichen‑Streams, Fallgeschwindigkeit, Dichte).  
+  - Blink (z. B. Frequenz, Duty‑Cycle, Farben).  
+  - Colorfading (z. B. Geschwindigkeit, Palettenauswahl).  
+  - Rainbow (z. B. Scroll‑Speed, Sättigung, Helligkeit).  
+  - Kaminfeuer (z. B. Intensität, Flacker‑Rate, Wärme‑Gradient).
+
+Weiterführende Umsetzungsschritte stehen in `task.md`.
 
 ## Zusammenfassung
 
