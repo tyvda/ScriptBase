@@ -266,12 +266,51 @@ Die Bewertung basiert auf der Architektur (FrameBuffer + RLE + WebSocket).【F:e
 - MQTT / REST API.
 - OTA Update später wieder ergänzen.
 
+## Zukünftige Features (Roadmap)
+
+### Pixelart‑Editor: Load/Save auf Client
+
+- **Export**: Pixelart als JSON vom Browser herunterladen (Datei auf dem Client speichern).
+- **Import**: JSON vom Client laden und als Pixelart ins Canvas + Panel übertragen.
+
+### Animationen im Stil von WLED
+
+Geplant ist ein eigener Animations‑Bereich mit Parametern pro Effekt:
+
+- **Matrix Kino‑Film** (Digit‑Regen mit Trails): Parameter z. B. Geschwindigkeit, Dichte, Trail‑Länge, Farbpalette/Grün‑Tint.
+- **Blink**: Parameter z. B. Geschwindigkeit, Duty‑Cycle, Farbpalette, zufällige Startphasen.
+- **Colorfading**: Parameter z. B. Fade‑Speed, Farbpalette, Loop‑Modus.
+- **Rainbow**: Parameter z. B. Geschwindigkeit, Richtung, Sättigung/Intensität.
+- **Kaminfeuer**: Parameter z. B. Flammenhöhe, Glut‑Intensität, Flacker‑Stärke, Farbpalette.
+
 ## Taskliste (Nächste notwendige Aufgaben)
 
 Basierend auf den dokumentierten Einschränkungen und Optional‑Features ergeben sich folgende nächste Schritte:
 
 1. **Presets für Pixelart/Bilder**: Speichern/Laden in LittleFS integrieren (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L777-L805】
 2. **Animation‑Builder im UI**: Pixelart‑Frames erfassen und als Animation exportieren (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L90-L377】
+
+## Aufgaben zur Umsetzung (Roadmap‑Features)
+
+### Pixelart‑Editor: Load/Save auf Client
+
+1. **JSON‑Schema definieren**: 64×32 Pixel als Array (RGB888), Metadaten (Version, Breite/Höhe). Quelle: `README.md` (Roadmap), `main.sketch` (Framebuffer‑Format).
+2. **Export‑Button in UI**: Aktuelle Pixelart aus `pix[]` in JSON serialisieren und als Datei herunterladen. Quelle: `main.sketch` (UI/JS).
+3. **Import‑Flow in UI**: JSON vom Client laden, validieren (Größe/Version), Pixel ins Canvas schreiben und per `px`/`fill` ans Panel übertragen. Quelle: `main.sketch` (WebSocket `px`).
+4. **Fehlerhandling**: UI‑Meldungen bei ungültigem JSON/Format; optional Vorschau vor Senden. Quellen: `main.sketch` (UI/JS), `README.md`.
+
+### WLED‑ähnliche Animationen
+
+1. **Effekt‑Engine abstrahieren**: Basisklasse/Funktionspointer für Effekte (Frame‑Tick, Parameter). Quelle: `main.sketch` (loop/Framebuffer).
+2. **Matrix Kino‑Film**: Digit‑Regen mit Trails (Speed, Density, Trail‑Length, Palette). Quelle: `README.md` Roadmap.
+3. **Blink**: On/Off‑Pattern (Speed, Duty‑Cycle, Palette, Random Seed). Quelle: `README.md` Roadmap.
+4. **Colorfading**: Interpolation zwischen Farben (Fade‑Speed, Palette, Loop). Quelle: `README.md` Roadmap.
+5. **Rainbow**: HSV‑Sweep (Speed, Direction, Saturation/Intensity). Quelle: `README.md` Roadmap.
+6. **Kaminfeuer**: Heat‑Map/Convolution (Flame Height, Glow, Flicker, Palette). Quelle: `README.md` Roadmap.
+7. **UI‑Parametersteuerung**: Dropdown + Parameter‑Slider, live Update über WebSocket JSON. Quelle: `main.sketch` (WebSocket).
+8. **Persistenz optional**: Letzten Effekt/Parameter in LittleFS speichern (Nice‑to‑Have). Quelle: `main.sketch` (LittleFS).
+
+Weitere Details und die vollständige Aufgabenliste liegen in `tasks.md`.【F:esp32Hub75/tasks.md†L1-L99】
 
 ## Zusammenfassung
 
