@@ -138,6 +138,7 @@ a{color:#9bd7ff}
       <button id="clear">Clear</button>
       <button id="fill">Fill</button>
       <button id="reinit">Reinit</button>
+      <button id="redrawPanel">Redraw Panel</button>
     </div>
 
     <small>
@@ -455,7 +456,7 @@ a{color:#9bd7ff}
     sendJson({t:"clear"});
   };
 
-  canvas.addEventListener('dblclick', ()=>{ redrawPanelFromPix(); });
+  document.getElementById('redrawPanel').onclick=()=>{ redrawPanelFromPix(); };
 
   // ===== Aspect/Scale mapping =====
   function desiredAspectValue(sel) {

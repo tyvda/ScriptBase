@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-01-16 13:46:41 +0000
+- Panel-Redraw als Button umgesetzt (statt Doppelklick), sendet Pixelart per `px` erneut ans Panel. Quelle: `main.sketch`.
+- Dokumentation auf Button-Workflow aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-16 13:31:29 +0000
 - Panel-Redraw ergänzt: Pixelart-Canvas kann per Doppelklick vollständig via `px` neu an das Panel gesendet werden. Quelle: `main.sketch`.
 - Dokumentation für Panel-Redraw ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
