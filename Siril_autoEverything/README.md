@@ -1,5 +1,10 @@
 # Siril Auto-Everything (Deep-Sky)
 
+## Repo-Übersicht & Dokumentationsstruktur
+- **Dies ist die zentrale Projektbeschreibung.** Alle Inhaltsverweise aus dem Repository-Root zeigen hierher.
+- **Changelog:** Laufende Änderungen werden unter [`changelog.md`](changelog.md) geführt.
+- **Root-Hinweis:** Der Root-`README.md` verweist nur noch auf diesen Ordner, damit Dokumentation und Änderungsprotokoll gebündelt sind.
+
 ## Ziel
 Dieses Dokument sammelt die notwendigen Verarbeitungsschritte, um aus einem fertig gestackten FITS-Bild in Siril automatisch ein tiefensensitives, deepsky-optimiertes Ergebnis zu erzeugen. Der Fokus liegt auf linearem Input nach dem Stacking sowie einer robusten Qualitätskontrolle, damit ein Skript Parameter adaptiv anpassen kann.
 
