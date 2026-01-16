@@ -107,7 +107,44 @@ Die GIF‑Dekodierung nutzt `gifuct-js` via CDN.【F:esp32Hub75/main.sketch†L2
 
 Die im Tutorial beschriebenen Funktionen (HUB75‑Betrieb, Pixelart, Bild‑Upload, GIF‑Import) sind im aktuellen Sketch enthalten und können direkt über die Web‑UI und Endpoints genutzt werden.【F:esp32Hub75/main.sketch†L13-L862】
 
+## Zukünftige Features (Roadmap)
+
+### Pixelart‑Editor: Load/Save auf Client
+
+- **Export**: Pixelart als JSON vom Browser herunterladen (Datei auf dem Client speichern).
+- **Import**: JSON vom Client laden und als Pixelart ins Canvas + Panel übertragen.
+
+### Animationen im Stil von WLED
+
+- **Matrix Kino‑Film** (Digit‑Regen mit Trails): Parameter z. B. Geschwindigkeit, Dichte, Trail‑Länge, Farbpalette/Grün‑Tint.
+- **Blink**: Parameter z. B. Geschwindigkeit, Duty‑Cycle, Farbpalette, zufällige Startphasen.
+- **Colorfading**: Parameter z. B. Fade‑Speed, Farbpalette, Loop‑Modus.
+- **Rainbow**: Parameter z. B. Geschwindigkeit, Richtung, Sättigung/Intensität.
+- **Kaminfeuer**: Parameter z. B. Flammenhöhe, Glut‑Intensität, Flacker‑Stärke, Farbpalette.
+
 ## Taskliste (Nächste notwendige Aufgaben)
 
 1. **Presets für Inhalte** in LittleFS ablegen (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L777-L805】
 2. **Animation‑Builder** für Pixelart‑Sequenzen implementieren (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L90-L377】
+
+## Aufgaben zur Umsetzung (Roadmap‑Features)
+
+### Pixelart‑Editor: Load/Save auf Client
+
+1. **JSON‑Schema definieren**: 64×32 Pixel als Array (RGB888), Metadaten (Version, Breite/Höhe).
+2. **Export‑Button in UI**: Pixelart aus `pix[]` als JSON speichern und herunterladen.
+3. **Import‑Flow in UI**: JSON laden, validieren, Pixel ins Canvas schreiben und per `px` ans Panel senden.
+4. **Fehlerhandling**: UI‑Meldungen + optional Vorschau.
+
+### WLED‑ähnliche Animationen
+
+1. **Effekt‑Engine abstrahieren** (Frame‑Tick, Parameter).
+2. **Matrix Kino‑Film**: Digit‑Regen mit Trails (Speed, Density, Trail‑Length, Palette).
+3. **Blink**: On/Off‑Pattern (Speed, Duty‑Cycle, Palette, Random Seed).
+4. **Colorfading**: Interpolation (Fade‑Speed, Palette, Loop).
+5. **Rainbow**: HSV‑Sweep (Speed, Direction, Saturation/Intensity).
+6. **Kaminfeuer**: Heat‑Map/Convolution (Flame Height, Glow, Flicker, Palette).
+7. **UI‑Parametersteuerung**: Dropdown + Slider, Live‑Update via WebSocket JSON.
+8. **Persistenz optional**: Letzten Effekt/Parameter in LittleFS speichern.
+
+Die vollständige Aufgabenliste steht in `tasks.md`.【F:esp32Hub75/tasks.md†L1-L99】

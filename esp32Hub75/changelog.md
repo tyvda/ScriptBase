@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-01-16 15:14:43 +0000
+- Aufgaben-Backlog als `tasks.md` ergänzt und Querverweise in README/How‑To/Tutorial gesetzt. Quellen: `tasks.md`, `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-01-16 14:50:54 +0000
+- Aufgaben zur Umsetzung der Roadmap ergänzt (Pixelart JSON Load/Save, WLED‑ähnliche Animationen inkl. UI/Parameter‑Schritten). Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-01-16 14:43:40 +0000
+- Roadmap für zukünftige Features ergänzt (Pixelart JSON Load/Save, WLED‑ähnliche Animationen mit Parametern). Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-16 13:46:41 +0000
 - Panel-Redraw als Button umgesetzt (statt Doppelklick), sendet Pixelart per `px` erneut ans Panel. Quelle: `main.sketch`.
 - Dokumentation auf Button-Workflow aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
