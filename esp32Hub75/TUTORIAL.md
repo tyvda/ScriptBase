@@ -71,6 +71,8 @@ Im Browser:
 
 Die UI wird vom ESP32 ausgeliefert.【F:esp32Hub75/main.sketch†L815-L818】
 
+Falls der WebSocket‑Status in der UI auf „connecting…“ stehen bleibt, Browser‑Konsole prüfen und ggf. Cache leeren oder die aktuelle Firmware erneut flashen.【F:esp32Hub75/main.sketch†L242-L536】
+
 ## 7) Pixel‑Zeichnen
 
 - Linksklick malt mit Farbe.

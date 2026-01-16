@@ -21,6 +21,10 @@ Der Sketch akzeptiert binäre Frames mit folgendem Format:
 
 Beim Empfang wird der Frame direkt in den Framebuffer kopiert und gerendert.【F:esp32Hub75/main.sketch†L62-L65】【F:esp32Hub75/main.sketch†L693-L707】
 
+## WebSocket‑Status prüfen
+
+In der UI zeigt der Status‑Pill „WS: connecting…/connected“. Falls er dauerhaft auf „connecting…“ bleibt, Browser‑Konsole prüfen und sicherstellen, dass die aktuellste Sketch‑Version geladen wird (Cache leeren, neu flashen).【F:esp32Hub75/main.sketch†L242-L536】
+
 ## Einzelpixel setzen (JSON)
 
 Einzelpixel kannst du via JSON‑Nachricht auf `/ws` senden:

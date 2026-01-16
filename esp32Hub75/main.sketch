@@ -663,10 +663,10 @@ a{color:#9bd7ff}
         const tctx=tmp.getContext('2d',{willReadFrequently:true});
         tctx.putImageData(imgData,0,0);
 
-        const imgData = mapImageTo64x32(tmp, tmp.width, tmp.height, srcAspectGif, scaleModeGif);
-        const rgba64 = imgData.data;
+        const mappedData = mapImageTo64x32(tmp, tmp.width, tmp.height, srcAspectGif, scaleModeGif);
+        const rgba64 = mappedData.data;
 
-        if(i===frameCount-1){ buildFramePayload(imgData); }
+        if(i===frameCount-1){ buildFramePayload(mappedData); }
 
         chunks.push(frameRGBAtoRecord(rgba64, delayMs));
         prog.value=Math.round(5 + ((i+1)/frameCount)*85);

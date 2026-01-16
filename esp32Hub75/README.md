@@ -288,6 +288,7 @@ Das Projekt ist produktionsreif für Installationen, Art‑Displays, Prototyping
 ## Troubleshooting
 
 - **Keine Verbindung zur UI**: Prüfe die serielle Ausgabe (IP) und rufe `http://<ip>/` auf.【F:esp32Hub75/main.sketch†L797-L805】【F:esp32Hub75/main.sketch†L815-L818】
+- **WebSocket bleibt auf „connecting…“**: Browser‑Konsole prüfen und sicherstellen, dass die UI ohne JavaScript‑Fehler lädt (aktuelle `main.sketch`‑Version flashen, Cache leeren).【F:esp32Hub75/main.sketch†L242-L536】
 - **GIF Upload scheitert**: Browser lädt `gifuct-js` über CDN; ohne Internet schlägt das Laden fehl.【F:esp32Hub75/main.sketch†L522-L536】
 
 ## Dateien
