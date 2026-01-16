@@ -90,7 +90,7 @@ body{font-family:system-ui,Arial;margin:0;background:#111;color:#eee}
 header{padding:12px 16px;background:#1b1b1b;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .pill{background:#2a2a2a;padding:6px 10px;border-radius:999px;font-size:14px;border:1px solid #444}
 #wrap{display:flex;gap:16px;flex-wrap:wrap;padding:16px}
-canvas{image-rendering:pixelated;background:#000;border:1px solid #333;border-radius:10px}
+canvas{image-rendering:pixelated;background:#000;border:1px solid #333;border-radius:10px;background-image:linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px);background-size:12px 12px}
 .panel{background:#1b1b1b;border:1px solid #333;border-radius:12px;padding:12px;min-width:460px;max-width:560px}
 button{background:#2a2a2a;color:#eee;border:1px solid #444;border-radius:10px;padding:10px 12px;cursor:pointer}
 button:hover{border-color:#666}
@@ -116,7 +116,6 @@ a{color:#9bd7ff}
   <div class="pill">WS: <span id="status">connecting…</span></div>
   <div class="pill">Host: <span id="host"></span></div>
   <div class="pill"><span class="badge">Panel: 64×32 (2:1)</span></div>
-  <div class="pill"><a href="/update">OTA Update</a></div>
 </header>
 
 <div id="wrap">
@@ -348,8 +347,10 @@ a{color:#9bd7ff}
 
   function evtToXY(e){
     const r=canvas.getBoundingClientRect();
-    const x=Math.floor((e.clientX - r.left)/SCALE);
-    const y=Math.floor((e.clientY - r.top)/SCALE);
+    const scaleX = canvas.width / r.width;
+    const scaleY = canvas.height / r.height;
+    const x=Math.floor((e.clientX - r.left) * scaleX / SCALE);
+    const y=Math.floor((e.clientY - r.top) * scaleY / SCALE);
     if(x<0||x>=W||y<0||y>=H) return null;
     return {x,y};
   }
@@ -381,13 +382,19 @@ a{color:#9bd7ff}
     paintBrushAt(p.x,p.y,col);
   }
 
-  canvas.addEventListener('mousedown', e=>{
+  canvas.addEventListener('pointerdown', e=>{
     drawing=true;
     erase = (e.button===2);
+    canvas.setPointerCapture(e.pointerId);
     paint(e);
   });
-  window.addEventListener('mouseup', ()=>{ drawing=false; erase=false; });
-  canvas.addEventListener('mousemove', e=>{ if(drawing) paint(e); });
+  canvas.addEventListener('pointerup', e=>{
+    drawing=false;
+    erase=false;
+    canvas.releasePointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointercancel', ()=>{ drawing=false; erase=false; });
+  canvas.addEventListener('pointermove', e=>{ if(drawing) paint(e); });
 
   document.getElementById('clear').onclick=()=>{
     pix.fill(0); redraw();

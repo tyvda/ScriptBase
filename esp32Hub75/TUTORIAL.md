@@ -77,6 +77,7 @@ Die UI wird vom ESP32 ausgeliefert.【F:esp32Hub75/main.sketch†L815-L818】
 - Rechtsklick löscht (schwarz).
 - Brush‑Größe 1×1 bis 4×4.
 - `Clear` leert das Panel, `Fill` füllt alles mit der aktuellen Farbe.【F:esp32Hub75/main.sketch†L90-L365】
+- Das Canvas zeigt ein feines Grid zur optischen Pixeltrennung.【F:esp32Hub75/main.sketch†L92-L105】
 
 ## 7.1) Helligkeit einstellen
 

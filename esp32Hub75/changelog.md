@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-01-16 09:47:16 +0000
+- OTA-Link aus UI-Header entfernt, passend zur deaktivierten OTA-Funktion. Quelle: `main.sketch`.
+
+## 2026-01-16 09:44:35 +0000
+- Canvas-Input korrigiert (Pointer-Events + korrekte Skalierung) und Grid zur Pixeltrennung ergänzt. Quellen: `main.sketch`, `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-16 09:19:45 +0000
 - Full-Frame-Upload sendet Uint8Array statt ArrayBuffer, um partielle Panel-Updates zu vermeiden. Quelle: `main.sketch`.
 

@@ -6,6 +6,8 @@ Dieses Dokument sammelt kurze Rezepte für typische Aufgaben mit dem Sketch in `
 
 Der ESP32 stellt lokal eine Web‑UI, Upload‑Workflows für Bilder/GIFs sowie eine Animation‑Engine bereit und steuert das HUB75‑Panel direkt per I2S DMA – ohne externe Server.【F:esp32Hub75/main.sketch†L1-L904】
 
+Hinweis: Die Web‑UI zeigt ein feines Canvas‑Grid, damit einzelne Pixel besser sichtbar sind.【F:esp32Hub75/main.sketch†L92-L105】
+
 ## Panel neu initialisieren (Reinit)
 
 Die Web‑UI löst `/api/reinit` aus und initialisiert das Panel neu. Das kann hilfreich sein, wenn das Panel beim Booten nicht korrekt gestartet ist.【F:esp32Hub75/main.sketch†L368-L369】【F:esp32Hub75/main.sketch†L820-L825】
