@@ -109,4 +109,4 @@ Die im Tutorial beschriebenen Funktionen (HUB75‑Betrieb, Pixelart, Bild‑Uplo
 - **Pixelart Editor Load/Save**: JSON‑Import/Export direkt vom Nutzergerät.
 - **WLED‑ähnliche Animationen**: Matrix‑Kinofilm, Blink, Colorfading, Rainbow, Kaminfeuer – jeweils mit Parametern (z. B. Geschwindigkeit, Intensität, Farbpalette).
 
-Siehe `task.md` für die detaillierten Umsetzungsschritte.
+Siehe `task.md` für die detaillierten Umsetzungsschritte (inkl. „Nächste Aufgaben“).

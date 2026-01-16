@@ -285,7 +285,7 @@ Die Bewertung basiert auf der Architektur (FrameBuffer + RLE + WebSocket).【F:e
   - Rainbow (z. B. Scroll‑Speed, Sättigung, Helligkeit).  
   - Kaminfeuer (z. B. Intensität, Flacker‑Rate, Wärme‑Gradient).
 
-Weiterführende Umsetzungsschritte stehen in `task.md`.
+Weiterführende Umsetzungsschritte stehen in `task.md` (inkl. Abschnitt „Nächste Aufgaben“).
 
 ## Zusammenfassung
 

@@ -66,4 +66,4 @@ Die UI nutzt Line‑Scanning per Offscreen‑Buffer und `requestAnimationFrame`,
 - **Pixelart Editor Load/Save**: JSON‑Import/Export direkt vom Nutzergerät.
 - **WLED‑ähnliche Animationen**: Matrix‑Kinofilm, Blink, Colorfading, Rainbow, Kaminfeuer – jeweils mit Parametern (z. B. Geschwindigkeit, Intensität, Farbpalette).
 
-Konkrete Umsetzungsschritte sind in `task.md` gesammelt.
+Konkrete Umsetzungsschritte sind in `task.md` gesammelt (inkl. „Nächste Aufgaben“).

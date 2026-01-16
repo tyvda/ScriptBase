@@ -2,6 +2,13 @@
 
 Diese Tasks beschreiben die geplanten Features für den Pixelart‑Editor (JSON Load/Save) sowie WLED‑ähnliche Animationen. Die Umsetzungsschritte sind so strukturiert, dass die Änderungen nachvollziehbar in Code, UI und Dokumentation abgebildet werden können.
 
+## Nächste Aufgaben (Priorität)
+
+1. **JSON‑Schema festlegen** (Canvas‑State + Metadaten) und Beispiel‑Payload definieren.
+2. **UI‑Import/Export**: File‑Picker + Download‑Button in der Web‑UI skizzieren.
+3. **Animations‑API entwerfen**: JSON‑Message‑Format + Parameter‑Defaults für erste Effekte.
+4. **Dokumentations‑Check**: README/How‑To/Tutorial auf geplante UX‑Flows abstimmen.
+
 ## A) Pixelart‑Editor: JSON Load/Save (Client‑seitig)
 
 1. **Datenmodell definieren**

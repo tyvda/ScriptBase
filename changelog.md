@@ -1,3 +1,6 @@
+2026-01-16 17:05:43 UTC
+- esp32Hub75 task.md um "Nächste Aufgaben" ergänzt und Doku-Verweise aktualisiert.
+
 2026-01-16 14:34:43 UTC
 - esp32Hub75 Preview-Redraw als Line-Scanning umgesetzt und Doku-Hinweise angepasst.
 
