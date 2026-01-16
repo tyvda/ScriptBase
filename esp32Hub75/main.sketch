@@ -480,10 +480,11 @@ a{color:#9bd7ff}
     return out;
   }
 
-  function sendFrameBinary(buf){
+  function sendFrameBinary(frame){
     if(!ws || ws.readyState!==1) { alert("WebSocket not connected"); return; }
     sendJson({t:"stop"});
-    ws.send(buf);
+    const payload = frame instanceof ArrayBuffer ? new Uint8Array(frame) : frame;
+    ws.send(payload);
   }
 
   // ===== Image workflow =====
@@ -520,7 +521,7 @@ a{color:#9bd7ff}
   document.getElementById('sendImg').onclick = async ()=>{
     if(!imgEl) return alert("Choose an image first.");
     const frame = lastImageFrame || buildImageFrame();
-    sendFrameBinary(frame.buffer);
+    sendFrameBinary(frame);
   };
 
   // ===== GIF: build anim.bin (RLE RGB565) =====

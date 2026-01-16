@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-01-16 09:19:45 +0000
+- Full-Frame-Upload sendet Uint8Array statt ArrayBuffer, um partielle Panel-Updates zu vermeiden. Quelle: `main.sketch`.
+
 ## 2026-01-16 09:07:18 +0000
 - WebSocket-Variable im UI auf `var` umgestellt, um TDZ-Fehler bei früher Nutzung zu vermeiden. Quelle: `main.sketch`.
 
