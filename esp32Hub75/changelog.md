@@ -1,5 +1,65 @@
 # Changelog
 
+## 2026-01-16 13:46:41 +0000
+- Panel-Redraw als Button umgesetzt (statt Doppelklick), sendet Pixelart per `px` erneut ans Panel. Quelle: `main.sketch`.
+- Dokumentation auf Button-Workflow aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-01-16 13:31:29 +0000
+- Panel-Redraw ergänzt: Pixelart-Canvas kann per Doppelklick vollständig via `px` neu an das Panel gesendet werden. Quelle: `main.sketch`.
+- Dokumentation für Panel-Redraw ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-01-16 12:48:57 +0000
+- Bild-Upload nutzt Pixelart-Mechanik (Image → Canvas → 64×32 → `px` Updates) für robuste Projektion. Quelle: `main.sketch`.
+- Reinit leert Canvas und Panel über `clear`, damit Pixelart nach Neustart zuverlässig funktioniert. Quelle: `main.sketch`.
+- Dokumentation für Bild-Upload/Pixelart-Reinit angepasst. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-01-16 12:36:23 +0000
+- Bild-Upload Pipeline an GIF-Workflow angeglichen (Image → Canvas → Mapping) für korrektes 64×32-Projizieren. Quelle: `main.sketch`.
+- Dokumentation für Bild-Mapping aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-01-16 10:50:39 +0000
+- GIF-Mapping-Variable umbenannt, um JavaScript-Syntaxfehler zu vermeiden, der das WebSocket-Setup blockieren konnte. Quelle: `main.sketch`.
+- Troubleshooting für WebSocket-Status ergänzt (connecting bleibt stehen) in den MD-Dokumenten. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-01-16 10:10:01 +0000
+- Full-Frame-Upload sendet exakt das Uint8Array-Slice, um abgeschnittene Bildübertragung zu vermeiden. Quelle: `main.sketch`.
+
+## 2026-01-16 10:00:55 +0000
+- Farbpalette ergänzt und Canvas auf 64×32 intern fixiert, nur optisch skaliert (korrektes 1:1 Mapping). Quellen: `main.sketch`, `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-01-16 09:47:16 +0000
+- OTA-Link aus UI-Header entfernt, passend zur deaktivierten OTA-Funktion. Quelle: `main.sketch`.
+
+## 2026-01-16 09:44:35 +0000
+- Canvas-Input korrigiert (Pointer-Events + korrekte Skalierung) und Grid zur Pixeltrennung ergänzt. Quellen: `main.sketch`, `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-01-16 09:19:45 +0000
+- Full-Frame-Upload sendet Uint8Array statt ArrayBuffer, um partielle Panel-Updates zu vermeiden. Quelle: `main.sketch`.
+
+## 2026-01-16 09:07:18 +0000
+- WebSocket-Variable im UI auf `var` umgestellt, um TDZ-Fehler bei früher Nutzung zu vermeiden. Quelle: `main.sketch`.
+
+## 2026-01-16 08:57:05 +0000
+- WebSocket-Init im UI vor Helligkeits-Events verschoben, um JS-ReferenceError zu vermeiden. Quelle: `main.sketch`.
+
+## 2026-01-16 08:34:42 +0000
+- OTA entfernt (ElegantOTA inkl. Endpoint), Dokumentation bereinigt und als spätere Erweiterung markiert. Quellen: `main.sketch`, `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-01-16 08:18:21 +0000
+- OTA Auth wieder entfernt, um ElegantOTA 3.1.7 Linker-Error zu vermeiden (zurück auf begin ohne Credentials). Quellen: `main.sketch`, `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-01-16 08:14:19 +0000
+- OTA Auth ergänzt, damit ElegantOTA 3.1.7 mit Login kompiliert (OTA_USER/OTA_PASS, begin mit Credentials). Quellen: `main.sketch`, `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-01-16 07:49:10 +0000
+- Helligkeitssteuerung im Sketch ergänzt (UI‑Regler, WebSocket `bright`, `setBrightness8`). Quellen: `main.sketch`, `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-01-16 07:46:26 +0000
+- Taskliste in README, Tutorial und How‑To angepasst (CDN‑GIF‑Lib bleibt, Multi‑Panel verschoben; Fokus auf Helligkeit, Presets, Animation‑Builder). Quellen: `README.md`, `TUTORIAL.md`, `HOWTO.md`.
+
+## 2026-01-16 07:42:08 +0000
+- Taskliste mit nächsten notwendigen Aufgaben in README, Tutorial und How‑To ergänzt (GIF‑Library lokal, Helligkeit, Presets, Multi‑Panel, Animation‑Builder). Quellen: `README.md`, `TUTORIAL.md`, `HOWTO.md`.
+
 ## 2026-01-16 07:37:49 +0000
 - Implementierungscheck ergänzt (HUB75, Pixelart, Bild‑Upload, GIF‑Import, OTA) und in README/Tutorial/How‑To verlinkt. Quelle: `main.sketch`.
 

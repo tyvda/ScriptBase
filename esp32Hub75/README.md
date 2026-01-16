@@ -4,7 +4,7 @@ Diese Dokumentation beschreibt den Sketch in `main.sketch` für ein ESP32‑Boar
 
 ## Überblick
 
-Dieses Projekt ist ein standalone LED‑Matrix‑Controller für ein HUB75‑Panel (64×32, 1/16 Scan) auf Basis eines ESP32. Es bietet eine lokal gehostete Web‑Oberfläche (ohne Cloud‑Abhängigkeit), einen Pixelart‑Editor, Bild‑Upload & Skalierung, GIF‑Import & Animation sowie OTA‑Updates und steuert das Panel direkt per I2S DMA.【F:esp32Hub75/main.sketch†L1-L904】
+Dieses Projekt ist ein standalone LED‑Matrix‑Controller für ein HUB75‑Panel (64×32, 1/16 Scan) auf Basis eines ESP32. Es bietet eine lokal gehostete Web‑Oberfläche (ohne Cloud‑Abhängigkeit), einen Pixelart‑Editor, Bild‑Upload & Skalierung, GIF‑Import & Animation und steuert das Panel direkt per I2S DMA.【F:esp32Hub75/main.sketch†L1-L904】
 
 Kein Cloud‑Zwang, kein WLED, kein externer Server.
 
@@ -14,7 +14,7 @@ Kein Cloud‑Zwang, kein WLED, kein externer Server.
 - Bild‑Upload (PNG/JPG/WebP) mit Aspect‑Mapping (Auto/4:3/16:9) und Cover/Contain‑Scaling.【F:esp32Hub75/main.sketch†L142-L454】
 - GIF‑Upload inkl. browserseitiger Dekodierung und RLE‑Kompression für schnelle Wiedergabe am ESP32.【F:esp32Hub75/main.sketch†L222-L612】
 - WebSocket‑Streaming von Full‑Frames (RGB565) und Einzelpixel‑Updates (JSON).【F:esp32Hub75/main.sketch†L318-L760】
-- OTA‑Update über ElegantOTA (async).【F:esp32Hub75/main.sketch†L9-L860】
+- Helligkeitssteuerung im UI (WebSocket, `setBrightness8`).【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
 
 ## Implementierungscheck (Sketch-Abgleich)
 
@@ -22,15 +22,14 @@ Folgende Kernfunktionen sind im aktuellen `main.sketch` implementiert und damit 
 
 - **HUB75 Panel‑Betrieb** über `ESP32-HUB75-MatrixPanel-I2S-DMA`, inklusive GPIO‑Mapping und I2S‑DMA‑Init.【F:esp32Hub75/main.sketch†L13-L166】
 - **Pixelart Editor** mit Web‑UI, Brush‑Größe, Clear/Fill und Einzelpixel‑Updates über WebSocket JSON (`t:"px"`).【F:esp32Hub75/main.sketch†L90-L377】【F:esp32Hub75/main.sketch†L712-L735】
-- **Bild‑Upload (PNG/JPG/WebP)** inkl. Mapping, Skalierung und RGB565‑Frame‑Upload per WebSocket Binary.【F:esp32Hub75/main.sketch†L142-L512】【F:esp32Hub75/main.sketch†L693-L707】
+- **Bild‑Upload (PNG/JPG/WebP)** inkl. Mapping, Skalierung und Pixel‑Updates über die robuste Pixelart‑Pipeline (WebSocket JSON).【F:esp32Hub75/main.sketch†L142-L581】【F:esp32Hub75/main.sketch†L712-L726】
 - **GIF‑Import & Animation** mit Browser‑Decode (`gifuct-js`), RLE‑Encoding, Upload nach LittleFS und Player auf ESP32.【F:esp32Hub75/main.sketch†L222-L689】【F:esp32Hub75/main.sketch†L827-L855】
-- **OTA‑Update** via ElegantOTA (`/update`).【F:esp32Hub75/main.sketch†L9-L862】
 
 ## Product Requirements Document (PRD)
 
 ### Ziel
 
-Ein flexibles, lokales, browserbasiertes System zur Anzeige von Pixelart, statischen Bildern und animierten GIFs auf einer HUB75 LED‑Matrix. Die Umsetzung ist im Sketch enthalten (Web‑UI, Uploads, Animationen, OTA).【F:esp32Hub75/main.sketch†L67-L904】
+Ein flexibles, lokales, browserbasiertes System zur Anzeige von Pixelart, statischen Bildern und animierten GIFs auf einer HUB75 LED‑Matrix. Die Umsetzung ist im Sketch enthalten (Web‑UI, Uploads, Animationen).【F:esp32Hub75/main.sketch†L67-L904】
 
 ### Zielplattform
 
@@ -54,7 +53,6 @@ Ein flexibles, lokales, browserbasiertes System zur Anzeige von Pixelart, statis
 | Aspect Handling | Auto / 4:3 / 16:9 |
 | Skalierung | Cover (Crop) / Contain (Letterbox) |
 | Animation | Play / Stop / Loop |
-| OTA Update | Firmware Upload im Browser |
 | mDNS | Zugriff über `hub75.local` |
 | Offlinefähig | Kein Internet nötig (außer CDN GIF Lib) |
 
@@ -62,7 +60,6 @@ Die Feature‑Implementierungen sind im Sketch sichtbar (Web‑UI, Gamma/Boost, 
 
 ### Nice‑to‑Have (Optional)
 
-- Helligkeitssteuerung im UI.
 - Presets.
 - Animationen aus Pixelart.
 - Multi‑Panel Support.
@@ -79,7 +76,6 @@ Browser
 ESP32
  ├─ AsyncWebServer
  ├─ WebSocket Server
- ├─ OTA Endpoint
  ├─ LittleFS
  ├─ Framebuffer (RGB565)
  └─ HUB75 DMA Driver
@@ -94,7 +90,6 @@ Die konkreten Komponenten (AsyncWebServer, WebSocket, LittleFS, Framebuffer, HUB
 - `WiFi.h`, `ESPmDNS.h`, `LittleFS.h` (ESP32 Core).【F:esp32Hub75/main.sketch†L1-L3】
 - `AsyncTCP.h`, `ESPAsyncWebServer.h` (Async Webserver).【F:esp32Hub75/main.sketch†L5-L6】
 - `ArduinoJson.h` (JSON im WebSocket).【F:esp32Hub75/main.sketch†L7-L7】
-- `ElegantOTA.h` (OTA).【F:esp32Hub75/main.sketch†L10-L11】
 - `ESP32-HUB75-MatrixPanel-I2S-DMA.h` (Panel‑Treiber).【F:esp32Hub75/main.sketch†L13-L13】
 
 ## Schnellstart
@@ -179,9 +174,15 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 ## Web‑UI & Bedienung
 
 - **Pixel‑Zeichnen**: Linksklick malt, Rechtsklick löscht (schwarz). Brush‑Größe ist 1×1 bis 4×4.【F:esp32Hub75/main.sketch†L90-L365】
+- **Farbpalette**: Schnellwahl‑Palette setzt die aktive Zeichenfarbe.【F:esp32Hub75/main.sketch†L120-L425】
+- **Canvas‑Grid**: feine Linien trennen Pixel optisch, damit jedes Pixel klar erkennbar ist.【F:esp32Hub75/main.sketch†L92-L105】
+- **Canvas‑Mapping**: interne Auflösung 64×32, visuell skaliert ohne Versatz.【F:esp32Hub75/main.sketch†L243-L356】
 - **Clear/Fill**: Clear leert das Panel, Fill füllt mit der aktiven Farbe.【F:esp32Hub75/main.sketch†L352-L364】
 - **Reinit**: Neuinitialisiert das Panel‑GPIO‑Setup per `/api/reinit`.【F:esp32Hub75/main.sketch†L368-L369】【F:esp32Hub75/main.sketch†L822-L825】
 - **Gamma/Boost**: LUT‑basiert, beeinflusst Bilder & GIF‑Frames im Browser (Preview + Upload).【F:esp32Hub75/main.sketch†L151-L314】
+- **Brightness**: UI‑Regler steuert die Panel‑Helligkeit (WebSocket `bright`).【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
+- **Bild‑Mapping**: Bild‑Upload folgt derselben Canvas‑Mapping‑Pipeline wie GIFs (Image → Canvas → 64×32) und zeichnet danach via Pixel‑Updates. 【F:esp32Hub75/main.sketch†L535-L590】
+- **Panel‑Redraw**: Button „Redraw Panel“ sendet die aktuelle Pixelart erneut ans Panel. 【F:esp32Hub75/main.sketch†L69-L456】
 
 ## Netzwerk‑API (HTTP + WebSocket)
 
@@ -193,7 +194,6 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 - `GET /api/anim/play` → Animation starten (aus `anim.bin`).【F:esp32Hub75/main.sketch†L841-L848】
 - `GET /api/anim/stop` → Animation stoppen.【F:esp32Hub75/main.sketch†L850-L854】
 - `GET /ping` → Healthcheck (`pong`).【F:esp32Hub75/main.sketch†L856-L858】
-- `GET /update` → OTA‑Update (ElegantOTA).【F:esp32Hub75/main.sketch†L860-L862】
 
 ### WebSocket `/ws`
 
@@ -203,6 +203,7 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
   - `{"t":"clear"}` – Display löschen.【F:esp32Hub75/main.sketch†L727-L730】
   - `{"t":"fill","c":0xRRGGBB}` – Fill‑Farbe setzen.【F:esp32Hub75/main.sketch†L731-L735】
   - `{"t":"stop"}` – Animation stoppen.【F:esp32Hub75/main.sketch†L736-L739】
+  - `{"t":"bright","v":128}` – Helligkeit (5–255) setzen.【F:esp32Hub75/main.sketch†L736-L768】
 
 ## Animationen (anim.bin)
 
@@ -230,14 +231,6 @@ Pro Frame:
 3. RLE‑Payload (`count` + `color` als uint16 LE)
 
 Der ESP32 dekodiert `rleLen` Bytes in ein RGB565‑Framebuffer‑Array und rendert es direkt auf das Panel.【F:esp32Hub75/main.sketch†L645-L689】
-
-## OTA Update
-
-- `http://hub75.local/update` oder `http://<IP>/update`.
-- `.bin` hochladen → Flash → Auto‑Reboot.
-- Kein Login, lokal erreichbar.
-
-ElegantOTA ist im Sketch aktiviert.【F:esp32Hub75/main.sketch†L860-L897】
 
 ## Netzwerk & mDNS
 
@@ -271,14 +264,20 @@ Die Bewertung basiert auf der Architektur (FrameBuffer + RLE + WebSocket).【F:e
 - Presets speichern.
 - Animation Builder im UI.
 - MQTT / REST API.
-- Helligkeit per UI.
+- OTA Update später wieder ergänzen.
+
+## Taskliste (Nächste notwendige Aufgaben)
+
+Basierend auf den dokumentierten Einschränkungen und Optional‑Features ergeben sich folgende nächste Schritte:
+
+1. **Presets für Pixelart/Bilder**: Speichern/Laden in LittleFS integrieren (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L777-L805】
+2. **Animation‑Builder im UI**: Pixelart‑Frames erfassen und als Animation exportieren (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L90-L377】
 
 ## Zusammenfassung
 
 ✔ Vollständiges lokales System
 ✔ Kein externer Server nötig
 ✔ Browser als Editor
-✔ OTA Updates
 ✔ Sauberer DMA‑Betrieb
 
 Das Projekt ist produktionsreif für Installationen, Art‑Displays, Prototyping und Embedded‑Visuals.
@@ -291,6 +290,7 @@ Das Projekt ist produktionsreif für Installationen, Art‑Displays, Prototyping
 ## Troubleshooting
 
 - **Keine Verbindung zur UI**: Prüfe die serielle Ausgabe (IP) und rufe `http://<ip>/` auf.【F:esp32Hub75/main.sketch†L797-L805】【F:esp32Hub75/main.sketch†L815-L818】
+- **WebSocket bleibt auf „connecting…“**: Browser‑Konsole prüfen und sicherstellen, dass die UI ohne JavaScript‑Fehler lädt (aktuelle `main.sketch`‑Version flashen, Cache leeren).【F:esp32Hub75/main.sketch†L242-L536】
 - **GIF Upload scheitert**: Browser lädt `gifuct-js` über CDN; ohne Internet schlägt das Laden fehl.【F:esp32Hub75/main.sketch†L522-L536】
 
 ## Dateien

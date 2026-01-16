@@ -6,10 +6,6 @@
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 
-// ElegantOTA (async mode)
-#define ELEGANTOTA_USE_ASYNC_WEBSERVER 1
-#include <ElegantOTA.h>
-
 #include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
 
 // =====================
@@ -48,6 +44,7 @@ static const HubPins basePins{};
 // =====================
 MatrixPanel_I2S_DMA* dma_display = nullptr;
 static uint16_t fb[PANEL_RES_X * PANEL_RES_Y];
+static uint8_t panelBrightness = 40;
 
 // =====================
 // WEB
@@ -93,7 +90,9 @@ body{font-family:system-ui,Arial;margin:0;background:#111;color:#eee}
 header{padding:12px 16px;background:#1b1b1b;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .pill{background:#2a2a2a;padding:6px 10px;border-radius:999px;font-size:14px;border:1px solid #444}
 #wrap{display:flex;gap:16px;flex-wrap:wrap;padding:16px}
-canvas{image-rendering:pixelated;background:#000;border:1px solid #333;border-radius:10px}
+canvas{image-rendering:pixelated;background:#000;border:1px solid #333;border-radius:10px;background-image:linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px);background-size:12px 12px}
+.swatch{width:22px;height:22px;border-radius:6px;border:1px solid #555;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(0,0,0,0.4)}
+.swatch.selected{outline:2px solid #9bd7ff;outline-offset:1px}
 .panel{background:#1b1b1b;border:1px solid #333;border-radius:12px;padding:12px;min-width:460px;max-width:560px}
 button{background:#2a2a2a;color:#eee;border:1px solid #444;border-radius:10px;padding:10px 12px;cursor:pointer}
 button:hover{border-color:#666}
@@ -119,7 +118,6 @@ a{color:#9bd7ff}
   <div class="pill">WS: <span id="status">connecting…</span></div>
   <div class="pill">Host: <span id="host"></span></div>
   <div class="pill"><span class="badge">Panel: 64×32 (2:1)</span></div>
-  <div class="pill"><a href="/update">OTA Update</a></div>
 </header>
 
 <div id="wrap">
@@ -129,6 +127,7 @@ a{color:#9bd7ff}
     <div class="row">
       <label>Color</label>
       <input id="col" type="color" value="#ffcc00">
+      <div id="palette" class="row" style="margin:0"></div>
       <label>Brush</label>
       <select id="brush">
         <option value="1" selected>1×1</option>
@@ -139,6 +138,7 @@ a{color:#9bd7ff}
       <button id="clear">Clear</button>
       <button id="fill">Fill</button>
       <button id="reinit">Reinit</button>
+      <button id="redrawPanel">Redraw Panel</button>
     </div>
 
     <small>
@@ -163,6 +163,12 @@ a{color:#9bd7ff}
         <label>Boost</label>
         <input id="boost" type="range" min="50" max="200" value="110">
         <span class="val" id="boostVal">1.10</span>
+      </div>
+
+      <div class="row">
+        <label>Brightness</label>
+        <input id="brightness" type="range" min="5" max="255" value="40">
+        <span class="val" id="brightnessVal">40</span>
       </div>
 
       <small>
@@ -237,10 +243,13 @@ a{color:#9bd7ff}
 (() => {
   if (location.protocol === "https:") { location.href = "http://" + location.host + location.pathname; return; }
 
-  const W=64,H=32,SCALE=12;
+  const W=64,H=32,DISPLAY_SCALE=12;
   const canvas=document.getElementById('c');
   const ctx=canvas.getContext('2d');
-  canvas.width=W*SCALE; canvas.height=H*SCALE;
+  canvas.width=W; canvas.height=H;
+  canvas.style.width = `${W*DISPLAY_SCALE}px`;
+  canvas.style.height = `${H*DISPLAY_SCALE}px`;
+  canvas.style.backgroundSize = `${DISPLAY_SCALE}px ${DISPLAY_SCALE}px`;
 
   const host=location.host;
   document.getElementById('host').textContent=host;
@@ -260,8 +269,27 @@ a{color:#9bd7ff}
   const boostEl=document.getElementById('boost');
   const gammaVal=document.getElementById('gammaVal');
   const boostVal=document.getElementById('boostVal');
+  const brightnessEl=document.getElementById('brightness');
+  const brightnessVal=document.getElementById('brightnessVal');
 
   const brushSel=document.getElementById('brush');
+  const paletteEl=document.getElementById('palette');
+  const colInput=document.getElementById('col');
+
+  // ---- WebSocket
+  var ws;
+  function connect(){
+    ws = new WebSocket(`ws://${host}/ws`);
+    ws.binaryType = "arraybuffer";
+    ws.onopen=()=>{ statusEl.textContent="connected"; statusEl.className="ok"; };
+    ws.onclose=()=>{ statusEl.textContent="disconnected"; statusEl.className="bad"; setTimeout(connect,800); };
+    ws.onerror=()=>{ statusEl.textContent="error"; statusEl.className="bad"; };
+  }
+  connect();
+
+  function sendJson(obj){
+    if(ws && ws.readyState===1) ws.send(JSON.stringify(obj));
+  }
 
   window.addEventListener('error', (e)=>{ errEl.textContent = "JS error: " + e.message; });
 
@@ -273,8 +301,19 @@ a{color:#9bd7ff}
         const v=pix[y*W+x];
         const r=(v>>16)&255,g=(v>>8)&255,b=v&255;
         ctx.fillStyle=`rgb(${r},${g},${b})`;
-        ctx.fillRect(x*SCALE,y*SCALE,SCALE,SCALE);
+        ctx.fillRect(x,y,1,1);
       }
+    }
+  }
+
+  function redrawPanelFromPix(){
+    sendJson({t:"stop"});
+    sendJson({t:"clear"});
+    for(let i=0;i<W*H;i++){
+      const col = pix[i];
+      const x = i % W;
+      const y = Math.floor(i / W);
+      sendJson({t:"px", x, y, c: col});
     }
   }
 
@@ -305,25 +344,20 @@ a{color:#9bd7ff}
   boostEl.addEventListener('input', rebuildLUT);
   rebuildLUT();
 
+  function clamp(v, min, max){ return Math.min(max, Math.max(min, v)); }
+
+  function sendBrightness(){
+    const value = clamp(parseInt(brightnessEl.value,10) || 40, 5, 255);
+    brightnessVal.textContent = String(value);
+    sendJson({t:"bright", v:value});
+  }
+  brightnessEl.addEventListener('input', sendBrightness);
+  sendBrightness();
+
   function applyLUT(v){ return lut[v&255]; }
   function rgb888To565LUT(r,g,b){
     r = applyLUT(r); g = applyLUT(g); b = applyLUT(b);
     return ((r&0xF8)<<8) | ((g&0xFC)<<3) | (b>>3);
-  }
-
-  // ---- WebSocket
-  let ws;
-  function connect(){
-    ws = new WebSocket(`ws://${host}/ws`);
-    ws.binaryType = "arraybuffer";
-    ws.onopen=()=>{ statusEl.textContent="connected"; statusEl.className="ok"; };
-    ws.onclose=()=>{ statusEl.textContent="disconnected"; statusEl.className="bad"; setTimeout(connect,800); };
-    ws.onerror=()=>{ statusEl.textContent="error"; statusEl.className="bad"; };
-  }
-  connect();
-
-  function sendJson(obj){
-    if(ws && ws.readyState===1) ws.send(JSON.stringify(obj));
   }
 
   // ===== Pixel painting with Brush =====
@@ -333,8 +367,10 @@ a{color:#9bd7ff}
 
   function evtToXY(e){
     const r=canvas.getBoundingClientRect();
-    const x=Math.floor((e.clientX - r.left)/SCALE);
-    const y=Math.floor((e.clientY - r.top)/SCALE);
+    const scaleX = canvas.width / r.width;
+    const scaleY = canvas.height / r.height;
+    const x=Math.floor((e.clientX - r.left) * scaleX);
+    const y=Math.floor((e.clientY - r.top) * scaleY);
     if(x<0||x>=W||y<0||y>=H) return null;
     return {x,y};
   }
@@ -352,7 +388,7 @@ a{color:#9bd7ff}
         pix[py*W+px] = col;
         const rr=(col>>16)&255, gg=(col>>8)&255, bb=col&255;
         ctx.fillStyle=`rgb(${rr},${gg},${bb})`;
-        ctx.fillRect(px*SCALE,py*SCALE,SCALE,SCALE);
+        ctx.fillRect(px,py,1,1);
 
         sendJson({t:"px", x:px, y:py, c:col});
       }
@@ -362,17 +398,45 @@ a{color:#9bd7ff}
   function paint(e){
     const p=evtToXY(e);
     if(!p) return;
-    const col = erase ? 0x000000 : hexToRgb(document.getElementById('col').value);
+    const col = erase ? 0x000000 : hexToRgb(colInput.value);
     paintBrushAt(p.x,p.y,col);
   }
 
-  canvas.addEventListener('mousedown', e=>{
+  canvas.addEventListener('pointerdown', e=>{
     drawing=true;
     erase = (e.button===2);
+    canvas.setPointerCapture(e.pointerId);
     paint(e);
   });
-  window.addEventListener('mouseup', ()=>{ drawing=false; erase=false; });
-  canvas.addEventListener('mousemove', e=>{ if(drawing) paint(e); });
+  canvas.addEventListener('pointerup', e=>{
+    drawing=false;
+    erase=false;
+    canvas.releasePointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointercancel', ()=>{ drawing=false; erase=false; });
+  canvas.addEventListener('pointermove', e=>{ if(drawing) paint(e); });
+
+  const paletteColors = [
+    "#000000","#ffffff","#ff0000","#00ff00","#0000ff",
+    "#ffff00","#ff00ff","#00ffff","#ff8800","#8b4513",
+    "#808080","#c0c0c0","#7cfc00","#ff1493","#1e90ff"
+  ];
+  function setActiveSwatch(hex){
+    colInput.value = hex;
+    const swatches = paletteEl.querySelectorAll('.swatch');
+    swatches.forEach((s)=>{ s.classList.toggle('selected', s.dataset.color === hex); });
+  }
+  paletteColors.forEach((hex)=>{
+    const sw=document.createElement('button');
+    sw.type="button";
+    sw.className="swatch";
+    sw.style.backgroundColor = hex;
+    sw.dataset.color = hex;
+    sw.addEventListener('click', ()=> setActiveSwatch(hex));
+    paletteEl.appendChild(sw);
+  });
+  colInput.addEventListener('input', () => setActiveSwatch(colInput.value));
+  setActiveSwatch(colInput.value);
 
   document.getElementById('clear').onclick=()=>{
     pix.fill(0); redraw();
@@ -380,12 +444,19 @@ a{color:#9bd7ff}
   };
 
   document.getElementById('fill').onclick=()=>{
-    const c=hexToRgb(document.getElementById('col').value);
+    const c=hexToRgb(colInput.value);
     pix.fill(c); redraw();
     sendJson({t:"fill", c});
   };
 
-  document.getElementById('reinit').onclick=async()=>{ await fetch('/api/reinit'); };
+  document.getElementById('reinit').onclick=async()=>{
+    await fetch('/api/reinit');
+    pix.fill(0);
+    redraw();
+    sendJson({t:"clear"});
+  };
+
+  document.getElementById('redrawPanel').onclick=()=>{ redrawPanelFromPix(); };
 
   // ===== Aspect/Scale mapping =====
   function desiredAspectValue(sel) {
@@ -441,19 +512,22 @@ a{color:#9bd7ff}
       octx.drawImage(sc, cropX, cropY, cropW, cropH, dx, dy, dw, dh);
     }
 
-    return octx.getImageData(0,0,W,H).data; // RGBA
+    return octx.getImageData(0,0,W,H);
   }
 
-  function rgbaToPreviewAndFrameBuffer(rgba){
+  function buildFramePayload(source){
+    const rgba = source && source.data ? source.data : source;
+    if(!rgba || rgba.length < W*H*4) return null;
     const out = new Uint8Array(1 + W*H*2);
     out[0] = 0x46; // 'F'
     let o=1;
 
     for(let i=0;i<W*H;i++){
       const k=i*4;
-      const r = applyLUT(rgba[k]);
-      const g = applyLUT(rgba[k+1]);
-      const b = applyLUT(rgba[k+2]);
+      const a = rgba[k+3];
+      const r = applyLUT(a ? rgba[k] : 0);
+      const g = applyLUT(a ? rgba[k+1] : 0);
+      const b = applyLUT(a ? rgba[k+2] : 0);
 
       pix[i] = (r<<16)|(g<<8)|b;
 
@@ -465,10 +539,11 @@ a{color:#9bd7ff}
     return out;
   }
 
-  function sendFrameBinary(buf){
+  function sendFrameBinary(frame){
     if(!ws || ws.readyState!==1) { alert("WebSocket not connected"); return; }
     sendJson({t:"stop"});
-    ws.send(buf);
+    const payload = frame instanceof Uint8Array ? frame : new Uint8Array(frame);
+    ws.send(payload);
   }
 
   // ===== Image workflow =====
@@ -490,11 +565,45 @@ a{color:#9bd7ff}
     imgEl.src = imgObjUrl;
   });
 
+  function applyImageDataToPix(imgData, shouldSend){
+    if(!imgData || !imgData.data) return;
+    const rgba = imgData.data;
+    if(shouldSend){
+      sendJson({t:"stop"});
+      sendJson({t:"clear"});
+    }
+    for(let i=0;i<W*H;i++){
+      const k=i*4;
+      const a = rgba[k+3];
+      const r = applyLUT(a ? rgba[k] : 0);
+      const g = applyLUT(a ? rgba[k+1] : 0);
+      const b = applyLUT(a ? rgba[k+2] : 0);
+      const col = (r<<16)|(g<<8)|b;
+      pix[i] = col;
+      if(shouldSend){
+        const x = i % W;
+        const y = Math.floor(i / W);
+        sendJson({t:"px", x, y, c: col});
+      }
+    }
+    redraw();
+  }
+
   function buildImageFrame(){
     if(!imgEl) return null;
-    const rgba = mapImageTo64x32(imgEl, imgEl.width, imgEl.height, srcAspectImg, scaleModeImg);
-    lastImageFrame = rgbaToPreviewAndFrameBuffer(rgba);
-    return lastImageFrame;
+    const iw = imgEl.naturalWidth || imgEl.width;
+    const ih = imgEl.naturalHeight || imgEl.height;
+    if(!iw || !ih) return null;
+
+    const tmp=document.createElement('canvas');
+    tmp.width=iw; tmp.height=ih;
+    const tctx=tmp.getContext('2d',{willReadFrequently:true});
+    tctx.drawImage(imgEl, 0, 0, iw, ih);
+
+    const mappedData = mapImageTo64x32(tmp, iw, ih, srcAspectImg, scaleModeImg);
+    applyImageDataToPix(mappedData, false);
+    lastImageFrame = mappedData;
+    return mappedData;
   }
 
   document.getElementById('previewImg').onclick = async ()=>{
@@ -504,8 +613,8 @@ a{color:#9bd7ff}
 
   document.getElementById('sendImg').onclick = async ()=>{
     if(!imgEl) return alert("Choose an image first.");
-    const frame = lastImageFrame || buildImageFrame();
-    sendFrameBinary(frame.buffer);
+    const mappedData = lastImageFrame || buildImageFrame();
+    applyImageDataToPix(mappedData, true);
   };
 
   // ===== GIF: build anim.bin (RLE RGB565) =====
@@ -607,9 +716,10 @@ a{color:#9bd7ff}
         const tctx=tmp.getContext('2d',{willReadFrequently:true});
         tctx.putImageData(imgData,0,0);
 
-        const rgba64 = mapImageTo64x32(tmp, tmp.width, tmp.height, srcAspectGif, scaleModeGif);
+        const mappedData = mapImageTo64x32(tmp, tmp.width, tmp.height, srcAspectGif, scaleModeGif);
+        const rgba64 = mappedData.data;
 
-        if(i===frameCount-1){ rgbaToPreviewAndFrameBuffer(rgba64); }
+        if(i===frameCount-1){ buildFramePayload(mappedData); }
 
         chunks.push(frameRGBAtoRecord(rgba64, delayMs));
         prog.value=Math.round(5 + ((i+1)/frameCount)*85);
@@ -686,7 +796,7 @@ static void init_display_with_pins(const HubPins& p) {
   if(dma_display){ delete dma_display; dma_display=nullptr; delay(30); }
   dma_display = new MatrixPanel_I2S_DMA(cfg);
   dma_display->begin();
-  dma_display->setBrightness8(40);
+  dma_display->setBrightness8(panelBrightness);
   dma_display->clearScreen();
   memset(fb,0,sizeof(fb));
 }
@@ -791,6 +901,12 @@ void onWsEvent(AsyncWebSocket*, AsyncWebSocketClient*, AwsEventType type, void *
   } else if (!strcmp(t,"stop")) {
     animPlaying = false;
     if (animFile) animFile.close();
+  } else if (!strcmp(t,"bright")) {
+    int value = doc["v"] | 40;
+    if (value < 5) value = 5;
+    if (value > 255) value = 255;
+    panelBrightness = (uint8_t)value;
+    if (dma_display) dma_display->setBrightness8(panelBrightness);
   }
 }
 
@@ -858,9 +974,6 @@ void setup_server() {
     req->send(200, "text/plain", "pong");
   });
 
-  // OTA: http://<ip>/update oder http://hub75.local/update
-  ElegantOTA.begin(&server);
-
   server.begin();
   Serial.println("HTTP server started");
 }
@@ -889,9 +1002,6 @@ void setup() {
 
 void loop() {
   ws.cleanupClients();
-
-  // ElegantOTA (safe to call; required in some builds)
-  ElegantOTA.loop();
 
   if (animPlaying) {
     uint32_t now = millis();

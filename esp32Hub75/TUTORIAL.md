@@ -4,7 +4,7 @@ Dieses Tutorial führt Schritt für Schritt durch Konfiguration, Flash und Nutzu
 
 ## Überblick
 
-Das Projekt ist ein lokaler LED‑Matrix‑Controller für ein HUB75‑Panel (64×32, 1/16 Scan) auf ESP32‑Basis. Es bietet eine Web‑UI mit Pixel‑Editor, Bild‑Upload und GIF‑Animation sowie OTA‑Updates – ohne Cloud‑Zwang oder externen Server.【F:esp32Hub75/main.sketch†L1-L904】
+Das Projekt ist ein lokaler LED‑Matrix‑Controller für ein HUB75‑Panel (64×32, 1/16 Scan) auf ESP32‑Basis. Es bietet eine Web‑UI mit Pixel‑Editor, Bild‑Upload und GIF‑Animation – ohne Cloud‑Zwang oder externen Server.【F:esp32Hub75/main.sketch†L1-L904】
 
 ## 1) WLAN & mDNS konfigurieren
 
@@ -71,18 +71,29 @@ Im Browser:
 
 Die UI wird vom ESP32 ausgeliefert.【F:esp32Hub75/main.sketch†L815-L818】
 
+Falls der WebSocket‑Status in der UI auf „connecting…“ stehen bleibt, Browser‑Konsole prüfen und ggf. Cache leeren oder die aktuelle Firmware erneut flashen.【F:esp32Hub75/main.sketch†L242-L536】
+
 ## 7) Pixel‑Zeichnen
 
 - Linksklick malt mit Farbe.
 - Rechtsklick löscht (schwarz).
 - Brush‑Größe 1×1 bis 4×4.
 - `Clear` leert das Panel, `Fill` füllt alles mit der aktuellen Farbe.【F:esp32Hub75/main.sketch†L90-L365】
+- Das Canvas zeigt ein feines Grid zur optischen Pixeltrennung.【F:esp32Hub75/main.sketch†L92-L105】
+- Die Farbpalette setzt die aktive Zeichenfarbe; das Canvas ist intern 64×32 und wird nur optisch skaliert.【F:esp32Hub75/main.sketch†L120-L356】
+- `Reinit` initialisiert das Display neu und löscht die Canvas/Panel‑Daten (Pixelart startet sauber neu).【F:esp32Hub75/main.sketch†L368-L377】【F:esp32Hub75/main.sketch†L820-L825】
+- Der Button „Redraw Panel“ zeichnet die aktuelle Pixelart erneut auf das Panel.【F:esp32Hub75/main.sketch†L69-L456】
+
+## 7.1) Helligkeit einstellen
+
+Im Bereich "Bild / GIF Tuning" steht ein Helligkeits‑Regler zur Verfügung. Dieser steuert die Panel‑Helligkeit direkt per WebSocket (`bright`).【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
 
 ## 8) Bild senden
 
 1. PNG/JPG/WebP auswählen.
 2. Optional Aspect (Auto/4:3/16:9) und Mapping (Cover/Contain) wählen.
-3. `Preview` zeichnet in die UI, `Send to Panel` überträgt das Frame (RGB565).【F:esp32Hub75/main.sketch†L142-L512】
+3. `Preview` zeichnet in die UI, `Send to Panel` überträgt das Bild via Pixelart‑Pipeline (JSON `px`).【F:esp32Hub75/main.sketch†L142-L590】【F:esp32Hub75/main.sketch†L712-L726】
+   Die Bildpipeline zeichnet das Original zuerst auf ein Canvas und mappt dann auf 64×32 (gleiches Mapping wie bei GIFs).【F:esp32Hub75/main.sketch†L535-L590】
 
 ## 9) GIF vorbereiten & abspielen
 
@@ -92,10 +103,11 @@ Die UI wird vom ESP32 ausgeliefert.【F:esp32Hub75/main.sketch†L815-L818】
 
 Die GIF‑Dekodierung nutzt `gifuct-js` via CDN.【F:esp32Hub75/main.sketch†L222-L612】
 
-## 10) OTA Update
-
-Im Browser `http://<ip>/update` öffnen und Firmware hochladen (ElegantOTA).【F:esp32Hub75/main.sketch†L860-L862】
-
 ## Implementierungscheck (Sketch-Abgleich)
 
-Die im Tutorial beschriebenen Funktionen (HUB75‑Betrieb, Pixelart, Bild‑Upload, GIF‑Import und OTA) sind im aktuellen Sketch enthalten und können direkt über die Web‑UI und Endpoints genutzt werden.【F:esp32Hub75/main.sketch†L13-L862】
+Die im Tutorial beschriebenen Funktionen (HUB75‑Betrieb, Pixelart, Bild‑Upload, GIF‑Import) sind im aktuellen Sketch enthalten und können direkt über die Web‑UI und Endpoints genutzt werden.【F:esp32Hub75/main.sketch†L13-L862】
+
+## Taskliste (Nächste notwendige Aufgaben)
+
+1. **Presets für Inhalte** in LittleFS ablegen (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L777-L805】
+2. **Animation‑Builder** für Pixelart‑Sequenzen implementieren (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L90-L377】
