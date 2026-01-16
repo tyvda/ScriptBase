@@ -6,10 +6,6 @@
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 
-// ElegantOTA (async mode)
-#define ELEGANTOTA_USE_ASYNC_WEBSERVER 1
-#include <ElegantOTA.h>
-
 #include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
 
 // =====================
@@ -883,9 +879,6 @@ void setup_server() {
     req->send(200, "text/plain", "pong");
   });
 
-  // OTA: http://<ip>/update oder http://hub75.local/update
-  ElegantOTA.begin(&server);
-
   server.begin();
   Serial.println("HTTP server started");
 }
@@ -914,9 +907,6 @@ void setup() {
 
 void loop() {
   ws.cleanupClients();
-
-  // ElegantOTA (safe to call; required in some builds)
-  ElegantOTA.loop();
 
   if (animPlaying) {
     uint32_t now = millis();

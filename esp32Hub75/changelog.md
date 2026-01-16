@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-01-16 08:34:42 +0000
+- OTA entfernt (ElegantOTA inkl. Endpoint), Dokumentation bereinigt und als spätere Erweiterung markiert. Quellen: `main.sketch`, `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-16 08:18:21 +0000
 - OTA Auth wieder entfernt, um ElegantOTA 3.1.7 Linker-Error zu vermeiden (zurück auf begin ohne Credentials). Quellen: `main.sketch`, `README.md`, `HOWTO.md`, `TUTORIAL.md`.
 

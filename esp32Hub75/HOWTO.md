@@ -58,11 +58,6 @@ Die Web‑UI sendet Helligkeitswerte per WebSocket:
 
 `v` ist ein Wert von 5 bis 255 und steuert `setBrightness8` am Panel.【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
 
-## OTA Update öffnen
-
-- `http://hub75.local/update` oder `http://<IP>/update` im Browser öffnen.
-- Firmware hochladen (ElegantOTA).【F:esp32Hub75/main.sketch†L860-L862】
-
 ## Implementierungscheck (Sketch-Abgleich)
 
 Die How‑To‑Rezepte entsprechen den implementierten Endpoints, WebSocket‑Formaten und der Animation‑Pipeline im Sketch.【F:esp32Hub75/main.sketch†L62-L739】【F:esp32Hub75/main.sketch†L827-L862】

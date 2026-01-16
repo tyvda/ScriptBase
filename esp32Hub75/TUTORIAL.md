@@ -4,7 +4,7 @@ Dieses Tutorial führt Schritt für Schritt durch Konfiguration, Flash und Nutzu
 
 ## Überblick
 
-Das Projekt ist ein lokaler LED‑Matrix‑Controller für ein HUB75‑Panel (64×32, 1/16 Scan) auf ESP32‑Basis. Es bietet eine Web‑UI mit Pixel‑Editor, Bild‑Upload und GIF‑Animation sowie OTA‑Updates – ohne Cloud‑Zwang oder externen Server.【F:esp32Hub75/main.sketch†L1-L904】
+Das Projekt ist ein lokaler LED‑Matrix‑Controller für ein HUB75‑Panel (64×32, 1/16 Scan) auf ESP32‑Basis. Es bietet eine Web‑UI mit Pixel‑Editor, Bild‑Upload und GIF‑Animation – ohne Cloud‑Zwang oder externen Server.【F:esp32Hub75/main.sketch†L1-L904】
 
 ## 1) WLAN & mDNS konfigurieren
 
@@ -96,13 +96,9 @@ Im Bereich "Bild / GIF Tuning" steht ein Helligkeits‑Regler zur Verfügung. Di
 
 Die GIF‑Dekodierung nutzt `gifuct-js` via CDN.【F:esp32Hub75/main.sketch†L222-L612】
 
-## 10) OTA Update
-
-Im Browser `http://<ip>/update` öffnen und Firmware hochladen (ElegantOTA).【F:esp32Hub75/main.sketch†L860-L862】
-
 ## Implementierungscheck (Sketch-Abgleich)
 
-Die im Tutorial beschriebenen Funktionen (HUB75‑Betrieb, Pixelart, Bild‑Upload, GIF‑Import und OTA) sind im aktuellen Sketch enthalten und können direkt über die Web‑UI und Endpoints genutzt werden.【F:esp32Hub75/main.sketch†L13-L862】
+Die im Tutorial beschriebenen Funktionen (HUB75‑Betrieb, Pixelart, Bild‑Upload, GIF‑Import) sind im aktuellen Sketch enthalten und können direkt über die Web‑UI und Endpoints genutzt werden.【F:esp32Hub75/main.sketch†L13-L862】
 
 ## Taskliste (Nächste notwendige Aufgaben)
 
