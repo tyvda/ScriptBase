@@ -493,19 +493,22 @@ a{color:#9bd7ff}
       octx.drawImage(sc, cropX, cropY, cropW, cropH, dx, dy, dw, dh);
     }
 
-    return octx.getImageData(0,0,W,H).data; // RGBA
+    return octx.getImageData(0,0,W,H);
   }
 
-  function rgbaToPreviewAndFrameBuffer(rgba){
+  function buildFramePayload(source){
+    const rgba = source && source.data ? source.data : source;
+    if(!rgba || rgba.length < W*H*4) return null;
     const out = new Uint8Array(1 + W*H*2);
     out[0] = 0x46; // 'F'
     let o=1;
 
     for(let i=0;i<W*H;i++){
       const k=i*4;
-      const r = applyLUT(rgba[k]);
-      const g = applyLUT(rgba[k+1]);
-      const b = applyLUT(rgba[k+2]);
+      const a = rgba[k+3];
+      const r = applyLUT(a ? rgba[k] : 0);
+      const g = applyLUT(a ? rgba[k+1] : 0);
+      const b = applyLUT(a ? rgba[k+2] : 0);
 
       pix[i] = (r<<16)|(g<<8)|b;
 
@@ -520,9 +523,8 @@ a{color:#9bd7ff}
   function sendFrameBinary(frame){
     if(!ws || ws.readyState!==1) { alert("WebSocket not connected"); return; }
     sendJson({t:"stop"});
-    const payload = frame instanceof ArrayBuffer ? new Uint8Array(frame) : frame;
-    const bytes = payload instanceof Uint8Array ? payload : new Uint8Array(payload);
-    ws.send(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+    const payload = frame instanceof Uint8Array ? frame : new Uint8Array(frame);
+    ws.send(payload);
   }
 
   // ===== Image workflow =====
@@ -546,8 +548,8 @@ a{color:#9bd7ff}
 
   function buildImageFrame(){
     if(!imgEl) return null;
-    const rgba = mapImageTo64x32(imgEl, imgEl.width, imgEl.height, srcAspectImg, scaleModeImg);
-    lastImageFrame = rgbaToPreviewAndFrameBuffer(rgba);
+    const imgData = mapImageTo64x32(imgEl, imgEl.width, imgEl.height, srcAspectImg, scaleModeImg);
+    lastImageFrame = buildFramePayload(imgData);
     return lastImageFrame;
   }
 
@@ -661,9 +663,10 @@ a{color:#9bd7ff}
         const tctx=tmp.getContext('2d',{willReadFrequently:true});
         tctx.putImageData(imgData,0,0);
 
-        const rgba64 = mapImageTo64x32(tmp, tmp.width, tmp.height, srcAspectGif, scaleModeGif);
+        const imgData = mapImageTo64x32(tmp, tmp.width, tmp.height, srcAspectGif, scaleModeGif);
+        const rgba64 = imgData.data;
 
-        if(i===frameCount-1){ rgbaToPreviewAndFrameBuffer(rgba64); }
+        if(i===frameCount-1){ buildFramePayload(imgData); }
 
         chunks.push(frameRGBAtoRecord(rgba64, delayMs));
         prog.value=Math.round(5 + ((i+1)/frameCount)*85);
