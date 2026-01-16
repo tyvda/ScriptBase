@@ -98,7 +98,7 @@ Die GIF‑Dekodierung nutzt `gifuct-js` via CDN.【F:esp32Hub75/main.sketch†L2
 
 ## 10) OTA Update
 
-Im Browser `http://<ip>/update` öffnen und Firmware hochladen (ElegantOTA, Login über `OTA_USER`/`OTA_PASS`).【F:esp32Hub75/main.sketch†L860-L862】
+Im Browser `http://<ip>/update` öffnen und Firmware hochladen (ElegantOTA).【F:esp32Hub75/main.sketch†L860-L862】
 
 ## Implementierungscheck (Sketch-Abgleich)
 

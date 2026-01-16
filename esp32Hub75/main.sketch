@@ -18,8 +18,6 @@
 static const char* WIFI_SSID = "DEIN_SSID";
 static const char* WIFI_PASS = "DEIN_PASS";
 static const char* MDNS_NAME = "hub75"; // http://hub75.local
-static const char* OTA_USER = "admin";
-static const char* OTA_PASS = "admin";
 
 // =====================
 // PANEL CONFIG
@@ -886,7 +884,7 @@ void setup_server() {
   });
 
   // OTA: http://<ip>/update oder http://hub75.local/update
-  ElegantOTA.begin(&server, OTA_USER, OTA_PASS);
+  ElegantOTA.begin(&server);
 
   server.begin();
   Serial.println("HTTP server started");
