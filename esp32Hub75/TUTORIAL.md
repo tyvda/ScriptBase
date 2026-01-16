@@ -96,6 +96,17 @@ Die GIF‑Dekodierung nutzt `gifuct-js` via CDN.【F:esp32Hub75/main.sketch†L2
 
 Im Browser `http://<ip>/update` öffnen und Firmware hochladen (ElegantOTA).【F:esp32Hub75/main.sketch†L860-L862】
 
+## Hinweis: Preview‑Redraw
+
+Das Pixel‑Preview wird zeilenweise per Offscreen‑Buffer + `requestAnimationFrame` neu gezeichnet, damit der Redraw stabil durchläuft.【F:esp32Hub75/main.sketch†L268-L315】
+
 ## Implementierungscheck (Sketch-Abgleich)
 
 Die im Tutorial beschriebenen Funktionen (HUB75‑Betrieb, Pixelart, Bild‑Upload, GIF‑Import und OTA) sind im aktuellen Sketch enthalten und können direkt über die Web‑UI und Endpoints genutzt werden.【F:esp32Hub75/main.sketch†L13-L862】
+
+## Ausblick (geplante Features)
+
+- **Pixelart Editor Load/Save**: JSON‑Import/Export direkt vom Nutzergerät.
+- **WLED‑ähnliche Animationen**: Matrix‑Kinofilm, Blink, Colorfading, Rainbow, Kaminfeuer – jeweils mit Parametern (z. B. Geschwindigkeit, Intensität, Farbpalette).
+
+Siehe `task.md` für die detaillierten Umsetzungsschritte.

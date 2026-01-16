@@ -267,15 +267,41 @@ a{color:#9bd7ff}
 
   // Preview buffer RGB888 0xRRGGBB
   const pix=new Uint32Array(W*H);
+  const offCanvas=document.createElement('canvas');
+  offCanvas.width=W;
+  offCanvas.height=H;
+  const offCtx=offCanvas.getContext('2d');
+  const imgData=offCtx.createImageData(W,H);
+  let redrawInProgress=false;
+  let redrawPending=false;
+  let redrawRow=0;
   function redraw(){
-    for(let y=0;y<H;y++){
-      for(let x=0;x<W;x++){
-        const v=pix[y*W+x];
-        const r=(v>>16)&255,g=(v>>8)&255,b=v&255;
-        ctx.fillStyle=`rgb(${r},${g},${b})`;
-        ctx.fillRect(x*SCALE,y*SCALE,SCALE,SCALE);
-      }
+    if(redrawInProgress){ redrawPending=true; return; }
+    redrawInProgress=true;
+    redrawRow=0;
+    requestAnimationFrame(drawNextRow);
+  }
+  function drawNextRow(){
+    const row=redrawRow;
+    if(row>=H){
+      redrawInProgress=false;
+      if(redrawPending){ redrawPending=false; redraw(); }
+      return;
     }
+    const data=imgData.data;
+    const base=row*W;
+    for(let x=0;x<W;x++){
+      const v=pix[base+x];
+      const r=(v>>16)&255,g=(v>>8)&255,b=v&255;
+      const o=(base+x)*4;
+      data[o]=r; data[o+1]=g; data[o+2]=b; data[o+3]=255;
+    }
+    offCtx.putImageData(imgData,0,0,0,row,W,1);
+    ctx.imageSmoothingEnabled=false;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(offCanvas,0,0,canvas.width,canvas.height);
+    redrawRow++;
+    requestAnimationFrame(drawNextRow);
   }
 
   function hexToRgb(hex){

@@ -1,3 +1,15 @@
+2026-01-16 14:34:43 UTC
+- esp32Hub75 Preview-Redraw als Line-Scanning umgesetzt und Doku-Hinweise angepasst.
+
+2026-01-16 14:03:32 UTC
+- esp32Hub75 Preview-Redraw robuster gemacht (Offscreen-Buffer + requestAnimationFrame) und Doku-Hinweise ergänzt.
+
+2026-01-16 12:48:44 UTC
+- esp32Hub75 task.md ergänzt und in README, HOWTO sowie TUTORIAL referenziert (Umsetzungsschritte für geplante Features).
+
+2026-01-16 12:41:36 UTC
+- esp32Hub75-Dokumentation erweitert: geplante Features (Pixelart JSON Load/Save; WLED-ähnliche Animationen mit Parametern) in README, HOWTO und TUTORIAL ergänzt.
+
 2025-12-30 15:21:31 UTC
 - Blueprint-Default `Siril_autoEverything/blueprint_default.json` aus der Naztronomy-Referenz hinterlegt; Python-Pipeline lädt es automatisch, wenn kein eigenes Preset angegeben ist.
 - `Siril_autoEverything/siril_auto_everything.py` um Blueprint-Erkennung erweitert und Tests (`Siril_autoEverything/tests/test_metrics.py`) hinzugefügt, die den Default-Load verifizieren.
