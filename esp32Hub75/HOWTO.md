@@ -61,7 +61,7 @@ Die Web‑UI sendet Helligkeitswerte per WebSocket:
 ## OTA Update öffnen
 
 - `http://hub75.local/update` oder `http://<IP>/update` im Browser öffnen.
-- Firmware hochladen (ElegantOTA).【F:esp32Hub75/main.sketch†L860-L862】
+- Firmware hochladen (ElegantOTA, Login mit `OTA_USER`/`OTA_PASS`).【F:esp32Hub75/main.sketch†L860-L862】
 
 ## Implementierungscheck (Sketch-Abgleich)
 

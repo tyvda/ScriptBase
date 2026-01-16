@@ -113,8 +113,10 @@ Die exakten Konfigurationsstellen sind in `main.sketch` beschrieben.【F:esp32Hu
 static const char* WIFI_SSID = "DEIN_SSID";
 static const char* WIFI_PASS = "DEIN_PASS";
 static const char* MDNS_NAME = "hub75";
+static const char* OTA_USER = "admin";
+static const char* OTA_PASS = "admin";
 ```
-【F:esp32Hub75/main.sketch†L19-L21】
+【F:esp32Hub75/main.sketch†L19-L23】
 
 ### Panel‑Parameter
 
@@ -237,7 +239,7 @@ Der ESP32 dekodiert `rleLen` Bytes in ein RGB565‑Framebuffer‑Array und rende
 
 - `http://hub75.local/update` oder `http://<IP>/update`.
 - `.bin` hochladen → Flash → Auto‑Reboot.
-- Kein Login, lokal erreichbar.
+- Login erforderlich (Standard: `OTA_USER`/`OTA_PASS`).
 
 ElegantOTA ist im Sketch aktiviert.【F:esp32Hub75/main.sketch†L860-L897】
 
