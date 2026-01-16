@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-01-16 10:00:55 +0000
+- Farbpalette ergänzt und Canvas auf 64×32 intern fixiert, nur optisch skaliert (korrektes 1:1 Mapping). Quellen: `main.sketch`, `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-16 09:47:16 +0000
 - OTA-Link aus UI-Header entfernt, passend zur deaktivierten OTA-Funktion. Quelle: `main.sketch`.
 
