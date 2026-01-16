@@ -182,7 +182,7 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 - **Clear/Fill**: Clear leert das Panel, Fill füllt mit der aktiven Farbe.【F:esp32Hub75/main.sketch†L352-L364】
 - **Reinit**: Neuinitialisiert das Panel‑GPIO‑Setup per `/api/reinit`.【F:esp32Hub75/main.sketch†L368-L369】【F:esp32Hub75/main.sketch†L822-L825】
 - **Gamma/Boost**: LUT‑basiert, beeinflusst Bilder & GIF‑Frames im Browser (Preview + Upload).【F:esp32Hub75/main.sketch†L151-L314】
-- **Preview‑Redraw**: Offscreen‑Buffer + `requestAnimationFrame` sorgen für robuste Voll‑Redraws des Pixel‑Previews im Browser.【F:esp32Hub75/main.sketch†L268-L309】
+- **Preview‑Redraw**: Line‑Scanning per Offscreen‑Buffer + `requestAnimationFrame` rendert das Pixel‑Preview zuverlässig zeilenweise.【F:esp32Hub75/main.sketch†L268-L315】
 
 ## Netzwerk‑API (HTTP + WebSocket)
 

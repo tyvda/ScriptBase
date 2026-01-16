@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-01-16 14:34:43 +0000
+- Preview‑Redraw als Line‑Scanning umgesetzt und Doku‑Hinweise angepasst. Quelle: `main.sketch`, `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-16 14:03:32 +0000
 - Preview‑Redraw robuster gemacht (Offscreen‑Buffer + requestAnimationFrame) und Doku‑Hinweise ergänzt. Quelle: `main.sketch`, `README.md`, `HOWTO.md`, `TUTORIAL.md`.
 

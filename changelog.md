@@ -1,3 +1,6 @@
+2026-01-16 14:34:43 UTC
+- esp32Hub75 Preview-Redraw als Line-Scanning umgesetzt und Doku-Hinweise angepasst.
+
 2026-01-16 14:03:32 UTC
 - esp32Hub75 Preview-Redraw robuster gemacht (Offscreen-Buffer + requestAnimationFrame) und Doku-Hinweise ergänzt.
 

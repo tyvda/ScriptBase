@@ -59,7 +59,7 @@ Die How‑To‑Rezepte entsprechen den implementierten Endpoints, WebSocket‑Fo
 
 ## Hinweis: Preview‑Redraw
 
-Die UI nutzt einen Offscreen‑Buffer und `requestAnimationFrame`, damit das Pixel‑Preview zuverlässig vollständig neu gezeichnet wird.【F:esp32Hub75/main.sketch†L268-L309】
+Die UI nutzt Line‑Scanning per Offscreen‑Buffer und `requestAnimationFrame`, damit das Pixel‑Preview zuverlässig zeilenweise neu gezeichnet wird.【F:esp32Hub75/main.sketch†L268-L315】
 
 ## Ausblick (geplante Features)
 

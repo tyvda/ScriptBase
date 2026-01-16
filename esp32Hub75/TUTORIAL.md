@@ -98,7 +98,7 @@ Im Browser `http://<ip>/update` öffnen und Firmware hochladen (ElegantOTA).【F
 
 ## Hinweis: Preview‑Redraw
 
-Das Pixel‑Preview wird über Offscreen‑Buffer + `requestAnimationFrame` robust neu gezeichnet, damit der Redraw nicht mittendrin abbricht.【F:esp32Hub75/main.sketch†L268-L309】
+Das Pixel‑Preview wird zeilenweise per Offscreen‑Buffer + `requestAnimationFrame` neu gezeichnet, damit der Redraw stabil durchläuft.【F:esp32Hub75/main.sketch†L268-L315】
 
 ## Implementierungscheck (Sketch-Abgleich)
 
