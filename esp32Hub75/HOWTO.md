@@ -48,6 +48,16 @@ Die Web‑UI erstellt `anim.bin` direkt im Browser aus GIFs:
 
 Details zur Implementierung sind im Sketch dokumentiert.【F:esp32Hub75/main.sketch†L504-L612】
 
+## Helligkeit steuern
+
+Die Web‑UI sendet Helligkeitswerte per WebSocket:
+
+```json
+{"t":"bright","v":128}
+```
+
+`v` ist ein Wert von 5 bis 255 und steuert `setBrightness8` am Panel.【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
+
 ## OTA Update öffnen
 
 - `http://hub75.local/update` oder `http://<IP>/update` im Browser öffnen.
@@ -56,3 +66,8 @@ Details zur Implementierung sind im Sketch dokumentiert.【F:esp32Hub75/main.ske
 ## Implementierungscheck (Sketch-Abgleich)
 
 Die How‑To‑Rezepte entsprechen den implementierten Endpoints, WebSocket‑Formaten und der Animation‑Pipeline im Sketch.【F:esp32Hub75/main.sketch†L62-L739】【F:esp32Hub75/main.sketch†L827-L862】
+
+## Taskliste (Nächste notwendige Aufgaben)
+
+1. **Presets speichern/laden** per LittleFS (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L777-L805】
+2. **Animation‑Builder im UI** für Pixelart‑Sequenzen (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L90-L377】

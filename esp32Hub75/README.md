@@ -14,6 +14,7 @@ Kein Cloud‑Zwang, kein WLED, kein externer Server.
 - Bild‑Upload (PNG/JPG/WebP) mit Aspect‑Mapping (Auto/4:3/16:9) und Cover/Contain‑Scaling.【F:esp32Hub75/main.sketch†L142-L454】
 - GIF‑Upload inkl. browserseitiger Dekodierung und RLE‑Kompression für schnelle Wiedergabe am ESP32.【F:esp32Hub75/main.sketch†L222-L612】
 - WebSocket‑Streaming von Full‑Frames (RGB565) und Einzelpixel‑Updates (JSON).【F:esp32Hub75/main.sketch†L318-L760】
+- Helligkeitssteuerung im UI (WebSocket, `setBrightness8`).【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
 - OTA‑Update über ElegantOTA (async).【F:esp32Hub75/main.sketch†L9-L860】
 
 ## Implementierungscheck (Sketch-Abgleich)
@@ -62,7 +63,6 @@ Die Feature‑Implementierungen sind im Sketch sichtbar (Web‑UI, Gamma/Boost, 
 
 ### Nice‑to‑Have (Optional)
 
-- Helligkeitssteuerung im UI.
 - Presets.
 - Animationen aus Pixelart.
 - Multi‑Panel Support.
@@ -182,6 +182,7 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 - **Clear/Fill**: Clear leert das Panel, Fill füllt mit der aktiven Farbe.【F:esp32Hub75/main.sketch†L352-L364】
 - **Reinit**: Neuinitialisiert das Panel‑GPIO‑Setup per `/api/reinit`.【F:esp32Hub75/main.sketch†L368-L369】【F:esp32Hub75/main.sketch†L822-L825】
 - **Gamma/Boost**: LUT‑basiert, beeinflusst Bilder & GIF‑Frames im Browser (Preview + Upload).【F:esp32Hub75/main.sketch†L151-L314】
+- **Brightness**: UI‑Regler steuert die Panel‑Helligkeit (WebSocket `bright`).【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
 
 ## Netzwerk‑API (HTTP + WebSocket)
 
@@ -203,6 +204,7 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
   - `{"t":"clear"}` – Display löschen.【F:esp32Hub75/main.sketch†L727-L730】
   - `{"t":"fill","c":0xRRGGBB}` – Fill‑Farbe setzen.【F:esp32Hub75/main.sketch†L731-L735】
   - `{"t":"stop"}` – Animation stoppen.【F:esp32Hub75/main.sketch†L736-L739】
+  - `{"t":"bright","v":128}` – Helligkeit (5–255) setzen.【F:esp32Hub75/main.sketch†L736-L768】
 
 ## Animationen (anim.bin)
 
@@ -271,7 +273,13 @@ Die Bewertung basiert auf der Architektur (FrameBuffer + RLE + WebSocket).【F:e
 - Presets speichern.
 - Animation Builder im UI.
 - MQTT / REST API.
-- Helligkeit per UI.
+
+## Taskliste (Nächste notwendige Aufgaben)
+
+Basierend auf den dokumentierten Einschränkungen und Optional‑Features ergeben sich folgende nächste Schritte:
+
+1. **Presets für Pixelart/Bilder**: Speichern/Laden in LittleFS integrieren (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L777-L805】
+2. **Animation‑Builder im UI**: Pixelart‑Frames erfassen und als Animation exportieren (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L90-L377】
 
 ## Zusammenfassung
 

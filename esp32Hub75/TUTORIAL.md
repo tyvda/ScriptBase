@@ -78,6 +78,10 @@ Die UI wird vom ESP32 ausgeliefert.【F:esp32Hub75/main.sketch†L815-L818】
 - Brush‑Größe 1×1 bis 4×4.
 - `Clear` leert das Panel, `Fill` füllt alles mit der aktuellen Farbe.【F:esp32Hub75/main.sketch†L90-L365】
 
+## 7.1) Helligkeit einstellen
+
+Im Bereich "Bild / GIF Tuning" steht ein Helligkeits‑Regler zur Verfügung. Dieser steuert die Panel‑Helligkeit direkt per WebSocket (`bright`).【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
+
 ## 8) Bild senden
 
 1. PNG/JPG/WebP auswählen.
@@ -99,3 +103,8 @@ Im Browser `http://<ip>/update` öffnen und Firmware hochladen (ElegantOTA).【F
 ## Implementierungscheck (Sketch-Abgleich)
 
 Die im Tutorial beschriebenen Funktionen (HUB75‑Betrieb, Pixelart, Bild‑Upload, GIF‑Import und OTA) sind im aktuellen Sketch enthalten und können direkt über die Web‑UI und Endpoints genutzt werden.【F:esp32Hub75/main.sketch†L13-L862】
+
+## Taskliste (Nächste notwendige Aufgaben)
+
+1. **Presets für Inhalte** in LittleFS ablegen (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L777-L805】
+2. **Animation‑Builder** für Pixelart‑Sequenzen implementieren (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L90-L377】

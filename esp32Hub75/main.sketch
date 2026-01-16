@@ -48,6 +48,7 @@ static const HubPins basePins{};
 // =====================
 MatrixPanel_I2S_DMA* dma_display = nullptr;
 static uint16_t fb[PANEL_RES_X * PANEL_RES_Y];
+static uint8_t panelBrightness = 40;
 
 // =====================
 // WEB
@@ -165,6 +166,12 @@ a{color:#9bd7ff}
         <span class="val" id="boostVal">1.10</span>
       </div>
 
+      <div class="row">
+        <label>Brightness</label>
+        <input id="brightness" type="range" min="5" max="255" value="40">
+        <span class="val" id="brightnessVal">40</span>
+      </div>
+
       <small>
         Gamma (≈0.5–2.6) korrigiert die Helligkeitskurve, Boost ist ein linearer Gain.
         Alles per LUT (schnell).
@@ -260,6 +267,8 @@ a{color:#9bd7ff}
   const boostEl=document.getElementById('boost');
   const gammaVal=document.getElementById('gammaVal');
   const boostVal=document.getElementById('boostVal');
+  const brightnessEl=document.getElementById('brightness');
+  const brightnessVal=document.getElementById('brightnessVal');
 
   const brushSel=document.getElementById('brush');
 
@@ -304,6 +313,16 @@ a{color:#9bd7ff}
   gammaEl.addEventListener('input', rebuildLUT);
   boostEl.addEventListener('input', rebuildLUT);
   rebuildLUT();
+
+  function clamp(v, min, max){ return Math.min(max, Math.max(min, v)); }
+
+  function sendBrightness(){
+    const value = clamp(parseInt(brightnessEl.value,10) || 40, 5, 255);
+    brightnessVal.textContent = String(value);
+    sendJson({t:"bright", v:value});
+  }
+  brightnessEl.addEventListener('input', sendBrightness);
+  sendBrightness();
 
   function applyLUT(v){ return lut[v&255]; }
   function rgb888To565LUT(r,g,b){
@@ -686,7 +705,7 @@ static void init_display_with_pins(const HubPins& p) {
   if(dma_display){ delete dma_display; dma_display=nullptr; delay(30); }
   dma_display = new MatrixPanel_I2S_DMA(cfg);
   dma_display->begin();
-  dma_display->setBrightness8(40);
+  dma_display->setBrightness8(panelBrightness);
   dma_display->clearScreen();
   memset(fb,0,sizeof(fb));
 }
@@ -791,6 +810,12 @@ void onWsEvent(AsyncWebSocket*, AsyncWebSocketClient*, AwsEventType type, void *
   } else if (!strcmp(t,"stop")) {
     animPlaying = false;
     if (animFile) animFile.close();
+  } else if (!strcmp(t,"bright")) {
+    int value = doc["v"] | 40;
+    if (value < 5) value = 5;
+    if (value > 255) value = 255;
+    panelBrightness = (uint8_t)value;
+    if (dma_display) dma_display->setBrightness8(panelBrightness);
   }
 }
 

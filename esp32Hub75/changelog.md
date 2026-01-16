@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-01-16 07:49:10 +0000
+- Helligkeitssteuerung im Sketch ergänzt (UI‑Regler, WebSocket `bright`, `setBrightness8`). Quellen: `main.sketch`, `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-01-16 07:46:26 +0000
+- Taskliste in README, Tutorial und How‑To angepasst (CDN‑GIF‑Lib bleibt, Multi‑Panel verschoben; Fokus auf Helligkeit, Presets, Animation‑Builder). Quellen: `README.md`, `TUTORIAL.md`, `HOWTO.md`.
+
+## 2026-01-16 07:42:08 +0000
+- Taskliste mit nächsten notwendigen Aufgaben in README, Tutorial und How‑To ergänzt (GIF‑Library lokal, Helligkeit, Presets, Multi‑Panel, Animation‑Builder). Quellen: `README.md`, `TUTORIAL.md`, `HOWTO.md`.
+
 ## 2026-01-16 07:37:49 +0000
 - Implementierungscheck ergänzt (HUB75, Pixelart, Bild‑Upload, GIF‑Import, OTA) und in README/Tutorial/How‑To verlinkt. Quelle: `main.sketch`.
 
