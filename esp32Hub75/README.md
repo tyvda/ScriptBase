@@ -11,6 +11,7 @@ Kein Cloud‑Zwang, kein WLED, kein externer Server.
 ## Features
 
 - Web‑UI mit Pixel‑Editor (Brush, Clear/Fill, Reinit).【F:esp32Hub75/main.sketch†L67-L377】
+- Pixelart‑JSON Import/Export im Browser (lokales Load/Save).【F:esp32Hub75/main.sketch†L131-L495】
 - Bild‑Upload (PNG/JPG/WebP) mit Aspect‑Mapping (Auto/4:3/16:9) und Cover/Contain‑Scaling.【F:esp32Hub75/main.sketch†L142-L454】
 - GIF‑Upload inkl. browserseitiger Dekodierung und RLE‑Kompression für schnelle Wiedergabe am ESP32.【F:esp32Hub75/main.sketch†L222-L612】
 - WebSocket‑Streaming von Full‑Frames (RGB565) und Einzelpixel‑Updates (JSON).【F:esp32Hub75/main.sketch†L318-L760】
@@ -63,6 +64,14 @@ Die Feature‑Implementierungen sind im Sketch sichtbar (Web‑UI, Gamma/Boost, 
 - Presets.
 - Animationen aus Pixelart.
 - Multi‑Panel Support.
+
+## Zukünftige Features (Roadmap Kurzliste)
+
+- WLED‑ähnliche Effekte (Matrix‑Kino‑Film, Blink, Colorfading, Rainbow, Kaminfeuer).
+- Effekt‑UI mit Parametern (Speed, Palette, Intensity, Effekt‑spezifische Regler).
+- Persistenz für Effekte/Parameter in LittleFS.
+- Preset‑Handling (Speichern/Laden von Parameter‑Sets).
+- Multi‑Panel Support (Chain > 1).
 
 ## Systemarchitektur
 
@@ -183,6 +192,31 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 - **Brightness**: UI‑Regler steuert die Panel‑Helligkeit (WebSocket `bright`).【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
 - **Bild‑Mapping**: Bild‑Upload folgt derselben Canvas‑Mapping‑Pipeline wie GIFs (Image → Canvas → 64×32) und zeichnet danach via Pixel‑Updates. 【F:esp32Hub75/main.sketch†L535-L590】
 - **Panel‑Redraw**: Button „Redraw Panel“ sendet die aktuelle Pixelart erneut ans Panel. 【F:esp32Hub75/main.sketch†L69-L456】
+- **Pixelart‑JSON**: Export/Import von Pixelart direkt im Browser (Download/Upload).【F:esp32Hub75/main.sketch†L131-L495】
+
+### Pixelart‑JSON (Schema & Workflow)
+
+**Schema**
+
+```json
+{
+  "version": 1,
+  "width": 64,
+  "height": 32,
+  "pixels": [0, 16711680, {"r":0,"g":255,"b":0}]
+}
+```
+
+- `version`: Schema‑Version (aktuell `1`).
+- `width`/`height`: müssen `64×32` sein.
+- `pixels`: Array mit `64×32` Einträgen, entweder als `0xRRGGBB`‑Integer oder als `{r,g,b}`.
+
+**Workflow**
+
+1. **Export JSON** klickt → Browser lädt Datei herunter.
+2. **Import JSON** wählt eine Datei → Validierung → Canvas + Panel werden aktualisiert.
+
+Fehler werden im UI angezeigt, ungültige Dateien werden abgewiesen.【F:esp32Hub75/main.sketch†L260-L495】
 
 ## Netzwerk‑API (HTTP + WebSocket)
 
@@ -268,11 +302,6 @@ Die Bewertung basiert auf der Architektur (FrameBuffer + RLE + WebSocket).【F:e
 
 ## Zukünftige Features (Roadmap)
 
-### Pixelart‑Editor: Load/Save auf Client
-
-- **Export**: Pixelart als JSON vom Browser herunterladen (Datei auf dem Client speichern).
-- **Import**: JSON vom Client laden und als Pixelart ins Canvas + Panel übertragen.
-
 ### Animationen im Stil von WLED
 
 Geplant ist ein eigener Animations‑Bereich mit Parametern pro Effekt:
@@ -294,10 +323,10 @@ Basierend auf den dokumentierten Einschränkungen und Optional‑Features ergebe
 
 ### Pixelart‑Editor: Load/Save auf Client
 
-1. **JSON‑Schema definieren**: 64×32 Pixel als Array (RGB888), Metadaten (Version, Breite/Höhe). Quelle: `README.md` (Roadmap), `main.sketch` (Framebuffer‑Format).
-2. **Export‑Button in UI**: Aktuelle Pixelart aus `pix[]` in JSON serialisieren und als Datei herunterladen. Quelle: `main.sketch` (UI/JS).
-3. **Import‑Flow in UI**: JSON vom Client laden, validieren (Größe/Version), Pixel ins Canvas schreiben und per `px`/`fill` ans Panel übertragen. Quelle: `main.sketch` (WebSocket `px`).
-4. **Fehlerhandling**: UI‑Meldungen bei ungültigem JSON/Format; optional Vorschau vor Senden. Quellen: `main.sketch` (UI/JS), `README.md`.
+1. **JSON‑Schema definieren**: 64×32 Pixel als Array (RGB888), Metadaten (Version, Breite/Höhe). ✅
+2. **Export‑Button in UI**: Aktuelle Pixelart aus `pix[]` in JSON serialisieren und als Datei herunterladen. ✅
+3. **Import‑Flow in UI**: JSON vom Client laden, validieren (Größe/Version), Pixel ins Canvas schreiben und per `px`/`fill` ans Panel übertragen. ✅
+4. **Fehlerhandling**: UI‑Meldungen bei ungültigem JSON/Format; optional Vorschau vor Senden. ✅
 
 ### WLED‑ähnliche Animationen
 

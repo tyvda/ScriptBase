@@ -43,6 +43,32 @@ Einzelpixel kannst du via JSON‑Nachricht auf `/ws` senden:
 
 Bei Bedarf kann die aktuelle Pixelart‑Canvas erneut ans Panel gesendet werden: Der Button „Redraw Panel“ triggert einen kompletten Re‑Draw (JSON `px` für alle Pixel).【F:esp32Hub75/main.sketch†L69-L456】
 
+## Pixelart als JSON exportieren/importieren
+
+**Export**
+
+1. In der UI auf **Export JSON** klicken.
+2. Der Browser lädt eine JSON‑Datei lokal herunter.
+
+**Import**
+
+1. Über **Import JSON** eine Datei auswählen.
+2. Die Datei wird validiert; danach werden Canvas und Panel aktualisiert.
+
+**Schema**
+
+```json
+{
+  "version": 1,
+  "width": 64,
+  "height": 32,
+  "pixels": [0, 16711680, {"r":0,"g":255,"b":0}]
+}
+```
+
+- `pixels` erlaubt `0xRRGGBB`‑Integer oder `{r,g,b}`‑Objekte.
+- Fehlerhafte Dateien werden in der UI abgewiesen und gemeldet.【F:esp32Hub75/main.sketch†L131-L495】
+
 ## Animation abspielen
 
 1. `anim.bin` per `POST /uploadAnim` hochladen.
@@ -78,11 +104,6 @@ Die How‑To‑Rezepte entsprechen den implementierten Endpoints, WebSocket‑Fo
 
 ## Zukünftige Features (Roadmap)
 
-### Pixelart‑Editor: Load/Save auf Client
-
-- **Export**: Pixelart als JSON vom Browser herunterladen (Datei auf dem Client speichern).
-- **Import**: JSON vom Client laden und als Pixelart ins Canvas + Panel übertragen.
-
 ### Animationen im Stil von WLED
 
 - **Matrix Kino‑Film** (Digit‑Regen mit Trails): Parameter z. B. Geschwindigkeit, Dichte, Trail‑Länge, Farbpalette/Grün‑Tint.
@@ -100,10 +121,10 @@ Die How‑To‑Rezepte entsprechen den implementierten Endpoints, WebSocket‑Fo
 
 ### Pixelart‑Editor: Load/Save auf Client
 
-1. **JSON‑Schema definieren**: 64×32 Pixel als Array (RGB888), Metadaten (Version, Breite/Höhe).
-2. **Export‑Button in UI**: Pixelart aus `pix[]` in JSON serialisieren und als Datei herunterladen.
-3. **Import‑Flow in UI**: JSON laden, validieren, Pixel ins Canvas schreiben und per `px` ans Panel senden.
-4. **Fehlerhandling**: UI‑Meldungen für ungültige Dateien + optional Preview.
+1. **JSON‑Schema definieren**: 64×32 Pixel als Array (RGB888), Metadaten (Version, Breite/Höhe). ✅
+2. **Export‑Button in UI**: Pixelart aus `pix[]` in JSON serialisieren und als Datei herunterladen. ✅
+3. **Import‑Flow in UI**: JSON laden, validieren, Pixel ins Canvas schreiben und per `px` ans Panel senden. ✅
+4. **Fehlerhandling**: UI‑Meldungen für ungültige Dateien + optional Preview. ✅
 
 ### WLED‑ähnliche Animationen
 

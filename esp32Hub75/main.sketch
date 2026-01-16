@@ -150,6 +150,20 @@ a{color:#9bd7ff}
     <hr>
 
     <div>
+      <b>Pixelart JSON</b><br/>
+      <div class="row">
+        <button id="exportJson">Export JSON</button>
+        <input id="importJson" type="file" accept="application/json">
+      </div>
+      <small>
+        Schema: <code>{version,width,height,pixels[]}</code> · Pixels = 0xRRGGBB oder {r,g,b}.
+      </small>
+      <div id="pixelInfo" style="margin-top:8px"></div>
+    </div>
+
+    <hr>
+
+    <div>
       <div class="row" style="justify-content:space-between">
         <b>Bild / GIF Tuning</b>
         <span class="badge">wirkt auf Bilder + GIF</span>
@@ -257,6 +271,7 @@ a{color:#9bd7ff}
   const statusEl=document.getElementById('status');
   const errEl=document.getElementById('err');
   const infoEl=document.getElementById('info');
+  const pixelInfoEl=document.getElementById('pixelInfo');
   const prog=document.getElementById('p');
   const imgInfo=document.getElementById('imgInfo');
 
@@ -315,6 +330,98 @@ a{color:#9bd7ff}
       const y = Math.floor(i / W);
       sendJson({t:"px", x, y, c: col});
     }
+  }
+
+  function setPixelInfo(msg, isError=false){
+    if(!pixelInfoEl) return;
+    pixelInfoEl.textContent = msg || "";
+    pixelInfoEl.style.color = isError ? "#ff6b6b" : "#7CFC90";
+  }
+
+  function pad2(v){ return String(v).padStart(2,"0"); }
+  function buildTimestamp(){
+    const d = new Date();
+    return `${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}-${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`;
+  }
+
+  function downloadJsonFile(data, filename){
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function parsePixelEntry(entry, index, errors){
+    if (typeof entry === "number" && Number.isFinite(entry)) {
+      const v = Math.floor(entry);
+      if (v < 0 || v > 0xFFFFFF) {
+        errors.push(`pixels[${index}] außerhalb 0x000000..0xFFFFFF`);
+        return null;
+      }
+      return v;
+    }
+    if (entry && typeof entry === "object") {
+      const r = entry.r;
+      const g = entry.g;
+      const b = entry.b;
+      if ([r,g,b].some((v)=>!Number.isInteger(v) || v < 0 || v > 255)) {
+        errors.push(`pixels[${index}] {r,g,b} ungültig`);
+        return null;
+      }
+      return (r<<16)|(g<<8)|b;
+    }
+    errors.push(`pixels[${index}] hat ungültigen Typ`);
+    return null;
+  }
+
+  function validatePixelArtJson(payload){
+    const errors = [];
+    if (!payload || typeof payload !== "object") {
+      return {errors:["JSON ist kein Objekt"]};
+    }
+    const version = payload.version;
+    const width = payload.width;
+    const height = payload.height;
+    const pixels = payload.pixels;
+
+    if (!Number.isInteger(version)) errors.push("version fehlt oder ist ungültig");
+    if (Number.isInteger(version) && version !== 1) errors.push(`version ${version} wird nicht unterstützt`);
+    if (!Number.isInteger(width) || !Number.isInteger(height)) errors.push("width/height fehlen oder sind ungültig");
+    if (width !== W || height !== H) errors.push(`width/height müssen ${W}x${H} sein`);
+    if (!Array.isArray(pixels)) errors.push("pixels muss ein Array sein");
+
+    const out = new Uint32Array(W*H);
+    if (Array.isArray(pixels)) {
+      if (pixels.length !== W*H) errors.push(`pixels.length muss ${W*H} sein`);
+      const len = Math.min(pixels.length, W*H);
+      for (let i=0; i<len; i++) {
+        const v = parsePixelEntry(pixels[i], i, errors);
+        if (v !== null) out[i] = v;
+      }
+    }
+    return {errors, pixels: out};
+  }
+
+  function applyPixelArray(pixels, shouldSend){
+    if (shouldSend) {
+      sendJson({t:"stop"});
+      sendJson({t:"clear"});
+    }
+    for (let i=0;i<W*H;i++) {
+      const col = pixels[i] || 0;
+      pix[i] = col;
+      if (shouldSend) {
+        const x = i % W;
+        const y = Math.floor(i / W);
+        sendJson({t:"px", x, y, c: col});
+      }
+    }
+    redraw();
   }
 
   function hexToRgb(hex){
@@ -457,6 +564,45 @@ a{color:#9bd7ff}
   };
 
   document.getElementById('redrawPanel').onclick=()=>{ redrawPanelFromPix(); };
+
+  document.getElementById('exportJson').onclick=()=>{
+    errEl.textContent = "";
+    const payload = {
+      version: 1,
+      width: W,
+      height: H,
+      pixels: Array.from(pix)
+    };
+    const name = `pixelart-${W}x${H}-${buildTimestamp()}.json`;
+    downloadJsonFile(payload, name);
+    setPixelInfo(`Exportiert: ${name}`);
+  };
+
+  document.getElementById('importJson').addEventListener('change', async (e)=>{
+    errEl.textContent = "";
+    setPixelInfo("");
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try{
+      const text = await file.text();
+      const payload = JSON.parse(text);
+      const {errors, pixels} = validatePixelArtJson(payload);
+      if (errors.length) {
+        const msg = `Import fehlgeschlagen:\n- ${errors.join("\n- ")}`;
+        errEl.textContent = msg;
+        setPixelInfo("Import fehlgeschlagen", true);
+        return;
+      }
+      applyPixelArray(pixels, true);
+      setPixelInfo(`Import OK: ${file.name}`);
+    }catch(err){
+      const msg = err && err.message ? err.message : String(err);
+      errEl.textContent = `Import fehlgeschlagen: ${msg}`;
+      setPixelInfo("Import fehlgeschlagen", true);
+    }finally{
+      e.target.value = "";
+    }
+  });
 
   // ===== Aspect/Scale mapping =====
   function desiredAspectValue(sel) {

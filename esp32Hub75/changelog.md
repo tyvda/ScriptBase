@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-01-16 15:32:36 +0000
+- Pixelart‑JSON Import/Export im Web‑UI ergänzt (Schema, Validierung, Download/Upload, Canvas + Panel Sync). Quelle: `main.sketch`.
+- Dokumentation für JSON‑Workflow, Schema und Roadmap‑Status aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`, `tasks.md`.
+
 ## 2026-01-16 15:14:43 +0000
 - Aufgaben-Backlog als `tasks.md` ergänzt und Querverweise in README/How‑To/Tutorial gesetzt. Quellen: `tasks.md`, `README.md`, `HOWTO.md`, `TUTORIAL.md`.
 

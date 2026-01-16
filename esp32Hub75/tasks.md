@@ -9,6 +9,13 @@ Diese Aufgabenliste beschreibt detailliert die Umsetzung der geplanten Roadmap�
 
 ## A) Pixelart‑Editor: Load/Save auf Client
 
+### Status
+
+- [x] A1 JSON‑Schema & Validierung
+- [x] A2 Export (Download)
+- [x] A3 Import (Upload)
+- [x] A4 Dokumentation & API‑Hinweise
+
 ### A1) JSON‑Schema & Validierung
 
 - **Format definieren**:
