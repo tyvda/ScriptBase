@@ -1,0 +1,920 @@
+#include <WiFi.h>
+#include <ESPmDNS.h>
+#include <LittleFS.h>
+
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+#include <ArduinoJson.h>
+
+// ElegantOTA (async mode)
+#define ELEGANTOTA_USE_ASYNC_WEBSERVER 1
+#include <ElegantOTA.h>
+
+#include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
+
+// =====================
+// USER CONFIG
+// =====================
+static const char* WIFI_SSID = "DEIN_SSID";
+static const char* WIFI_PASS = "DEIN_PASS";
+static const char* MDNS_NAME = "hub75"; // http://hub75.local
+
+// =====================
+// PANEL CONFIG
+// =====================
+#define PANEL_RES_X 64
+#define PANEL_RES_Y 32
+#define PANEL_CHAIN 1
+
+// =====================
+// PIN CONFIG (dein Mapping)
+// =====================
+struct HubPins {
+  int r1=25,g1=26,b1=27;
+  int r2=14,g2=33,b2=32;
+
+  int a=23,b=19,c=5,d=17,e=-1;   // 1/16 scan
+
+  int clk=16, lat=4, oe=21;
+
+  HUB75_I2S_CFG::shift_driver driver = HUB75_I2S_CFG::SHIFTREG;
+  bool clkphase = true;
+  bool double_buff = false;
+};
+static const HubPins basePins{};
+
+// =====================
+// DISPLAY
+// =====================
+MatrixPanel_I2S_DMA* dma_display = nullptr;
+static uint16_t fb[PANEL_RES_X * PANEL_RES_Y];
+
+// =====================
+// WEB
+// =====================
+AsyncWebServer server(80);
+AsyncWebSocket ws("/ws");
+
+// Full-frame binary RX: ['F'] + 4096 bytes RGB565 little-endian
+static uint8_t frame_rx[1 + (PANEL_RES_X * PANEL_RES_Y * 2)];
+static constexpr size_t frame_rx_expected = sizeof(frame_rx);
+
+// =====================
+// Animation file (uploaded from browser)
+// =====================
+static const char* ANIM_PATH = "/anim.bin";
+static volatile bool animPlaying = false;
+
+#pragma pack(push, 1)
+struct AnimHeader {
+  char     magic[4];    // "A64x"
+  uint8_t  w;           // 64
+  uint8_t  h;           // 32
+  uint16_t frames;      // number of frames
+  uint8_t  loop;        // 1=loop
+  uint8_t  reserved[7];
+};
+#pragma pack(pop)
+
+static File animFile;
+static AnimHeader animHdr{};
+static uint16_t animFrameIndex = 0;
+static uint32_t animNextMs = 0;
+
+// =====================
+// HTML UI
+// =====================
+static const char INDEX_HTML[] PROGMEM = R"HTML(
+<!doctype html><html><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ESP32 HUB75 64x32</title>
+<style>
+body{font-family:system-ui,Arial;margin:0;background:#111;color:#eee}
+header{padding:12px 16px;background:#1b1b1b;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.pill{background:#2a2a2a;padding:6px 10px;border-radius:999px;font-size:14px;border:1px solid #444}
+#wrap{display:flex;gap:16px;flex-wrap:wrap;padding:16px}
+canvas{image-rendering:pixelated;background:#000;border:1px solid #333;border-radius:10px}
+.panel{background:#1b1b1b;border:1px solid #333;border-radius:12px;padding:12px;min-width:460px;max-width:560px}
+button{background:#2a2a2a;color:#eee;border:1px solid #444;border-radius:10px;padding:10px 12px;cursor:pointer}
+button:hover{border-color:#666}
+input[type="color"]{width:44px;height:44px;border:none;background:none;cursor:pointer}
+input[type="file"]{max-width:100%}
+select{background:#2a2a2a;color:#eee;border:1px solid #444;border-radius:10px;padding:10px 12px}
+input[type="range"]{width:220px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0}
+small{color:#aaa;line-height:1.35}
+#status{font-weight:800}
+.ok{color:#7CFC90}.bad{color:#ff6b6b}
+progress{width:100%;height:14px}
+#err{white-space:pre-wrap;color:#ff6b6b;font-size:12px;margin-top:8px}
+#info{margin-top:8px}
+.badge{font-size:12px;border:1px solid #444;border-radius:999px;padding:4px 8px;background:#222}
+hr{border-color:#2a2a2a}
+.val{font-variant-numeric:tabular-nums;min-width:52px;display:inline-block}
+a{color:#9bd7ff}
+</style>
+</head><body>
+<header>
+  <div class="pill">64×32 Pixelart + Images + GIF</div>
+  <div class="pill">WS: <span id="status">connecting…</span></div>
+  <div class="pill">Host: <span id="host"></span></div>
+  <div class="pill"><span class="badge">Panel: 64×32 (2:1)</span></div>
+  <div class="pill"><a href="/update">OTA Update</a></div>
+</header>
+
+<div id="wrap">
+  <canvas id="c"></canvas>
+
+  <div class="panel">
+    <div class="row">
+      <label>Color</label>
+      <input id="col" type="color" value="#ffcc00">
+      <label>Brush</label>
+      <select id="brush">
+        <option value="1" selected>1×1</option>
+        <option value="2">2×2</option>
+        <option value="3">3×3</option>
+        <option value="4">4×4</option>
+      </select>
+      <button id="clear">Clear</button>
+      <button id="fill">Fill</button>
+      <button id="reinit">Reinit</button>
+    </div>
+
+    <small>
+      Pixelart: Click/Drag · Right-Click = Erase (black).<br/>
+      Brush malt ein Quadrat um den Cursor (zentriert).<br/>
+      Beim Zeichnen/Frames senden wird Animation automatisch gestoppt.
+    </small>
+
+    <hr>
+
+    <div>
+      <div class="row" style="justify-content:space-between">
+        <b>Bild / GIF Tuning</b>
+        <span class="badge">wirkt auf Bilder + GIF</span>
+      </div>
+
+      <div class="row">
+        <label>Gamma</label>
+        <input id="gamma" type="range" min="50" max="260" value="120">
+        <span class="val" id="gammaVal">1.20</span>
+
+        <label>Boost</label>
+        <input id="boost" type="range" min="50" max="200" value="110">
+        <span class="val" id="boostVal">1.10</span>
+      </div>
+
+      <small>
+        Gamma (≈0.5–2.6) korrigiert die Helligkeitskurve, Boost ist ein linearer Gain.
+        Alles per LUT (schnell).
+      </small>
+    </div>
+
+    <hr>
+
+    <div>
+      <b>Bild (PNG/JPG/WebP) → 64×32</b><br/>
+      <input id="imgFile" type="file" accept="image/*">
+      <div class="row">
+        <label for="srcAspectImg">Quelle</label>
+        <select id="srcAspectImg">
+          <option value="auto" selected>Auto</option>
+          <option value="4:3">4:3</option>
+          <option value="16:9">16:9</option>
+        </select>
+
+        <label for="scaleModeImg">Mapping</label>
+        <select id="scaleModeImg">
+          <option value="cover" selected>Cover (Crop)</option>
+          <option value="contain">Contain (Letterbox)</option>
+        </select>
+      </div>
+      <div class="row">
+        <button id="previewImg">Preview</button>
+        <button id="sendImg">Send to Panel</button>
+      </div>
+      <small>Preview zeichnet ins Canvas. "Send" überträgt Full-Frame RGB565 per WebSocket.</small>
+      <div id="imgInfo" style="margin-top:8px"></div>
+    </div>
+
+    <hr>
+
+    <div>
+      <b>GIF Upload (Browser decode)</b><br/>
+      <input id="gifFile" type="file" accept="image/gif">
+
+      <div class="row">
+        <label for="srcAspectGif">Quelle</label>
+        <select id="srcAspectGif">
+          <option value="auto" selected>Auto</option>
+          <option value="4:3">4:3</option>
+          <option value="16:9">16:9</option>
+        </select>
+
+        <label for="scaleModeGif">Mapping</label>
+        <select id="scaleModeGif">
+          <option value="cover" selected>Cover (Crop)</option>
+          <option value="contain">Contain (Letterbox)</option>
+        </select>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <button id="prepGif">Prepare & Upload</button>
+        <button id="playGif">Play</button>
+        <button id="stopGif">Stop</button>
+      </div>
+
+      <progress id="p" value="0" max="100"></progress>
+      <small>GIF nutzt <b>gifuct-js</b> vom Internet (CDN).</small>
+      <div id="info"></div>
+      <div id="err"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  if (location.protocol === "https:") { location.href = "http://" + location.host + location.pathname; return; }
+
+  const W=64,H=32,SCALE=12;
+  const canvas=document.getElementById('c');
+  const ctx=canvas.getContext('2d');
+  canvas.width=W*SCALE; canvas.height=H*SCALE;
+
+  const host=location.host;
+  document.getElementById('host').textContent=host;
+
+  const statusEl=document.getElementById('status');
+  const errEl=document.getElementById('err');
+  const infoEl=document.getElementById('info');
+  const prog=document.getElementById('p');
+  const imgInfo=document.getElementById('imgInfo');
+
+  const srcAspectImg=document.getElementById('srcAspectImg');
+  const scaleModeImg=document.getElementById('scaleModeImg');
+  const srcAspectGif=document.getElementById('srcAspectGif');
+  const scaleModeGif=document.getElementById('scaleModeGif');
+
+  const gammaEl=document.getElementById('gamma');
+  const boostEl=document.getElementById('boost');
+  const gammaVal=document.getElementById('gammaVal');
+  const boostVal=document.getElementById('boostVal');
+
+  const brushSel=document.getElementById('brush');
+
+  window.addEventListener('error', (e)=>{ errEl.textContent = "JS error: " + e.message; });
+
+  // Preview buffer RGB888 0xRRGGBB
+  const pix=new Uint32Array(W*H);
+  function redraw(){
+    for(let y=0;y<H;y++){
+      for(let x=0;x<W;x++){
+        const v=pix[y*W+x];
+        const r=(v>>16)&255,g=(v>>8)&255,b=v&255;
+        ctx.fillStyle=`rgb(${r},${g},${b})`;
+        ctx.fillRect(x*SCALE,y*SCALE,SCALE,SCALE);
+      }
+    }
+  }
+
+  function hexToRgb(hex){
+    const h=hex.replace("#","");
+    return (parseInt(h.slice(0,2),16)<<16)|(parseInt(h.slice(2,4),16)<<8)|parseInt(h.slice(4,6),16);
+  }
+
+  // ===== Gamma + Boost LUT (applies to Images + GIF) =====
+  let lut = new Uint8Array(256);
+  function clamp255(v){ return v<0?0:(v>255?255:v); }
+
+  function rebuildLUT(){
+    const gamma = (parseInt(gammaEl.value,10)||120)/100.0;
+    const boost = (parseInt(boostEl.value,10)||110)/100.0;
+    gammaVal.textContent = gamma.toFixed(2);
+    boostVal.textContent = boost.toFixed(2);
+
+    const invG = 1.0 / gamma;
+    for(let i=0;i<256;i++){
+      const x = i/255.0;
+      let y = Math.pow(x, invG) * 255.0;
+      y = y * boost;
+      lut[i] = clamp255(y+0.5)|0;
+    }
+  }
+  gammaEl.addEventListener('input', rebuildLUT);
+  boostEl.addEventListener('input', rebuildLUT);
+  rebuildLUT();
+
+  function applyLUT(v){ return lut[v&255]; }
+  function rgb888To565LUT(r,g,b){
+    r = applyLUT(r); g = applyLUT(g); b = applyLUT(b);
+    return ((r&0xF8)<<8) | ((g&0xFC)<<3) | (b>>3);
+  }
+
+  // ---- WebSocket
+  let ws;
+  function connect(){
+    ws = new WebSocket(`ws://${host}/ws`);
+    ws.binaryType = "arraybuffer";
+    ws.onopen=()=>{ statusEl.textContent="connected"; statusEl.className="ok"; };
+    ws.onclose=()=>{ statusEl.textContent="disconnected"; statusEl.className="bad"; setTimeout(connect,800); };
+    ws.onerror=()=>{ statusEl.textContent="error"; statusEl.className="bad"; };
+  }
+  connect();
+
+  function sendJson(obj){
+    if(ws && ws.readyState===1) ws.send(JSON.stringify(obj));
+  }
+
+  // ===== Pixel painting with Brush =====
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+  let drawing=false;
+  let erase=false;
+
+  function evtToXY(e){
+    const r=canvas.getBoundingClientRect();
+    const x=Math.floor((e.clientX - r.left)/SCALE);
+    const y=Math.floor((e.clientY - r.top)/SCALE);
+    if(x<0||x>=W||y<0||y>=H) return null;
+    return {x,y};
+  }
+
+  function paintBrushAt(x,y,col){
+    const size = parseInt(brushSel.value,10) || 1;
+    const half = Math.floor(size/2);
+
+    for(let yy=0; yy<size; yy++){
+      for(let xx=0; xx<size; xx++){
+        const px = x + (xx - half);
+        const py = y + (yy - half);
+        if(px<0||px>=W||py<0||py>=H) continue;
+
+        pix[py*W+px] = col;
+        const rr=(col>>16)&255, gg=(col>>8)&255, bb=col&255;
+        ctx.fillStyle=`rgb(${rr},${gg},${bb})`;
+        ctx.fillRect(px*SCALE,py*SCALE,SCALE,SCALE);
+
+        sendJson({t:"px", x:px, y:py, c:col});
+      }
+    }
+  }
+
+  function paint(e){
+    const p=evtToXY(e);
+    if(!p) return;
+    const col = erase ? 0x000000 : hexToRgb(document.getElementById('col').value);
+    paintBrushAt(p.x,p.y,col);
+  }
+
+  canvas.addEventListener('mousedown', e=>{
+    drawing=true;
+    erase = (e.button===2);
+    paint(e);
+  });
+  window.addEventListener('mouseup', ()=>{ drawing=false; erase=false; });
+  canvas.addEventListener('mousemove', e=>{ if(drawing) paint(e); });
+
+  document.getElementById('clear').onclick=()=>{
+    pix.fill(0); redraw();
+    sendJson({t:"clear"});
+  };
+
+  document.getElementById('fill').onclick=()=>{
+    const c=hexToRgb(document.getElementById('col').value);
+    pix.fill(c); redraw();
+    sendJson({t:"fill", c});
+  };
+
+  document.getElementById('reinit').onclick=async()=>{ await fetch('/api/reinit'); };
+
+  // ===== Aspect/Scale mapping =====
+  function desiredAspectValue(sel) {
+    const v = sel.value;
+    if (v === "4:3") return 4/3;
+    if (v === "16:9") return 16/9;
+    return null;
+  }
+
+  const oc=document.createElement('canvas'); oc.width=W; oc.height=H;
+  const octx=oc.getContext('2d',{willReadFrequently:true});
+
+  function mapImageTo64x32(sourceCanvasOrImg, srcW, srcH, srcAspectSel, scaleModeSel){
+    const sc=document.createElement('canvas'); sc.width=srcW; sc.height=srcH;
+    const sctx=sc.getContext('2d',{willReadFrequently:true});
+    sctx.clearRect(0,0,srcW,srcH);
+    sctx.drawImage(sourceCanvasOrImg, 0, 0);
+
+    const forced = desiredAspectValue(srcAspectSel);
+    let cropX=0, cropY=0, cropW=srcW, cropH=srcH;
+
+    if (forced) {
+      const srcAspect = srcW / srcH;
+      if (srcAspect > forced) {
+        cropH = srcH;
+        cropW = Math.round(srcH * forced);
+        cropX = Math.round((srcW - cropW) / 2);
+      } else {
+        cropW = srcW;
+        cropH = Math.round(srcW / forced);
+        cropY = Math.round((srcH - cropH) / 2);
+      }
+    }
+
+    const mode = scaleModeSel.value;
+    octx.clearRect(0,0,W,H);
+
+    if (mode === "cover") {
+      const s = Math.max(W / cropW, H / cropH);
+      const dw = cropW * s;
+      const dh = cropH * s;
+      const dx = (W - dw) / 2;
+      const dy = (H - dh) / 2;
+      octx.drawImage(sc, cropX, cropY, cropW, cropH, dx, dy, dw, dh);
+    } else {
+      const s = Math.min(W / cropW, H / cropH);
+      const dw = cropW * s;
+      const dh = cropH * s;
+      const dx = (W - dw) / 2;
+      const dy = (H - dh) / 2;
+      octx.fillStyle = "black";
+      octx.fillRect(0,0,W,H);
+      octx.drawImage(sc, cropX, cropY, cropW, cropH, dx, dy, dw, dh);
+    }
+
+    return octx.getImageData(0,0,W,H).data; // RGBA
+  }
+
+  function rgbaToPreviewAndFrameBuffer(rgba){
+    const out = new Uint8Array(1 + W*H*2);
+    out[0] = 0x46; // 'F'
+    let o=1;
+
+    for(let i=0;i<W*H;i++){
+      const k=i*4;
+      const r = applyLUT(rgba[k]);
+      const g = applyLUT(rgba[k+1]);
+      const b = applyLUT(rgba[k+2]);
+
+      pix[i] = (r<<16)|(g<<8)|b;
+
+      const c565 = ((r&0xF8)<<8) | ((g&0xFC)<<3) | (b>>3);
+      out[o++] = c565 & 255;
+      out[o++] = (c565 >> 8) & 255;
+    }
+    redraw();
+    return out;
+  }
+
+  function sendFrameBinary(buf){
+    if(!ws || ws.readyState!==1) { alert("WebSocket not connected"); return; }
+    sendJson({t:"stop"});
+    ws.send(buf);
+  }
+
+  // ===== Image workflow =====
+  let imgObjUrl = null;
+  let imgEl = null;
+  let lastImageFrame = null;
+
+  document.getElementById('imgFile').addEventListener('change', async ()=>{
+    const f=document.getElementById('imgFile').files?.[0];
+    if(!f) return;
+    if(imgObjUrl) URL.revokeObjectURL(imgObjUrl);
+    imgObjUrl = URL.createObjectURL(f);
+
+    imgEl = new Image();
+    imgEl.onload = () => {
+      imgInfo.textContent = `Loaded: ${f.name} (${imgEl.width}×${imgEl.height})`;
+      lastImageFrame = null;
+    };
+    imgEl.src = imgObjUrl;
+  });
+
+  function buildImageFrame(){
+    if(!imgEl) return null;
+    const rgba = mapImageTo64x32(imgEl, imgEl.width, imgEl.height, srcAspectImg, scaleModeImg);
+    lastImageFrame = rgbaToPreviewAndFrameBuffer(rgba);
+    return lastImageFrame;
+  }
+
+  document.getElementById('previewImg').onclick = async ()=>{
+    if(!imgEl) return alert("Choose an image first.");
+    buildImageFrame();
+  };
+
+  document.getElementById('sendImg').onclick = async ()=>{
+    if(!imgEl) return alert("Choose an image first.");
+    const frame = lastImageFrame || buildImageFrame();
+    sendFrameBinary(frame.buffer);
+  };
+
+  // ===== GIF: build anim.bin (RLE RGB565) =====
+  function u16le(n){ return new Uint8Array([n&255,(n>>8)&255]); }
+  function u32le(n){ return new Uint8Array([n&255,(n>>8)&255,(n>>16)&255,(n>>24)&255]); }
+
+  function rleEncode565(rgb565){
+    const out=[];
+    let i=0;
+    while(i<rgb565.length){
+      const c=rgb565[i];
+      let cnt=1;
+      while(i+cnt<rgb565.length && rgb565[i+cnt]===c && cnt<65535) cnt++;
+      out.push(u16le(cnt), u16le(c));
+      i+=cnt;
+    }
+    let total=0; for(const a of out) total+=a.length;
+    const buf=new Uint8Array(total);
+    let o=0; for(const a of out){ buf.set(a,o); o+=a.length; }
+    return buf;
+  }
+
+  function frameRGBAtoRecord(rgba, delayMs){
+    const rgb565=new Uint16Array(W*H);
+    for(let i=0;i<W*H;i++){
+      const k=i*4;
+      rgb565[i]=rgb888To565LUT(rgba[k], rgba[k+1], rgba[k+2]);
+    }
+    const rle=rleEncode565(rgb565);
+    const parts=[u16le(delayMs), u32le(rle.length), rle];
+    let total=0; for(const p of parts) total+=p.length;
+    const out=new Uint8Array(total);
+    let o=0; for(const p of parts){ out.set(p,o); o+=p.length; }
+    return out;
+  }
+
+  async function uploadAnimBin(bin){
+    const fd=new FormData();
+    fd.append('anim', new Blob([bin],{type:'application/octet-stream'}), 'anim.bin');
+    const res=await fetch('/uploadAnim',{method:'POST', body: fd});
+    if(!res.ok) throw new Error("Upload failed");
+    return res.text();
+  }
+
+  // gifuct-js CDN -> window.GIF
+  async function loadGifuct(){
+    if(window.GIF) return;
+    await new Promise((resolve,reject)=>{
+      const s=document.createElement('script');
+      s.src="https://cdn.jsdelivr.net/npm/gifuct-js@1.0.0/dist/gifuct-js.min.js";
+      s.onload=resolve;
+      s.onerror=()=>reject(new Error("Could not load gifuct-js (no internet?)"));
+      document.head.appendChild(s);
+    });
+    if(!window.GIF) throw new Error("gifuct-js loaded, but window.GIF is missing");
+  }
+
+  let gifBuf=null;
+  document.getElementById('gifFile').addEventListener('change', async ()=>{
+    const f=document.getElementById('gifFile').files?.[0];
+    if(!f) return;
+    gifBuf=await f.arrayBuffer();
+    infoEl.textContent=`Selected: ${f.name} (${Math.round(f.size/1024)} KB)`;
+    errEl.textContent="";
+  });
+
+  document.getElementById('playGif').onclick=async()=>{ await fetch('/api/anim/play'); };
+  document.getElementById('stopGif').onclick=async()=>{ await fetch('/api/anim/stop'); };
+
+  document.getElementById('prepGif').onclick=async()=>{
+    try{
+      if(!gifBuf) return alert("Choose a GIF first.");
+      prog.value=0;
+      infoEl.textContent="Loading GIF decoder…";
+      await loadGifuct();
+
+      const gif = new window.GIF(gifBuf);
+      const frames = gif.decompressFrames(true);
+
+      const frameCount=frames.length;
+      infoEl.innerHTML=`Decoded frames: <b>${frameCount}</b>`;
+      prog.value=5;
+
+      const chunks=[];
+      const header=new Uint8Array(16);
+      header[0]=0x41; header[1]=0x36; header[2]=0x34; header[3]=0x78; // "A64x"
+      header[4]=W; header[5]=H;
+      header[6]=frameCount&255; header[7]=(frameCount>>8)&255;
+      header[8]=1; // loop
+      chunks.push(header);
+
+      for(let i=0;i<frameCount;i++){
+        const fr=frames[i];
+        const delayMs=Math.max(20, Math.min(1000, (fr.delay||10)*10));
+        const imgData=new ImageData(new Uint8ClampedArray(fr.patch), fr.dims.width, fr.dims.height);
+
+        const tmp=document.createElement('canvas');
+        tmp.width=fr.dims.width; tmp.height=fr.dims.height;
+        const tctx=tmp.getContext('2d',{willReadFrequently:true});
+        tctx.putImageData(imgData,0,0);
+
+        const rgba64 = mapImageTo64x32(tmp, tmp.width, tmp.height, srcAspectGif, scaleModeGif);
+
+        if(i===frameCount-1){ rgbaToPreviewAndFrameBuffer(rgba64); }
+
+        chunks.push(frameRGBAtoRecord(rgba64, delayMs));
+        prog.value=Math.round(5 + ((i+1)/frameCount)*85);
+      }
+
+      let total=0; for(const c of chunks) total+=c.length;
+      const bin=new Uint8Array(total);
+      let o=0; for(const c of chunks){ bin.set(c,o); o+=c.length; }
+
+      infoEl.innerHTML+=`<br/>Prepared size: <b>${Math.round(bin.length/1024)} KB</b> — uploading…`;
+      const resp=await uploadAnimBin(bin);
+      prog.value=100;
+      infoEl.innerHTML+=`<br/><b>Upload OK</b> (${resp})`;
+    }catch(e){
+      errEl.textContent = (e && e.message) ? e.message : String(e);
+      prog.value=0;
+    }
+  };
+
+  // invalidate cached image frame when tuning changes
+  function invalidateCaches(){ lastImageFrame = null; }
+  gammaEl.addEventListener('input', invalidateCaches);
+  boostEl.addEventListener('input', invalidateCaches);
+  srcAspectImg.addEventListener('change', invalidateCaches);
+  scaleModeImg.addEventListener('change', invalidateCaches);
+
+  pix.fill(0); redraw();
+})();
+</script>
+</body></html>
+)HTML";
+
+// =====================
+// Helpers
+// =====================
+static inline uint16_t rgb888_to_565(uint32_t rrggbb) {
+  uint8_t r = (rrggbb >> 16) & 0xFF;
+  uint8_t g = (rrggbb >> 8) & 0xFF;
+  uint8_t b = rrggbb & 0xFF;
+  return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
+}
+
+static void draw_full_frame() {
+  for (int y=0; y<PANEL_RES_Y; y++)
+    for (int x=0; x<PANEL_RES_X; x++)
+      dma_display->drawPixel(x, y, fb[y*PANEL_RES_X + x]);
+}
+
+static void fill_color565(uint16_t c565) {
+  for (int i=0; i<PANEL_RES_X*PANEL_RES_Y; i++) fb[i]=c565;
+  draw_full_frame();
+}
+
+static void predrive_gpio_low(const HubPins& p) {
+  const int pins[] = { p.r1,p.g1,p.b1,p.r2,p.g2,p.b2, p.a,p.b,p.c,p.d, p.clk,p.lat,p.oe };
+  for (int pin: pins) {
+    if(pin<0) continue;
+    pinMode(pin, OUTPUT);
+    digitalWrite(pin, LOW);
+  }
+}
+
+static void init_display_with_pins(const HubPins& p) {
+  predrive_gpio_low(p);
+  delay(10);
+
+  HUB75_I2S_CFG cfg(PANEL_RES_X, PANEL_RES_Y, PANEL_CHAIN);
+  cfg.gpio.r1=p.r1; cfg.gpio.g1=p.g1; cfg.gpio.b1=p.b1;
+  cfg.gpio.r2=p.r2; cfg.gpio.g2=p.g2; cfg.gpio.b2=p.b2;
+  cfg.gpio.a=p.a; cfg.gpio.b=p.b; cfg.gpio.c=p.c; cfg.gpio.d=p.d; cfg.gpio.e=p.e;
+  cfg.gpio.clk=p.clk; cfg.gpio.lat=p.lat; cfg.gpio.oe=p.oe;
+  cfg.driver=p.driver; cfg.clkphase=p.clkphase; cfg.double_buff=p.double_buff;
+
+  if(dma_display){ delete dma_display; dma_display=nullptr; delay(30); }
+  dma_display = new MatrixPanel_I2S_DMA(cfg);
+  dma_display->begin();
+  dma_display->setBrightness8(40);
+  dma_display->clearScreen();
+  memset(fb,0,sizeof(fb));
+}
+
+static void reinit_display_now(){ init_display_with_pins(basePins); }
+
+// =====================
+// Animation player (RLE RGB565)
+// =====================
+static bool animOpenAndReadHeader() {
+  if (!LittleFS.exists(ANIM_PATH)) return false;
+  if (animFile) animFile.close();
+  animFile = LittleFS.open(ANIM_PATH, "r");
+  if (!animFile) return false;
+
+  if (animFile.read((uint8_t*)&animHdr, sizeof(animHdr)) != sizeof(animHdr)) { animFile.close(); return false; }
+  if (memcmp(animHdr.magic, "A64x", 4) != 0) { animFile.close(); return false; }
+  if (animHdr.w != 64 || animHdr.h != 32 || animHdr.frames == 0) { animFile.close(); return false; }
+
+  animFrameIndex=0; animNextMs=0;
+  return true;
+}
+
+static bool animReadNextFrameAndRender(uint16_t &delayMsOut) {
+  if (!animFile) return false;
+
+  uint16_t delayMs=0;
+  uint32_t rleLen=0;
+  if (animFile.read((uint8_t*)&delayMs,2)!=2) return false;
+  if (animFile.read((uint8_t*)&rleLen,4)!=4) return false;
+  if (rleLen==0 || rleLen>250000) return false;
+
+  static uint8_t* buf=nullptr;
+  static size_t cap=0;
+  if (rleLen>cap){
+    free(buf);
+    buf=(uint8_t*)malloc(rleLen);
+    cap=rleLen;
+    if(!buf) return false;
+  }
+  if (animFile.read(buf, rleLen) != (int)rleLen) return false;
+
+  uint32_t bi=0, pi=0;
+  while (bi+4<=rleLen && pi < PANEL_RES_X*PANEL_RES_Y) {
+    uint16_t cnt = (uint16_t)(buf[bi] | (buf[bi+1]<<8));
+    uint16_t col = (uint16_t)(buf[bi+2] | (buf[bi+3]<<8));
+    bi += 4;
+    uint32_t n=cnt;
+    if (pi+n > PANEL_RES_X*PANEL_RES_Y) n = PANEL_RES_X*PANEL_RES_Y - pi;
+    for (uint32_t k=0;k<n;k++) fb[pi++]=col;
+  }
+
+  draw_full_frame();
+  delayMsOut = delayMs < 20 ? 20 : delayMs;
+  return true;
+}
+
+// =====================
+// WebSocket
+// =====================
+void onWsEvent(AsyncWebSocket*, AsyncWebSocketClient*, AwsEventType type, void *arg, uint8_t *data, size_t len) {
+  if (type != WS_EVT_DATA) return;
+  AwsFrameInfo *info = (AwsFrameInfo*)arg;
+
+  if (info->opcode == WS_BINARY) {
+    if (info->index + len > sizeof(frame_rx)) return;
+    memcpy(frame_rx + info->index, data, len);
+    if (info->final) {
+      if (info->len == frame_rx_expected && frame_rx[0] == 0x46) {
+        animPlaying = false;
+        memcpy((uint8_t*)fb, frame_rx + 1, PANEL_RES_X*PANEL_RES_Y*2);
+        draw_full_frame();
+      }
+    }
+    return;
+  }
+
+  if (info->opcode != WS_TEXT || !info->final) return;
+
+  JsonDocument doc;
+  if (deserializeJson(doc, data, len)) return;
+  const char* t = doc["t"] | "";
+
+  if (!strcmp(t,"px")) {
+    animPlaying = false;
+    int x = doc["x"] | -1;
+    int y = doc["y"] | -1;
+    uint32_t c = doc["c"] | 0;
+    if (x>=0 && x<PANEL_RES_X && y>=0 && y<PANEL_RES_Y) {
+      uint16_t c565 = rgb888_to_565(c);
+      fb[y*PANEL_RES_X + x] = c565;
+      dma_display->drawPixel(x, y, c565);
+    }
+  } else if (!strcmp(t,"clear")) {
+    animPlaying = false;
+    memset(fb,0,sizeof(fb));
+    dma_display->clearScreen();
+  } else if (!strcmp(t,"fill")) {
+    animPlaying = false;
+    uint32_t ccol = doc["c"] | 0;
+    fill_color565(rgb888_to_565(ccol));
+  } else if (!strcmp(t,"stop")) {
+    animPlaying = false;
+    if (animFile) animFile.close();
+  }
+}
+
+// =====================
+// WiFi
+// =====================
+void setup_wifi() {
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  Serial.print("WiFi connecting");
+  while (WiFi.status() != WL_CONNECTED) { delay(250); Serial.print("."); }
+  Serial.println();
+  Serial.print("IP: "); Serial.println(WiFi.localIP());
+  if (MDNS.begin(MDNS_NAME)) {
+    Serial.print("mDNS: http://"); Serial.print(MDNS_NAME); Serial.println(".local");
+  }
+}
+
+// =====================
+// Server
+// =====================
+void setup_server() {
+  ws.onEvent(onWsEvent);
+  server.addHandler(&ws);
+
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *req){
+    req->send_P(200, "text/html; charset=utf-8", INDEX_HTML);
+  });
+
+  server.on("/api/reinit", HTTP_GET, [](AsyncWebServerRequest *req){
+    reinit_display_now();
+    req->send(200, "text/plain", "reinit ok");
+  });
+
+  server.on("/uploadAnim", HTTP_POST,
+    [](AsyncWebServerRequest *req){ req->send(200, "text/plain", "stored"); },
+    [](AsyncWebServerRequest*, String, size_t index, uint8_t *data, size_t len, bool final) {
+      static File up;
+      if (index == 0) {
+        animPlaying = false;
+        if (animFile) animFile.close();
+        up = LittleFS.open(ANIM_PATH, "w");
+      }
+      if (up) up.write(data, len);
+      if (final && up) up.close();
+    }
+  );
+
+  server.on("/api/anim/play", HTTP_GET, [](AsyncWebServerRequest *req){
+    animPlaying = false;
+    if (animOpenAndReadHeader()) {
+      animPlaying = true;
+      animNextMs = 0;
+      req->send(200, "text/plain", "anim play");
+    } else req->send(404, "text/plain", "no anim");
+  });
+
+  server.on("/api/anim/stop", HTTP_GET, [](AsyncWebServerRequest *req){
+    animPlaying = false;
+    if (animFile) animFile.close();
+    req->send(200, "text/plain", "anim stop");
+  });
+
+  server.on("/ping", HTTP_GET, [](AsyncWebServerRequest *req){
+    req->send(200, "text/plain", "pong");
+  });
+
+  // OTA: http://<ip>/update oder http://hub75.local/update
+  ElegantOTA.begin(&server);
+
+  server.begin();
+  Serial.println("HTTP server started");
+}
+
+// =====================
+// Arduino
+// =====================
+void setup() {
+  Serial.begin(115200);
+  delay(300);
+
+  LittleFS.begin(true);
+
+  init_display_with_pins(basePins);
+
+  setup_wifi();
+  reinit_display_now(); // boot fix
+  setup_server();
+
+  dma_display->setTextSize(1);
+  dma_display->setTextWrap(false);
+  dma_display->setCursor(2, 10);
+  dma_display->setTextColor(dma_display->color565(255,255,0));
+  dma_display->print("hub75");
+}
+
+void loop() {
+  ws.cleanupClients();
+
+  // ElegantOTA (safe to call; required in some builds)
+  ElegantOTA.loop();
+
+  if (animPlaying) {
+    uint32_t now = millis();
+    if (animNextMs == 0 || (int32_t)(now - animNextMs) >= 0) {
+      uint16_t delayMs = 100;
+      bool ok = animReadNextFrameAndRender(delayMs);
+      if (!ok) {
+        if (animFile) animFile.close();
+        if (animHdr.loop) {
+          if (animOpenAndReadHeader()) animNextMs = now + 1;
+          else animPlaying = false;
+        } else animPlaying = false;
+      } else {
+        animFrameIndex++;
+        if (animFrameIndex >= animHdr.frames) {
+          if (animFile) animFile.close();
+          if (animHdr.loop) animOpenAndReadHeader();
+          else animPlaying = false;
+        }
+        animNextMs = now + delayMs;
+      }
+    }
+  }
+
+  delay(2);
+}
