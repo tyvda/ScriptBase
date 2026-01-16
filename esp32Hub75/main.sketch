@@ -521,7 +521,8 @@ a{color:#9bd7ff}
     if(!ws || ws.readyState!==1) { alert("WebSocket not connected"); return; }
     sendJson({t:"stop"});
     const payload = frame instanceof ArrayBuffer ? new Uint8Array(frame) : frame;
-    ws.send(payload);
+    const bytes = payload instanceof Uint8Array ? payload : new Uint8Array(payload);
+    ws.send(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
   }
 
   // ===== Image workflow =====

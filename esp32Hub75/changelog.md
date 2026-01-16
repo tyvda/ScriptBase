@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-01-16 10:10:01 +0000
+- Full-Frame-Upload sendet exakt das Uint8Array-Slice, um abgeschnittene Bildübertragung zu vermeiden. Quelle: `main.sketch`.
+
 ## 2026-01-16 10:00:55 +0000
 - Farbpalette ergänzt und Canvas auf 64×32 intern fixiert, nur optisch skaliert (korrektes 1:1 Mapping). Quellen: `main.sketch`, `README.md`, `HOWTO.md`, `TUTORIAL.md`.
 
