@@ -269,7 +269,7 @@ a{color:#9bd7ff}
   const brushSel=document.getElementById('brush');
 
   // ---- WebSocket
-  let ws;
+  var ws;
   function connect(){
     ws = new WebSocket(`ws://${host}/ws`);
     ws.binaryType = "arraybuffer";

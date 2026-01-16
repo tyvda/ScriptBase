@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-01-16 09:07:18 +0000
+- WebSocket-Variable im UI auf `var` umgestellt, um TDZ-Fehler bei früher Nutzung zu vermeiden. Quelle: `main.sketch`.
+
 ## 2026-01-16 08:57:05 +0000
 - WebSocket-Init im UI vor Helligkeits-Events verschoben, um JS-ReferenceError zu vermeiden. Quelle: `main.sketch`.
 
