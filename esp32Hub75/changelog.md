@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-01-16 12:48:57 +0000
+- Bild-Upload nutzt Pixelart-Mechanik (Image → Canvas → 64×32 → `px` Updates) für robuste Projektion. Quelle: `main.sketch`.
+- Reinit leert Canvas und Panel über `clear`, damit Pixelart nach Neustart zuverlässig funktioniert. Quelle: `main.sketch`.
+- Dokumentation für Bild-Upload/Pixelart-Reinit angepasst. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-16 12:36:23 +0000
 - Bild-Upload Pipeline an GIF-Workflow angeglichen (Image → Canvas → Mapping) für korrektes 64×32-Projizieren. Quelle: `main.sketch`.
 - Dokumentation für Bild-Mapping aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.

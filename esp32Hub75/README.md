@@ -22,7 +22,7 @@ Folgende Kernfunktionen sind im aktuellen `main.sketch` implementiert und damit 
 
 - **HUB75 Panel‑Betrieb** über `ESP32-HUB75-MatrixPanel-I2S-DMA`, inklusive GPIO‑Mapping und I2S‑DMA‑Init.【F:esp32Hub75/main.sketch†L13-L166】
 - **Pixelart Editor** mit Web‑UI, Brush‑Größe, Clear/Fill und Einzelpixel‑Updates über WebSocket JSON (`t:"px"`).【F:esp32Hub75/main.sketch†L90-L377】【F:esp32Hub75/main.sketch†L712-L735】
-- **Bild‑Upload (PNG/JPG/WebP)** inkl. Mapping, Skalierung und RGB565‑Frame‑Upload per WebSocket Binary.【F:esp32Hub75/main.sketch†L142-L512】【F:esp32Hub75/main.sketch†L693-L707】
+- **Bild‑Upload (PNG/JPG/WebP)** inkl. Mapping, Skalierung und Pixel‑Updates über die robuste Pixelart‑Pipeline (WebSocket JSON).【F:esp32Hub75/main.sketch†L142-L581】【F:esp32Hub75/main.sketch†L712-L726】
 - **GIF‑Import & Animation** mit Browser‑Decode (`gifuct-js`), RLE‑Encoding, Upload nach LittleFS und Player auf ESP32.【F:esp32Hub75/main.sketch†L222-L689】【F:esp32Hub75/main.sketch†L827-L855】
 
 ## Product Requirements Document (PRD)
@@ -181,7 +181,7 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 - **Reinit**: Neuinitialisiert das Panel‑GPIO‑Setup per `/api/reinit`.【F:esp32Hub75/main.sketch†L368-L369】【F:esp32Hub75/main.sketch†L822-L825】
 - **Gamma/Boost**: LUT‑basiert, beeinflusst Bilder & GIF‑Frames im Browser (Preview + Upload).【F:esp32Hub75/main.sketch†L151-L314】
 - **Brightness**: UI‑Regler steuert die Panel‑Helligkeit (WebSocket `bright`).【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
-- **Bild‑Mapping**: Bild‑Upload folgt derselben Canvas‑Mapping‑Pipeline wie GIFs (Image → Canvas → 64×32).【F:esp32Hub75/main.sketch†L549-L563】
+- **Bild‑Mapping**: Bild‑Upload folgt derselben Canvas‑Mapping‑Pipeline wie GIFs (Image → Canvas → 64×32) und zeichnet danach via Pixel‑Updates. 【F:esp32Hub75/main.sketch†L535-L590】
 
 ## Netzwerk‑API (HTTP + WebSocket)
 

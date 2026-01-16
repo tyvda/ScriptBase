@@ -437,7 +437,12 @@ a{color:#9bd7ff}
     sendJson({t:"fill", c});
   };
 
-  document.getElementById('reinit').onclick=async()=>{ await fetch('/api/reinit'); };
+  document.getElementById('reinit').onclick=async()=>{
+    await fetch('/api/reinit');
+    pix.fill(0);
+    redraw();
+    sendJson({t:"clear"});
+  };
 
   // ===== Aspect/Scale mapping =====
   function desiredAspectValue(sel) {
@@ -546,6 +551,30 @@ a{color:#9bd7ff}
     imgEl.src = imgObjUrl;
   });
 
+  function applyImageDataToPix(imgData, shouldSend){
+    if(!imgData || !imgData.data) return;
+    const rgba = imgData.data;
+    if(shouldSend){
+      sendJson({t:"stop"});
+      sendJson({t:"clear"});
+    }
+    for(let i=0;i<W*H;i++){
+      const k=i*4;
+      const a = rgba[k+3];
+      const r = applyLUT(a ? rgba[k] : 0);
+      const g = applyLUT(a ? rgba[k+1] : 0);
+      const b = applyLUT(a ? rgba[k+2] : 0);
+      const col = (r<<16)|(g<<8)|b;
+      pix[i] = col;
+      if(shouldSend){
+        const x = i % W;
+        const y = Math.floor(i / W);
+        sendJson({t:"px", x, y, c: col});
+      }
+    }
+    redraw();
+  }
+
   function buildImageFrame(){
     if(!imgEl) return null;
     const iw = imgEl.naturalWidth || imgEl.width;
@@ -558,8 +587,9 @@ a{color:#9bd7ff}
     tctx.drawImage(imgEl, 0, 0, iw, ih);
 
     const mappedData = mapImageTo64x32(tmp, iw, ih, srcAspectImg, scaleModeImg);
-    lastImageFrame = buildFramePayload(mappedData);
-    return lastImageFrame;
+    applyImageDataToPix(mappedData, false);
+    lastImageFrame = mappedData;
+    return mappedData;
   }
 
   document.getElementById('previewImg').onclick = async ()=>{
@@ -569,8 +599,8 @@ a{color:#9bd7ff}
 
   document.getElementById('sendImg').onclick = async ()=>{
     if(!imgEl) return alert("Choose an image first.");
-    const frame = lastImageFrame || buildImageFrame();
-    sendFrameBinary(frame);
+    const mappedData = lastImageFrame || buildImageFrame();
+    applyImageDataToPix(mappedData, true);
   };
 
   // ===== GIF: build anim.bin (RLE RGB565) =====

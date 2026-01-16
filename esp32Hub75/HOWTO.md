@@ -10,7 +10,7 @@ Hinweis: Die Web‑UI bietet eine Farbpalette und ein feines Canvas‑Grid; die 
 
 ## Panel neu initialisieren (Reinit)
 
-Die Web‑UI löst `/api/reinit` aus und initialisiert das Panel neu. Das kann hilfreich sein, wenn das Panel beim Booten nicht korrekt gestartet ist.【F:esp32Hub75/main.sketch†L368-L369】【F:esp32Hub75/main.sketch†L820-L825】
+Die Web‑UI löst `/api/reinit` aus und initialisiert das Panel neu. Anschließend wird die UI‑Canvas geleert und das Panel per `clear` zurückgesetzt, damit Pixelart wieder sauber funktioniert.【F:esp32Hub75/main.sketch†L368-L377】【F:esp32Hub75/main.sketch†L820-L825】
 
 ## Vollbild‑Frame via WebSocket senden
 
@@ -23,7 +23,7 @@ Beim Empfang wird der Frame direkt in den Framebuffer kopiert und gerendert.【F
 
 ## Bild‑Upload korrekt mappen
 
-Der Bild‑Upload nutzt denselben Mapping‑Ablauf wie GIFs: Bild wird erst auf ein Canvas gezeichnet und dann auf 64×32 gemappt, bevor der RGB565‑Frame erzeugt wird.【F:esp32Hub75/main.sketch†L549-L563】
+Der Bild‑Upload nutzt denselben Mapping‑Ablauf wie GIFs: Bild wird erst auf ein Canvas gezeichnet und dann auf 64×32 gemappt. Anschließend wird das Bild über die Pixelart‑Pipeline (JSON `px`) auf das Panel übertragen.【F:esp32Hub75/main.sketch†L535-L590】【F:esp32Hub75/main.sketch†L712-L726】
 
 ## WebSocket‑Status prüfen
 
