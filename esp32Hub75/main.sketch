@@ -818,8 +818,13 @@ a{color:#9bd7ff}
       const gif = new window.GIF(gifBuf);
       const frames = gif.decompressFrames(true);
 
-      const frameCount=frames.length;
-      infoEl.innerHTML=`Decoded frames: <b>${frameCount}</b>`;
+      const rawFrameCount=frames.length;
+      const frameCount=Math.min(rawFrameCount, 50);
+      if(rawFrameCount > frameCount){
+        infoEl.innerHTML=`Decoded frames: <b>${rawFrameCount}</b> → limitiert auf <b>${frameCount}</b>`;
+      }else{
+        infoEl.innerHTML=`Decoded frames: <b>${frameCount}</b>`;
+      }
       prog.value=5;
 
       const chunks=[];

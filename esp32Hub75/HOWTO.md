@@ -57,7 +57,7 @@ Das File wird aus LittleFS gelesen und als RLE‑RGB565 gerendert.【F:esp32Hub7
 
 ## Animationen neu generieren (GIF)
 
-Die Web‑UI erstellt `anim.bin` direkt im Browser aus GIFs:
+Die Web‑UI erstellt `anim.bin` direkt im Browser aus GIFs (Upload aktuell auf max. 50 Frames limitiert):
 
 - dekodiert Frames,
 - skaliert/croppt auf 64×32,

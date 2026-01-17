@@ -99,7 +99,7 @@ Im Bereich "Bild / GIF Tuning" steht ein Helligkeits‑Regler zur Verfügung. Di
 ## 9) GIF vorbereiten & abspielen
 
 1. GIF auswählen.
-2. `Prepare & Upload` erstellt `anim.bin` im Browser und lädt es hoch.
+2. `Prepare & Upload` erstellt `anim.bin` im Browser und lädt es hoch (max. 50 Frames).
 3. `Play` startet die Animation, `Stop` stoppt sie.
 
 Die GIF‑Dekodierung nutzt `gifuct-js` via CDN.【F:esp32Hub75/main.sketch†L222-L612】

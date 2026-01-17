@@ -12,7 +12,7 @@ Kein Cloud‑Zwang, kein WLED, kein externer Server.
 
 - Web‑UI mit Pixel‑Editor (Brush, Clear/Fill, Reinit).【F:esp32Hub75/main.sketch†L67-L377】
 - Bild‑Upload (PNG/JPG/WebP) mit Aspect‑Mapping (Auto/4:3/16:9) und Cover/Contain‑Scaling.【F:esp32Hub75/main.sketch†L142-L454】
-- GIF‑Upload inkl. browserseitiger Dekodierung und RLE‑Kompression für schnelle Wiedergabe am ESP32.【F:esp32Hub75/main.sketch†L222-L612】
+- GIF‑Upload inkl. browserseitiger Dekodierung und RLE‑Kompression für schnelle Wiedergabe am ESP32 (Upload aktuell auf max. 50 Frames limitiert).【F:esp32Hub75/main.sketch†L222-L612】
 - WebSocket‑Streaming von Full‑Frames (RGB565) und Einzelpixel‑Updates (JSON).【F:esp32Hub75/main.sketch†L318-L760】
 - Helligkeitssteuerung im UI (WebSocket, `setBrightness8`).【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
 

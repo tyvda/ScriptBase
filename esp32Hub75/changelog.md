@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-01-17 08:21:46 +0000
+- GIF-Upload im Browser auf max. 50 Frames limitiert, um anim.bin-Uploads zu begrenzen. Quelle: `main.sketch`.
+- Dokumentation zur GIF-Frame-Limitierung ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-17 08:14:01 +0000
 - Pixelart Save/Load lokal im Browser (LocalStorage) ergänzt, ohne Änderungen an der Redraw-Logik. Quelle: `main.sketch`.
 - Dokumentation für lokalen Save/Load-Workflow ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
