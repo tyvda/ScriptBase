@@ -293,6 +293,51 @@ a{color:#9bd7ff}
 
   window.addEventListener('error', (e)=>{ errEl.textContent = "JS error: " + e.message; });
 
+  const PANEL_CHUNK_SIZE = 128;
+  let panelBulkActive = false;
+  let panelPendingRedraw = false;
+  const panelWorkQueue = [];
+
+  function markPanelDirty(){
+    panelPendingRedraw = true;
+  }
+
+  function enqueuePanelWork(job){
+    panelWorkQueue.push(job);
+    runPanelQueue();
+  }
+
+  async function runPanelQueue(){
+    if(panelBulkActive) return;
+    panelBulkActive = true;
+    while(panelWorkQueue.length){
+      const job = panelWorkQueue.shift();
+      try{
+        await job();
+      }catch(err){
+        console.error(err);
+        errEl.textContent = "Panel job error: " + (err?.message || String(err));
+      }
+    }
+    panelBulkActive = false;
+    if(panelPendingRedraw){
+      panelPendingRedraw = false;
+      enqueuePanelWork(sendPixelsFromPix);
+    }
+  }
+
+  function waitForPanelDrain(){
+    if(!ws || ws.readyState!==1) return Promise.resolve();
+    if(ws.bufferedAmount < 65536) return Promise.resolve();
+    return new Promise((resolve)=>{
+      const check=()=>{
+        if(!ws || ws.readyState!==1 || ws.bufferedAmount < 65536) return resolve();
+        requestAnimationFrame(check);
+      };
+      check();
+    });
+  }
+
   // Preview buffer RGB888 0xRRGGBB
   const pix=new Uint32Array(W*H);
   function redraw(){
@@ -306,7 +351,7 @@ a{color:#9bd7ff}
     }
   }
 
-  function redrawPanelFromPix(){
+  async function sendPixelsFromPix(){
     sendJson({t:"stop"});
     sendJson({t:"clear"});
     for(let i=0;i<W*H;i++){
@@ -314,7 +359,15 @@ a{color:#9bd7ff}
       const x = i % W;
       const y = Math.floor(i / W);
       sendJson({t:"px", x, y, c: col});
+      if((i+1) % PANEL_CHUNK_SIZE === 0){
+        await waitForPanelDrain();
+        await new Promise(requestAnimationFrame);
+      }
     }
+  }
+
+  function redrawPanelFromPix(){
+    enqueuePanelWork(sendPixelsFromPix);
   }
 
   function hexToRgb(hex){
@@ -390,7 +443,11 @@ a{color:#9bd7ff}
         ctx.fillStyle=`rgb(${rr},${gg},${bb})`;
         ctx.fillRect(px,py,1,1);
 
-        sendJson({t:"px", x:px, y:py, c:col});
+        if(panelBulkActive){
+          markPanelDirty();
+        }else{
+          sendJson({t:"px", x:px, y:py, c:col});
+        }
       }
     }
   }
@@ -440,20 +497,20 @@ a{color:#9bd7ff}
 
   document.getElementById('clear').onclick=()=>{
     pix.fill(0); redraw();
-    sendJson({t:"clear"});
+    enqueuePanelWork(async()=>{ sendJson({t:"clear"}); });
   };
 
   document.getElementById('fill').onclick=()=>{
     const c=hexToRgb(colInput.value);
     pix.fill(c); redraw();
-    sendJson({t:"fill", c});
+    enqueuePanelWork(async()=>{ sendJson({t:"fill", c}); });
   };
 
   document.getElementById('reinit').onclick=async()=>{
     await fetch('/api/reinit');
     pix.fill(0);
     redraw();
-    sendJson({t:"clear"});
+    enqueuePanelWork(async()=>{ sendJson({t:"clear"}); });
   };
 
   document.getElementById('redrawPanel').onclick=()=>{ redrawPanelFromPix(); };
@@ -568,10 +625,6 @@ a{color:#9bd7ff}
   function applyImageDataToPix(imgData, shouldSend){
     if(!imgData || !imgData.data) return;
     const rgba = imgData.data;
-    if(shouldSend){
-      sendJson({t:"stop"});
-      sendJson({t:"clear"});
-    }
     for(let i=0;i<W*H;i++){
       const k=i*4;
       const a = rgba[k+3];
@@ -580,13 +633,11 @@ a{color:#9bd7ff}
       const b = applyLUT(a ? rgba[k+2] : 0);
       const col = (r<<16)|(g<<8)|b;
       pix[i] = col;
-      if(shouldSend){
-        const x = i % W;
-        const y = Math.floor(i / W);
-        sendJson({t:"px", x, y, c: col});
-      }
     }
     redraw();
+    if(shouldSend){
+      enqueuePanelWork(sendPixelsFromPix);
+    }
   }
 
   function buildImageFrame(){

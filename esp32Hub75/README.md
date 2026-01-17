@@ -182,7 +182,7 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 - **Gamma/Boost**: LUT‑basiert, beeinflusst Bilder & GIF‑Frames im Browser (Preview + Upload).【F:esp32Hub75/main.sketch†L151-L314】
 - **Brightness**: UI‑Regler steuert die Panel‑Helligkeit (WebSocket `bright`).【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
 - **Bild‑Mapping**: Bild‑Upload folgt derselben Canvas‑Mapping‑Pipeline wie GIFs (Image → Canvas → 64×32) und zeichnet danach via Pixel‑Updates. 【F:esp32Hub75/main.sketch†L535-L590】
-- **Panel‑Redraw**: Button „Redraw Panel“ sendet die aktuelle Pixelart erneut ans Panel. 【F:esp32Hub75/main.sketch†L69-L456】
+- **Panel‑Redraw**: Button „Redraw Panel“ sendet die aktuelle Pixelart erneut ans Panel – jetzt in chunked Pixel‑Batches mit Queue/Lock, damit die Übertragung nicht durch andere UI‑Aktionen unterbrochen wird. 【F:esp32Hub75/main.sketch†L69-L536】
 
 ## Netzwerk‑API (HTTP + WebSocket)
 

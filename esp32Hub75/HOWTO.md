@@ -41,7 +41,7 @@ Einzelpixel kannst du via JSON‑Nachricht auf `/ws` senden:
 
 ## Pixelart erneut auf Panel zeichnen
 
-Bei Bedarf kann die aktuelle Pixelart‑Canvas erneut ans Panel gesendet werden: Der Button „Redraw Panel“ triggert einen kompletten Re‑Draw (JSON `px` für alle Pixel).【F:esp32Hub75/main.sketch†L69-L456】
+Bei Bedarf kann die aktuelle Pixelart‑Canvas erneut ans Panel gesendet werden: Der Button „Redraw Panel“ triggert einen kompletten Re‑Draw (JSON `px` für alle Pixel), der jetzt in chunked Pixel‑Batches mit Queue/Lock gesendet wird, damit die Übertragung nicht von anderen UI‑Jobs unterbrochen wird.【F:esp32Hub75/main.sketch†L69-L536】
 
 ## Animation abspielen
 

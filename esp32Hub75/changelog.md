@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-01-17 07:31:50 +0000
+- Panel-Redraw/Panel-Bulk-Jobs robust gemacht: chunked Pixel-Batches, Queue/Lock gegen Unterbrechung und sauberes Nachziehen bei parallelen UI-Aktionen. Quelle: `main.sketch`.
+- Dokumentation für robusten Panel-Redraw aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-16 15:14:43 +0000
 - Aufgaben-Backlog als `tasks.md` ergänzt und Querverweise in README/How‑To/Tutorial gesetzt. Quellen: `tasks.md`, `README.md`, `HOWTO.md`, `TUTORIAL.md`.
 
