@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-01-17 08:00:32 +0000
+- Bild- und Panel-Redraw-Workflow auf anim.bin-Pipeline umgestellt: Browser packt Single-Frame wie GIF, Upload nach LittleFS, ESP32 rendert lokal. Quelle: `main.sketch`.
+- Dokumentation für anim.bin-basierte Bild-/Redraw-Übertragung aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-17 07:31:50 +0000
 - Panel-Redraw/Panel-Bulk-Jobs robust gemacht: chunked Pixel-Batches, Queue/Lock gegen Unterbrechung und sauberes Nachziehen bei parallelen UI-Aktionen. Quelle: `main.sketch`.
 - Dokumentation für robusten Panel-Redraw aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.

@@ -23,7 +23,7 @@ Beim Empfang wird der Frame direkt in den Framebuffer kopiert und gerendert.【F
 
 ## Bild‑Upload korrekt mappen
 
-Der Bild‑Upload nutzt denselben Mapping‑Ablauf wie GIFs: Bild wird erst auf ein Canvas gezeichnet und dann auf 64×32 gemappt. Anschließend wird das Bild über die Pixelart‑Pipeline (JSON `px`) auf das Panel übertragen.【F:esp32Hub75/main.sketch†L535-L590】【F:esp32Hub75/main.sketch†L712-L726】
+Der Bild‑Upload nutzt denselben Mapping‑Ablauf wie GIFs: Bild wird erst auf ein Canvas gezeichnet und dann auf 64×32 gemappt. Anschließend wird das Bild als Single‑Frame‑`anim.bin` gepackt und lokal am ESP32 wie ein GIF gerendert (kein `px`‑Flood).【F:esp32Hub75/main.sketch†L535-L799】
 
 ## WebSocket‑Status prüfen
 
@@ -41,7 +41,7 @@ Einzelpixel kannst du via JSON‑Nachricht auf `/ws` senden:
 
 ## Pixelart erneut auf Panel zeichnen
 
-Bei Bedarf kann die aktuelle Pixelart‑Canvas erneut ans Panel gesendet werden: Der Button „Redraw Panel“ triggert einen kompletten Re‑Draw (JSON `px` für alle Pixel), der jetzt in chunked Pixel‑Batches mit Queue/Lock gesendet wird, damit die Übertragung nicht von anderen UI‑Jobs unterbrochen wird.【F:esp32Hub75/main.sketch†L69-L536】
+Bei Bedarf kann die aktuelle Pixelart‑Canvas erneut ans Panel gesendet werden: Der Button „Redraw Panel“ packt die Pixelart als Single‑Frame‑`anim.bin` und lässt den ESP32 sie lokal wie ein GIF rendern (keine `px`‑Flut, keine Unterbrechung durch UI‑Jobs).【F:esp32Hub75/main.sketch†L69-L799】
 
 ## Animation abspielen
 

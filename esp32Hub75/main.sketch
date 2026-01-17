@@ -322,7 +322,7 @@ a{color:#9bd7ff}
     panelBulkActive = false;
     if(panelPendingRedraw){
       panelPendingRedraw = false;
-      enqueuePanelWork(sendPixelsFromPix);
+      enqueuePanelWork(()=>sendAnimFromPix(infoEl));
     }
   }
 
@@ -367,7 +367,7 @@ a{color:#9bd7ff}
   }
 
   function redrawPanelFromPix(){
-    enqueuePanelWork(sendPixelsFromPix);
+    enqueuePanelWork(()=>sendAnimFromPix(infoEl));
   }
 
   function hexToRgb(hex){
@@ -410,6 +410,9 @@ a{color:#9bd7ff}
   function applyLUT(v){ return lut[v&255]; }
   function rgb888To565LUT(r,g,b){
     r = applyLUT(r); g = applyLUT(g); b = applyLUT(b);
+    return ((r&0xF8)<<8) | ((g&0xFC)<<3) | (b>>3);
+  }
+  function rgb888To565(r,g,b){
     return ((r&0xF8)<<8) | ((g&0xFC)<<3) | (b>>3);
   }
 
@@ -636,7 +639,7 @@ a{color:#9bd7ff}
     }
     redraw();
     if(shouldSend){
-      enqueuePanelWork(sendPixelsFromPix);
+      enqueuePanelWork(()=>sendAnimFromPix(imgInfo));
     }
   }
 
@@ -688,12 +691,7 @@ a{color:#9bd7ff}
     return buf;
   }
 
-  function frameRGBAtoRecord(rgba, delayMs){
-    const rgb565=new Uint16Array(W*H);
-    for(let i=0;i<W*H;i++){
-      const k=i*4;
-      rgb565[i]=rgb888To565LUT(rgba[k], rgba[k+1], rgba[k+2]);
-    }
+  function frameRGB565ToRecord(rgb565, delayMs){
     const rle=rleEncode565(rgb565);
     const parts=[u16le(delayMs), u32le(rle.length), rle];
     let total=0; for(const p of parts) total+=p.length;
@@ -702,12 +700,53 @@ a{color:#9bd7ff}
     return out;
   }
 
+  function frameRGBAtoRecord(rgba, delayMs){
+    const rgb565=new Uint16Array(W*H);
+    for(let i=0;i<W*H;i++){
+      const k=i*4;
+      rgb565[i]=rgb888To565LUT(rgba[k], rgba[k+1], rgba[k+2]);
+    }
+    return frameRGB565ToRecord(rgb565, delayMs);
+  }
+
+  function buildAnimBinFromFrames(frameRecords, loopFlag){
+    const header=new Uint8Array(16);
+    header[0]=0x41; header[1]=0x36; header[2]=0x34; header[3]=0x78; // "A64x"
+    header[4]=W; header[5]=H;
+    const frameCount = frameRecords.length;
+    header[6]=frameCount&255; header[7]=(frameCount>>8)&255;
+    header[8]=loopFlag ? 1 : 0;
+    const parts=[header, ...frameRecords];
+    let total=0; for(const p of parts) total+=p.length;
+    const out=new Uint8Array(total);
+    let o=0; for(const p of parts){ out.set(p,o); o+=p.length; }
+    return out;
+  }
+
+  function buildAnimBinFromPix(pixBuf, delayMs, loopFlag){
+    const rgb565=new Uint16Array(W*H);
+    for(let i=0;i<W*H;i++){
+      const col = pixBuf[i];
+      const r=(col>>16)&255, g=(col>>8)&255, b=col&255;
+      rgb565[i]=rgb888To565(r,g,b);
+    }
+    const record = frameRGB565ToRecord(rgb565, delayMs);
+    return buildAnimBinFromFrames([record], loopFlag);
+  }
+
   async function uploadAnimBin(bin){
     const fd=new FormData();
     fd.append('anim', new Blob([bin],{type:'application/octet-stream'}), 'anim.bin');
     const res=await fetch('/uploadAnim',{method:'POST', body: fd});
     if(!res.ok) throw new Error("Upload failed");
     return res.text();
+  }
+
+  async function sendAnimFromPix(statusTarget){
+    const bin = buildAnimBinFromPix(pix, 100, false);
+    const resp = await uploadAnimBin(bin);
+    if(statusTarget) statusTarget.textContent = resp || "anim uploaded";
+    await fetch('/api/anim/play');
   }
 
   // gifuct-js CDN -> window.GIF
@@ -750,12 +789,6 @@ a{color:#9bd7ff}
       prog.value=5;
 
       const chunks=[];
-      const header=new Uint8Array(16);
-      header[0]=0x41; header[1]=0x36; header[2]=0x34; header[3]=0x78; // "A64x"
-      header[4]=W; header[5]=H;
-      header[6]=frameCount&255; header[7]=(frameCount>>8)&255;
-      header[8]=1; // loop
-      chunks.push(header);
 
       for(let i=0;i<frameCount;i++){
         const fr=frames[i];
@@ -776,9 +809,7 @@ a{color:#9bd7ff}
         prog.value=Math.round(5 + ((i+1)/frameCount)*85);
       }
 
-      let total=0; for(const c of chunks) total+=c.length;
-      const bin=new Uint8Array(total);
-      let o=0; for(const c of chunks){ bin.set(c,o); o+=c.length; }
+      const bin = buildAnimBinFromFrames(chunks, true);
 
       infoEl.innerHTML+=`<br/>Prepared size: <b>${Math.round(bin.length/1024)} KB</b> — uploading…`;
       const resp=await uploadAnimBin(bin);
