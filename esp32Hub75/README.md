@@ -15,6 +15,7 @@ Kein Cloud‑Zwang, kein WLED, kein externer Server.
 - GIF‑Upload inkl. browserseitiger Dekodierung und RLE‑Kompression für schnelle Wiedergabe am ESP32 (Upload aktuell auf max. 50 Frames limitiert).【F:esp32Hub75/main.sketch†L222-L612】
 - WebSocket‑Streaming von Full‑Frames (RGB565) und Einzelpixel‑Updates (JSON).【F:esp32Hub75/main.sketch†L318-L760】
 - Helligkeitssteuerung im UI (WebSocket, `setBrightness8`).【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
+- WLED‑ähnliche Animationen (Matrix, Blink, Colorfading, Rainbow, Kaminfeuer, Twinkle, Scanner, Waves) mit UI‑Parametern und WebSocket‑Steuerung.【F:esp32Hub75/main.sketch†L58-L1684】
 
 ## Implementierungscheck (Sketch-Abgleich)
 
@@ -184,6 +185,7 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 - **Bild‑Mapping**: Bild‑Upload folgt derselben Canvas‑Mapping‑Pipeline wie GIFs (Image → Canvas → 64×32) und wird anschließend wie ein GIF‑Frame als `anim.bin` gepackt, hochgeladen und lokal vom ESP32 gerendert. 【F:esp32Hub75/main.sketch†L535-L799】
 - **Panel‑Redraw**: Button „Redraw Panel“ packt die aktuelle Pixelart als Single‑Frame‑`anim.bin` und lässt den ESP32 das Bild lokal anzeigen (wie bei GIFs), wodurch Unterbrechungen durch UI‑Jobs vermieden werden. 【F:esp32Hub75/main.sketch†L69-L799】
 - **Pixelart Save/Load**: Lokales Speichern/Laden im Browser (LocalStorage), ohne Server‑Roundtrip. 【F:esp32Hub75/main.sketch†L286-L575】
+- **WLED‑ähnliche Effekte**: Eigener UI‑Bereich mit Start/Stop, Speed/Intensity sowie Effekt‑Parametern (Matrix, Blink, Colorfading, Rainbow, Kaminfeuer, Twinkle, Scanner, Waves).【F:esp32Hub75/main.sketch†L58-L1684】
 
 ## Netzwerk‑API (HTTP + WebSocket)
 
@@ -205,6 +207,7 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
   - `{"t":"fill","c":0xRRGGBB}` – Fill‑Farbe setzen.【F:esp32Hub75/main.sketch†L731-L735】
   - `{"t":"stop"}` – Animation stoppen.【F:esp32Hub75/main.sketch†L736-L739】
   - `{"t":"bright","v":128}` – Helligkeit (5–255) setzen.【F:esp32Hub75/main.sketch†L736-L768】
+  - `{"t":"fx","mode":"matrix","run":1,"speed":80,"intensity":180,"density":120,"trail":180,"duty":160,"dir":1,"cooling":120,"sparks":120,"c1":0x00FF00,"c2":0xFF0000}` – WLED‑ähnliche Effekte starten/parametrieren.【F:esp32Hub75/main.sketch†L94-L1149】
 
 ## Animationen (anim.bin)
 
@@ -276,13 +279,17 @@ Die Bewertung basiert auf der Architektur (FrameBuffer + RLE + WebSocket).【F:e
 
 ### Animationen im Stil von WLED
 
-Geplant ist ein eigener Animations‑Bereich mit Parametern pro Effekt:
+Umgesetzt ist ein eigener Animations‑Bereich mit Parametern pro Effekt:
 
 - **Matrix Kino‑Film** (Digit‑Regen mit Trails): Parameter z. B. Geschwindigkeit, Dichte, Trail‑Länge, Farbpalette/Grün‑Tint.
 - **Blink**: Parameter z. B. Geschwindigkeit, Duty‑Cycle, Farbpalette, zufällige Startphasen.
 - **Colorfading**: Parameter z. B. Fade‑Speed, Farbpalette, Loop‑Modus.
 - **Rainbow**: Parameter z. B. Geschwindigkeit, Richtung, Sättigung/Intensität.
 - **Kaminfeuer**: Parameter z. B. Flammenhöhe, Glut‑Intensität, Flacker‑Stärke, Farbpalette.
+- **Twinkle**: Parameter z. B. Dichte, Speed, Intensität/Farbe.
+- **Scanner**: Parameter z. B. Speed, Breite/Trail, Richtung, Farbe.
+- **Waves**: Parameter z. B. Speed, Richtung, Intensität.
+Status: umgesetzt (Effekt‑Engine + UI‑Steuerung im Sketch).【F:esp32Hub75/main.sketch†L58-L1684】
 
 ## Taskliste (Nächste notwendige Aufgaben)
 
@@ -290,6 +297,7 @@ Basierend auf den dokumentierten Einschränkungen und Optional‑Features ergebe
 
 1. **Presets für Pixelart/Bilder**: Speichern/Laden in LittleFS integrieren (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L777-L805】
 2. **Animation‑Builder im UI**: Pixelart‑Frames erfassen und als Animation exportieren (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L90-L377】
+3. **Umsetzungs‑Task Animationen**: Effekt‑Engine + Effekte inkl. UI‑Parametersteuerung (umgesetzt in `main.sketch`, siehe `tasks.md`, Abschnitt B0).
 
 ## Aufgaben zur Umsetzung (Roadmap‑Features)
 

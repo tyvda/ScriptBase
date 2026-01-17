@@ -45,6 +45,19 @@ Diese Aufgabenliste beschreibt detailliert die Umsetzung der geplanten Roadmap�
 
 ## B) WLED‑ähnliche Animationen
 
+### B0) Umsetzungs‑Task: Effekt‑Engine + Effekte (Sprint‑Story)
+
+- **Ziel**: WLED‑ähnliche Animationen als integrierten Modus im Sketch bereitstellen.
+- **Scope**:
+  - Effekt‑Engine (Registry + Tick‑Loop + Parameter‑Schema).
+  - Effekte B2–B6 implementieren.
+  - UI‑Steuerung (Dropdown + Slider) inkl. Live‑Update via WebSocket‑JSON.
+- **Akzeptanzkriterien**:
+  - Start/Stop per WebSocket‑JSON möglich.
+  - Parameteränderungen wirken live ohne Neustart.
+  - Standard‑Preset pro Effekt ist dokumentiert.
+- **Status**: umgesetzt in `main.sketch` inkl. UI‑Bereich, WebSocket‑Steuerung und Effekt‑Logik.
+
 ### B1) Effekt‑Engine (Framework)
 
 - **Loop‑Integration**: Effekt‑Tick im `loop()`.
@@ -79,6 +92,21 @@ Diese Aufgabenliste beschreibt detailliert die Umsetzung der geplanten Roadmap�
 
 - **Algorithmus**: Heat‑Map mit Diffusion/Convolution.
 - **Parameter**: Flammenhöhe, Glut‑Intensität, Flacker‑Stärke, Palette.
+
+### B9) Twinkle (neu)
+
+- **Algorithmus**: Zufällige Sternchen mit Fade‑Out.
+- **Parameter**: Dichte, Geschwindigkeit, Farbe/Intensität.
+
+### B10) Scanner (neu)
+
+- **Algorithmus**: Wandernder Balken mit Trail (Cylon‑Effekt).
+- **Parameter**: Geschwindigkeit, Breite/Trail, Farbe, Richtung.
+
+### B11) Waves (neu)
+
+- **Algorithmus**: Sinus‑Wellen mit HSV‑Farbverlauf.
+- **Parameter**: Geschwindigkeit, Richtung, Intensität.
 
 ### B7) UI‑Steuerung
 

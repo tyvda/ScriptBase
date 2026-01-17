@@ -66,6 +66,16 @@ Die Web‑UI erstellt `anim.bin` direkt im Browser aus GIFs (Upload aktuell auf 
 
 Details zur Implementierung sind im Sketch dokumentiert.【F:esp32Hub75/main.sketch†L504-L612】
 
+## WLED‑ähnliche Effekte starten
+
+Die UI bietet einen eigenen Bereich für Effekte (Matrix, Blink, Colorfading, Rainbow, Kaminfeuer, Twinkle, Scanner, Waves). Start/Stop und Parameter werden per WebSocket gesteuert:
+
+```json
+{"t":"fx","mode":"matrix","run":1,"speed":80,"intensity":180,"density":120,"trail":180,"duty":160,"dir":1,"cooling":120,"sparks":120,"c1":65280,"c2":16711680}
+```
+
+`run:0` stoppt den Effekt. Der Effekt‑Modus stoppt GIF‑Animationen automatisch.【F:esp32Hub75/main.sketch†L58-L1149】
+
 ## Helligkeit steuern
 
 Die Web‑UI sendet Helligkeitswerte per WebSocket:
@@ -94,11 +104,16 @@ Die How‑To‑Rezepte entsprechen den implementierten Endpoints, WebSocket‑Fo
 - **Colorfading**: Parameter z. B. Fade‑Speed, Farbpalette, Loop‑Modus.
 - **Rainbow**: Parameter z. B. Geschwindigkeit, Richtung, Sättigung/Intensität.
 - **Kaminfeuer**: Parameter z. B. Flammenhöhe, Glut‑Intensität, Flacker‑Stärke, Farbpalette.
+- **Twinkle**: Parameter z. B. Dichte, Speed, Intensität/Farbe.
+- **Scanner**: Parameter z. B. Speed, Breite/Trail, Richtung, Farbe.
+- **Waves**: Parameter z. B. Speed, Richtung, Intensität.
+Status: umgesetzt (UI + Effekt‑Engine im Sketch).【F:esp32Hub75/main.sketch†L58-L1684】
 
 ## Taskliste (Nächste notwendige Aufgaben)
 
 1. **Presets speichern/laden** per LittleFS (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L777-L805】
 2. **Animation‑Builder im UI** für Pixelart‑Sequenzen (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L90-L377】
+3. **Umsetzungs‑Task Animationen**: Effekt‑Engine + Effekte inkl. UI‑Parametersteuerung (umgesetzt in `main.sketch`, siehe `tasks.md`, Abschnitt B0).
 
 ## Aufgaben zur Umsetzung (Roadmap‑Features)
 
