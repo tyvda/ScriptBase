@@ -23,7 +23,7 @@ Beim Empfang wird der Frame direkt in den Framebuffer kopiert und gerendert.【F
 
 ## Bild‑Upload korrekt mappen
 
-Der Bild‑Upload nutzt denselben Mapping‑Ablauf wie GIFs: Bild wird erst auf ein Canvas gezeichnet und dann auf 64×32 gemappt. Anschließend wird das Bild über die Pixelart‑Pipeline (JSON `px`) auf das Panel übertragen.【F:esp32Hub75/main.sketch†L535-L590】【F:esp32Hub75/main.sketch†L712-L726】
+Der Bild‑Upload nutzt denselben Mapping‑Ablauf wie GIFs: Bild wird erst auf ein Canvas gezeichnet und dann auf 64×32 gemappt. Anschließend wird das Bild als Single‑Frame‑`anim.bin` gepackt und lokal am ESP32 wie ein GIF gerendert (kein `px`‑Flood).【F:esp32Hub75/main.sketch†L535-L799】
 
 ## WebSocket‑Status prüfen
 
@@ -39,9 +39,13 @@ Einzelpixel kannst du via JSON‑Nachricht auf `/ws` senden:
 
 `c` ist RGB888 (`0xRRGGBB`).【F:esp32Hub75/main.sketch†L712-L726】
 
+## Pixelart lokal speichern/laden (Browser)
+
+Die Buttons **Save** und **Load** speichern die aktuelle Pixelart lokal im Browser (LocalStorage) und laden sie wieder, ohne Server‑Kontakt. Nach dem Laden kannst du mit „Redraw Panel“ erneut ans Panel senden.【F:esp32Hub75/main.sketch†L286-L575】
+
 ## Pixelart erneut auf Panel zeichnen
 
-Bei Bedarf kann die aktuelle Pixelart‑Canvas erneut ans Panel gesendet werden: Der Button „Redraw Panel“ triggert einen kompletten Re‑Draw (JSON `px` für alle Pixel).【F:esp32Hub75/main.sketch†L69-L456】
+Bei Bedarf kann die aktuelle Pixelart‑Canvas erneut ans Panel gesendet werden: Der Button „Redraw Panel“ packt die Pixelart als Single‑Frame‑`anim.bin` und lässt den ESP32 sie lokal wie ein GIF rendern (keine `px`‑Flut, keine Unterbrechung durch UI‑Jobs).【F:esp32Hub75/main.sketch†L69-L799】
 
 ## Animation abspielen
 
@@ -53,7 +57,7 @@ Das File wird aus LittleFS gelesen und als RLE‑RGB565 gerendert.【F:esp32Hub7
 
 ## Animationen neu generieren (GIF)
 
-Die Web‑UI erstellt `anim.bin` direkt im Browser aus GIFs:
+Die Web‑UI erstellt `anim.bin` direkt im Browser aus GIFs (Upload aktuell auf max. 50 Frames limitiert):
 
 - dekodiert Frames,
 - skaliert/croppt auf 64×32,

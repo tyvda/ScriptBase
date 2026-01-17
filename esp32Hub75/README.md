@@ -12,7 +12,7 @@ Kein Cloud‑Zwang, kein WLED, kein externer Server.
 
 - Web‑UI mit Pixel‑Editor (Brush, Clear/Fill, Reinit).【F:esp32Hub75/main.sketch†L67-L377】
 - Bild‑Upload (PNG/JPG/WebP) mit Aspect‑Mapping (Auto/4:3/16:9) und Cover/Contain‑Scaling.【F:esp32Hub75/main.sketch†L142-L454】
-- GIF‑Upload inkl. browserseitiger Dekodierung und RLE‑Kompression für schnelle Wiedergabe am ESP32.【F:esp32Hub75/main.sketch†L222-L612】
+- GIF‑Upload inkl. browserseitiger Dekodierung und RLE‑Kompression für schnelle Wiedergabe am ESP32 (Upload aktuell auf max. 50 Frames limitiert).【F:esp32Hub75/main.sketch†L222-L612】
 - WebSocket‑Streaming von Full‑Frames (RGB565) und Einzelpixel‑Updates (JSON).【F:esp32Hub75/main.sketch†L318-L760】
 - Helligkeitssteuerung im UI (WebSocket, `setBrightness8`).【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
 
@@ -181,8 +181,9 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 - **Reinit**: Neuinitialisiert das Panel‑GPIO‑Setup per `/api/reinit`.【F:esp32Hub75/main.sketch†L368-L369】【F:esp32Hub75/main.sketch†L822-L825】
 - **Gamma/Boost**: LUT‑basiert, beeinflusst Bilder & GIF‑Frames im Browser (Preview + Upload).【F:esp32Hub75/main.sketch†L151-L314】
 - **Brightness**: UI‑Regler steuert die Panel‑Helligkeit (WebSocket `bright`).【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
-- **Bild‑Mapping**: Bild‑Upload folgt derselben Canvas‑Mapping‑Pipeline wie GIFs (Image → Canvas → 64×32) und zeichnet danach via Pixel‑Updates. 【F:esp32Hub75/main.sketch†L535-L590】
-- **Panel‑Redraw**: Button „Redraw Panel“ sendet die aktuelle Pixelart erneut ans Panel. 【F:esp32Hub75/main.sketch†L69-L456】
+- **Bild‑Mapping**: Bild‑Upload folgt derselben Canvas‑Mapping‑Pipeline wie GIFs (Image → Canvas → 64×32) und wird anschließend wie ein GIF‑Frame als `anim.bin` gepackt, hochgeladen und lokal vom ESP32 gerendert. 【F:esp32Hub75/main.sketch†L535-L799】
+- **Panel‑Redraw**: Button „Redraw Panel“ packt die aktuelle Pixelart als Single‑Frame‑`anim.bin` und lässt den ESP32 das Bild lokal anzeigen (wie bei GIFs), wodurch Unterbrechungen durch UI‑Jobs vermieden werden. 【F:esp32Hub75/main.sketch†L69-L799】
+- **Pixelart Save/Load**: Lokales Speichern/Laden im Browser (LocalStorage), ohne Server‑Roundtrip. 【F:esp32Hub75/main.sketch†L286-L575】
 
 ## Netzwerk‑API (HTTP + WebSocket)
 

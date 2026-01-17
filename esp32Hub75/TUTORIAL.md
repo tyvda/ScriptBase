@@ -82,7 +82,8 @@ Falls der WebSocket‑Status in der UI auf „connecting…“ stehen bleibt, Br
 - Das Canvas zeigt ein feines Grid zur optischen Pixeltrennung.【F:esp32Hub75/main.sketch†L92-L105】
 - Die Farbpalette setzt die aktive Zeichenfarbe; das Canvas ist intern 64×32 und wird nur optisch skaliert.【F:esp32Hub75/main.sketch†L120-L356】
 - `Reinit` initialisiert das Display neu und löscht die Canvas/Panel‑Daten (Pixelart startet sauber neu).【F:esp32Hub75/main.sketch†L368-L377】【F:esp32Hub75/main.sketch†L820-L825】
-- Der Button „Redraw Panel“ zeichnet die aktuelle Pixelart erneut auf das Panel.【F:esp32Hub75/main.sketch†L69-L456】
+- Der Button „Redraw Panel“ packt die aktuelle Pixelart als Single‑Frame‑`anim.bin` und lässt den ESP32 sie lokal wie ein GIF rendern (keine `px`‑Flut, keine Unterbrechung durch UI‑Aktionen).【F:esp32Hub75/main.sketch†L69-L799】
+- **Save/Load** speichert die Pixelart lokal im Browser (LocalStorage) und lädt sie wieder in das Canvas.【F:esp32Hub75/main.sketch†L286-L575】
 
 ## 7.1) Helligkeit einstellen
 
@@ -92,13 +93,13 @@ Im Bereich "Bild / GIF Tuning" steht ein Helligkeits‑Regler zur Verfügung. Di
 
 1. PNG/JPG/WebP auswählen.
 2. Optional Aspect (Auto/4:3/16:9) und Mapping (Cover/Contain) wählen.
-3. `Preview` zeichnet in die UI, `Send to Panel` überträgt das Bild via Pixelart‑Pipeline (JSON `px`).【F:esp32Hub75/main.sketch†L142-L590】【F:esp32Hub75/main.sketch†L712-L726】
+3. `Preview` zeichnet in die UI, `Send to Panel` packt das Bild als Single‑Frame‑`anim.bin` (wie GIF‑Frames) und lässt den ESP32 das Bild lokal rendern.【F:esp32Hub75/main.sketch†L142-L799】
    Die Bildpipeline zeichnet das Original zuerst auf ein Canvas und mappt dann auf 64×32 (gleiches Mapping wie bei GIFs).【F:esp32Hub75/main.sketch†L535-L590】
 
 ## 9) GIF vorbereiten & abspielen
 
 1. GIF auswählen.
-2. `Prepare & Upload` erstellt `anim.bin` im Browser und lädt es hoch.
+2. `Prepare & Upload` erstellt `anim.bin` im Browser und lädt es hoch (max. 50 Frames).
 3. `Play` startet die Animation, `Stop` stoppt sie.
 
 Die GIF‑Dekodierung nutzt `gifuct-js` via CDN.【F:esp32Hub75/main.sketch†L222-L612】
