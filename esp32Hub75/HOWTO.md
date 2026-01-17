@@ -39,6 +39,10 @@ Einzelpixel kannst du via JSON‑Nachricht auf `/ws` senden:
 
 `c` ist RGB888 (`0xRRGGBB`).【F:esp32Hub75/main.sketch†L712-L726】
 
+## Pixelart lokal speichern/laden (Browser)
+
+Die Buttons **Save** und **Load** speichern die aktuelle Pixelart lokal im Browser (LocalStorage) und laden sie wieder, ohne Server‑Kontakt. Nach dem Laden kannst du mit „Redraw Panel“ erneut ans Panel senden.【F:esp32Hub75/main.sketch†L286-L575】
+
 ## Pixelart erneut auf Panel zeichnen
 
 Bei Bedarf kann die aktuelle Pixelart‑Canvas erneut ans Panel gesendet werden: Der Button „Redraw Panel“ packt die Pixelart als Single‑Frame‑`anim.bin` und lässt den ESP32 sie lokal wie ein GIF rendern (keine `px`‑Flut, keine Unterbrechung durch UI‑Jobs).【F:esp32Hub75/main.sketch†L69-L799】

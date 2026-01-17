@@ -139,6 +139,8 @@ a{color:#9bd7ff}
       <button id="fill">Fill</button>
       <button id="reinit">Reinit</button>
       <button id="redrawPanel">Redraw Panel</button>
+      <button id="savePixelart">Save</button>
+      <button id="loadPixelart">Load</button>
     </div>
 
     <small>
@@ -200,7 +202,7 @@ a{color:#9bd7ff}
         <button id="previewImg">Preview</button>
         <button id="sendImg">Send to Panel</button>
       </div>
-      <small>Preview zeichnet ins Canvas. "Send" überträgt Full-Frame RGB565 per WebSocket.</small>
+      <small>Preview zeichnet ins Canvas. "Send" packt als Single-Frame anim.bin und rendert lokal am ESP32.</small>
       <div id="imgInfo" style="margin-top:8px"></div>
     </div>
 
@@ -275,6 +277,8 @@ a{color:#9bd7ff}
   const brushSel=document.getElementById('brush');
   const paletteEl=document.getElementById('palette');
   const colInput=document.getElementById('col');
+  const savePixelartBtn=document.getElementById('savePixelart');
+  const loadPixelartBtn=document.getElementById('loadPixelart');
 
   // ---- WebSocket
   var ws;
@@ -340,6 +344,7 @@ a{color:#9bd7ff}
 
   // Preview buffer RGB888 0xRRGGBB
   const pix=new Uint32Array(W*H);
+  const PIXELART_STORAGE_KEY = "hub75.pixelart.v1";
   function redraw(){
     for(let y=0;y<H;y++){
       for(let x=0;x<W;x++){
@@ -517,6 +522,35 @@ a{color:#9bd7ff}
   };
 
   document.getElementById('redrawPanel').onclick=()=>{ redrawPanelFromPix(); };
+
+  function savePixelartToLocal(){
+    try{
+      const data = Array.from(pix);
+      localStorage.setItem(PIXELART_STORAGE_KEY, JSON.stringify(data));
+      infoEl.textContent = "Pixelart gespeichert (lokal im Browser).";
+    }catch(err){
+      errEl.textContent = "Save fehlgeschlagen: " + (err?.message || String(err));
+    }
+  }
+
+  function loadPixelartFromLocal(){
+    try{
+      const raw = localStorage.getItem(PIXELART_STORAGE_KEY);
+      if(!raw) return alert("Kein lokaler Pixelart-Slot gefunden.");
+      const data = JSON.parse(raw);
+      if(!Array.isArray(data) || data.length !== W*H){
+        return alert("Gespeicherte Pixelart ist inkompatibel.");
+      }
+      for(let i=0;i<W*H;i++){ pix[i] = data[i] >>> 0; }
+      redraw();
+      infoEl.textContent = "Pixelart geladen (lokal im Browser).";
+    }catch(err){
+      errEl.textContent = "Load fehlgeschlagen: " + (err?.message || String(err));
+    }
+  }
+
+  savePixelartBtn.onclick=()=> savePixelartToLocal();
+  loadPixelartBtn.onclick=()=> loadPixelartFromLocal();
 
   // ===== Aspect/Scale mapping =====
   function desiredAspectValue(sel) {

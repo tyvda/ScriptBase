@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-01-17 08:14:01 +0000
+- Pixelart Save/Load lokal im Browser (LocalStorage) ergänzt, ohne Änderungen an der Redraw-Logik. Quelle: `main.sketch`.
+- Dokumentation für lokalen Save/Load-Workflow ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-17 08:00:32 +0000
 - Bild- und Panel-Redraw-Workflow auf anim.bin-Pipeline umgestellt: Browser packt Single-Frame wie GIF, Upload nach LittleFS, ESP32 rendert lokal. Quelle: `main.sketch`.
 - Dokumentation für anim.bin-basierte Bild-/Redraw-Übertragung aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
