@@ -86,6 +86,18 @@ Die Web‑UI sendet Helligkeitswerte per WebSocket:
 
 `v` ist ein Wert von 5 bis 255 und steuert `setBrightness8` am Panel.【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
 
+## Uhr/Stopuhr nutzen (NTP)
+
+Die UI enthält einen Bereich **Uhr / Stopuhr (NTP)**:
+
+1. **Modus wählen**: `Uhr`, `Stopuhr` oder `Canvas & Media` (zurück zu Pixel/GIF/FX).
+2. **Uhrformat**: `HH:MM` oder `HH:MM:SS` (Clock‑Format wird per WebSocket gesetzt).
+3. **Stopuhr**: Start/Stop/Reset über Buttons; Anzeige ist immer `HH:MM:SS`.
+4. **Wetter (Koblenz)**: Toggle „Wetter“ aktivieren, um Temperatur + Kurzcode im Uhr‑Modus einzublenden.
+5. **LED‑Kette**: Farbe per Farbwähler einstellen; die Kette läuft in einer Minute einmal um den Panel‑Rand (Start oben links → oben rechts → unten rechts → unten links).【F:esp32Hub75/main.sketch†L252-L340】【F:esp32Hub75/main.sketch†L1354-L1377】
+
+Zeitbezug erfolgt über NTP (`pool.ntp.org`) und TZ‑Info im Sketch. Wetterdaten kommen von `WEATHER_URL` (Open‑Meteo, Standort Koblenz).【F:esp32Hub75/main.sketch†L16-L26】【F:esp32Hub75/main.sketch†L1441-L1484】【F:esp32Hub75/main.sketch†L1832-L1835】
+
 ## Implementierungscheck (Sketch-Abgleich)
 
 Die How‑To‑Rezepte entsprechen den implementierten Endpoints, WebSocket‑Formaten und der Animation‑Pipeline im Sketch.【F:esp32Hub75/main.sketch†L62-L739】【F:esp32Hub75/main.sketch†L827-L862】

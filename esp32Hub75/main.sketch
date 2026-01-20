@@ -7,6 +7,11 @@
 #include <ArduinoJson.h>
 
 #include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
+#include <time.h>
+#include <stdlib.h>
+#include <HTTPClient.h>
+#include <WiFiClientSecure.h>
+#include <math.h>
 
 // =====================
 // USER CONFIG
@@ -14,6 +19,10 @@
 static const char* WIFI_SSID = "DEIN_SSID";
 static const char* WIFI_PASS = "DEIN_PASS";
 static const char* MDNS_NAME = "hub75"; // http://hub75.local
+static const char* NTP_SERVER = "pool.ntp.org";
+static const char* TZ_INFO = "UTC0";
+static const char* WEATHER_URL = "https://api.open-meteo.com/v1/forecast?latitude=50.3569&longitude=7.5888&current_weather=true";
+static const char* WEATHER_LABEL = "KOB";
 
 // =====================
 // PANEL CONFIG
@@ -44,7 +53,31 @@ static const HubPins basePins{};
 // =====================
 MatrixPanel_I2S_DMA* dma_display = nullptr;
 static uint16_t fb[PANEL_RES_X * PANEL_RES_Y];
-static uint8_t panelBrightness = 40;
+static uint8_t panelBrightness = 5;
+
+// =====================
+// Clock / Stopwatch
+// =====================
+enum DisplayMode {
+  MODE_UI = 0,
+  MODE_CLOCK,
+  MODE_STOPWATCH
+};
+
+static DisplayMode displayMode = MODE_CLOCK;
+static bool clockShowSeconds = true;
+static uint32_t clockNextMs = 0;
+static uint32_t stopwatchNextMs = 0;
+static bool stopwatchRunning = false;
+static uint32_t stopwatchStartMs = 0;
+static uint32_t stopwatchElapsedMs = 0;
+static uint16_t stopwatchRingColor = 0x07E0;
+static uint8_t stopwatchRingLength = 4;
+static bool weatherEnabled = false;
+static uint32_t weatherNextMs = 0;
+static float weatherTempC = 0.0f;
+static int16_t weatherCode = -1;
+static bool weatherValid = false;
 
 // =====================
 // WEB
@@ -214,13 +247,56 @@ a{color:#9bd7ff}
 
       <div class="row">
         <label>Brightness</label>
-        <input id="brightness" type="range" min="5" max="255" value="40">
-        <span class="val" id="brightnessVal">40</span>
+        <input id="brightness" type="range" min="5" max="255" value="5">
+        <span class="val" id="brightnessVal">5</span>
       </div>
 
       <small>
         Gamma (≈0.5–2.6) korrigiert die Helligkeitskurve, Boost ist ein linearer Gain.
         Alles per LUT (schnell).
+      </small>
+    </div>
+
+    <hr>
+
+    <div>
+      <div class="row" style="justify-content:space-between">
+        <b>Uhr / Stopuhr (NTP)</b>
+        <span class="badge">Display‑Modus</span>
+      </div>
+
+      <div class="row">
+        <label for="displayMode">Modus</label>
+        <select id="displayMode">
+          <option value="ui">Canvas & Media</option>
+          <option value="clock" selected>Uhr</option>
+          <option value="stopwatch">Stopuhr</option>
+        </select>
+
+        <label for="clockFormat">Uhrzeit</label>
+        <select id="clockFormat">
+          <option value="hhmmss" selected>HH:MM:SS</option>
+          <option value="hhmm">HH:MM</option>
+        </select>
+
+        <label for="weatherToggle">Wetter</label>
+        <select id="weatherToggle">
+          <option value="off" selected>Aus</option>
+          <option value="on">An</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <button id="stopwatchStart">Start</button>
+        <button id="stopwatchStop">Stop</button>
+        <button id="stopwatchReset">Reset</button>
+
+        <label for="stopwatchColor">Kette</label>
+        <input id="stopwatchColor" type="color" value="#00ff00">
+      </div>
+
+      <small>
+        Uhr holt die Zeit per NTP. Optional Wetterdaten für Koblenz im Uhr‑Modus. Stopuhr zeigt HH:MM:SS und lässt eine LED‑Kette pro Minute umlaufen.
       </small>
     </div>
 
@@ -393,6 +469,13 @@ a{color:#9bd7ff}
   const boostVal=document.getElementById('boostVal');
   const brightnessEl=document.getElementById('brightness');
   const brightnessVal=document.getElementById('brightnessVal');
+  const displayMode=document.getElementById('displayMode');
+  const clockFormat=document.getElementById('clockFormat');
+  const weatherToggle=document.getElementById('weatherToggle');
+  const stopwatchStart=document.getElementById('stopwatchStart');
+  const stopwatchStop=document.getElementById('stopwatchStop');
+  const stopwatchReset=document.getElementById('stopwatchReset');
+  const stopwatchColor=document.getElementById('stopwatchColor');
 
   const brushSel=document.getElementById('brush');
   const paletteEl=document.getElementById('palette');
@@ -425,7 +508,7 @@ a{color:#9bd7ff}
   function connect(){
     ws = new WebSocket(`ws://${host}/ws`);
     ws.binaryType = "arraybuffer";
-    ws.onopen=()=>{ statusEl.textContent="connected"; statusEl.className="ok"; };
+    ws.onopen=()=>{ statusEl.textContent="connected"; statusEl.className="ok"; syncDisplayState(); };
     ws.onclose=()=>{ statusEl.textContent="disconnected"; statusEl.className="bad"; setTimeout(connect,800); };
     ws.onerror=()=>{ statusEl.textContent="error"; statusEl.className="bad"; };
   }
@@ -545,7 +628,7 @@ a{color:#9bd7ff}
   function clamp(v, min, max){ return Math.min(max, Math.max(min, v)); }
 
   function sendBrightness(){
-    const value = clamp(parseInt(brightnessEl.value,10) || 40, 5, 255);
+    const value = clamp(parseInt(brightnessEl.value,10) || 5, 5, 255);
     brightnessVal.textContent = String(value);
     sendJson({t:"bright", v:value});
   }
@@ -639,6 +722,57 @@ a{color:#9bd7ff}
   function rgb888To565(r,g,b){
     return ((r&0xF8)<<8) | ((g&0xFC)<<3) | (b>>3);
   }
+
+  const clockState = {
+    format: clockFormat.value,
+    weather: weatherToggle.value,
+  };
+
+  const stopwatchState = {
+    running: false,
+    color: hexToRgb(stopwatchColor.value),
+  };
+
+  function syncDisplayState(){
+    sendJson({t:"mode", mode: displayMode.value});
+    sendJson({t:"clockfmt", fmt: clockState.format});
+    sendJson({t:"weather", on: clockState.weather === "on" ? 1 : 0});
+    sendJson({t:"stopwatch", ring: stopwatchState.color});
+  }
+
+  displayMode.addEventListener('change', () => {
+    sendJson({t:"mode", mode: displayMode.value});
+  });
+
+  clockFormat.addEventListener('change', () => {
+    clockState.format = clockFormat.value;
+    sendJson({t:"clockfmt", fmt: clockState.format});
+  });
+
+  weatherToggle.addEventListener('change', () => {
+    clockState.weather = weatherToggle.value;
+    sendJson({t:"weather", on: clockState.weather === "on" ? 1 : 0});
+  });
+
+  stopwatchStart.addEventListener('click', () => {
+    stopwatchState.running = true;
+    sendJson({t:"stopwatch", run: 1});
+  });
+
+  stopwatchStop.addEventListener('click', () => {
+    stopwatchState.running = false;
+    sendJson({t:"stopwatch", run: 0});
+  });
+
+  stopwatchReset.addEventListener('click', () => {
+    stopwatchState.running = false;
+    sendJson({t:"stopwatch", reset: 1});
+  });
+
+  stopwatchColor.addEventListener('input', () => {
+    stopwatchState.color = hexToRgb(stopwatchColor.value);
+    sendJson({t:"stopwatch", ring: stopwatchState.color});
+  });
 
   // ===== Pixel painting with Brush =====
   canvas.addEventListener('contextmenu', e => e.preventDefault());
@@ -1150,6 +1284,129 @@ static void draw_full_frame() {
       dma_display->drawPixel(x, y, fb[y*PANEL_RES_X + x]);
 }
 
+static void render_centered_text(const char* text, uint16_t color) {
+  if (!dma_display || !text) return;
+  dma_display->clearScreen();
+  const int len = strlen(text);
+  const int textWidth = len * 6;
+  const int textHeight = 8;
+  int x = (PANEL_RES_X - textWidth) / 2;
+  int y = (PANEL_RES_Y - textHeight) / 2;
+  if (x < 0) x = 0;
+  if (y < 0) y = 0;
+  dma_display->setTextSize(1);
+  dma_display->setTextColor(color);
+  dma_display->setCursor(x, y);
+  dma_display->print(text);
+}
+
+static const char* weather_code_label(int16_t code) {
+  if (code < 0) return "NA";
+  if (code == 0) return "SUN";
+  if (code == 1 || code == 2) return "CLR";
+  if (code == 3) return "CLD";
+  if (code == 45 || code == 48) return "FOG";
+  if ((code >= 51 && code <= 57) || (code >= 61 && code <= 67)) return "RAN";
+  if (code >= 71 && code <= 77) return "SNO";
+  if (code >= 80 && code <= 82) return "SHR";
+  if (code >= 95) return "STM";
+  return "WTH";
+}
+
+static void render_clock_frame() {
+  struct tm timeinfo;
+  bool timeOk = getLocalTime(&timeinfo);
+  const char* fallback = clockShowSeconds ? "--:--:--" : "--:--";
+  char buf[12];
+  if (timeOk) {
+    if (clockShowSeconds) {
+      snprintf(buf, sizeof(buf), "%02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+    } else {
+      snprintf(buf, sizeof(buf), "%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
+    }
+  } else {
+    strncpy(buf, fallback, sizeof(buf));
+    buf[sizeof(buf)-1] = '\0';
+  }
+
+  if (!weatherEnabled) {
+    render_centered_text(buf, timeOk ? dma_display->color565(255, 255, 255) : dma_display->color565(80, 80, 80));
+    return;
+  }
+
+  dma_display->clearScreen();
+  dma_display->setTextSize(1);
+  dma_display->setTextColor(timeOk ? dma_display->color565(255, 255, 255) : dma_display->color565(80, 80, 80));
+  int timeWidth = strlen(buf) * 6;
+  int timeX = (PANEL_RES_X - timeWidth) / 2;
+  if (timeX < 0) timeX = 0;
+  dma_display->setCursor(timeX, 1);
+  dma_display->print(buf);
+
+  if (weatherValid) {
+    char weatherBuf[18];
+    int tempRounded = (int)lroundf(weatherTempC);
+    snprintf(weatherBuf, sizeof(weatherBuf), "%s %dC %s", WEATHER_LABEL, tempRounded, weather_code_label(weatherCode));
+    dma_display->setTextColor(dma_display->color565(120, 200, 255));
+    int wWidth = strlen(weatherBuf) * 6;
+    int wX = (PANEL_RES_X - wWidth) / 2;
+    if (wX < 0) wX = 0;
+    dma_display->setCursor(wX, PANEL_RES_Y - 9);
+    dma_display->print(weatherBuf);
+  } else {
+    dma_display->setTextColor(dma_display->color565(100, 100, 100));
+    dma_display->setCursor(2, PANEL_RES_Y - 9);
+    dma_display->print("Wetter...");
+  }
+}
+
+static void perimeter_position(uint32_t pos, int &x, int &y) {
+  const uint16_t w = PANEL_RES_X;
+  const uint16_t h = PANEL_RES_Y;
+  const uint16_t topLen = w;
+  const uint16_t rightLen = h - 1;
+  const uint16_t bottomLen = w - 1;
+  if (pos < topLen) {
+    x = pos;
+    y = 0;
+  } else if (pos < topLen + rightLen) {
+    x = w - 1;
+    y = (pos - topLen) + 1;
+  } else if (pos < topLen + rightLen + bottomLen) {
+    x = (w - 1) - (pos - (topLen + rightLen));
+    y = h - 1;
+  } else {
+    x = 0;
+    y = (h - 1) - (pos - (topLen + rightLen + bottomLen));
+  }
+}
+
+static void draw_stopwatch_ring(uint32_t elapsedMs) {
+  const uint16_t perimeter = (2 * (PANEL_RES_X + PANEL_RES_Y)) - 4;
+  if (perimeter == 0) return;
+  const uint32_t minuteMs = 60000;
+  uint32_t pos = (elapsedMs % minuteMs) * perimeter / minuteMs;
+  for (uint8_t i = 0; i < stopwatchRingLength; i++) {
+    uint32_t p = (pos + perimeter - i) % perimeter;
+    int x = 0;
+    int y = 0;
+    perimeter_position(p, x, y);
+    dma_display->drawPixel(x, y, stopwatchRingColor);
+  }
+}
+
+static void render_stopwatch_frame() {
+  const uint32_t elapsed = stopwatchRunning ? (millis() - stopwatchStartMs) : stopwatchElapsedMs;
+  const uint32_t totalSeconds = elapsed / 1000;
+  const uint32_t hours = totalSeconds / 3600;
+  const uint32_t minutes = (totalSeconds / 60) % 60;
+  const uint32_t seconds = totalSeconds % 60;
+  char buf[12];
+  snprintf(buf, sizeof(buf), "%02lu:%02lu:%02lu", (unsigned long)hours, (unsigned long)minutes, (unsigned long)seconds);
+  render_centered_text(buf, dma_display->color565(255, 255, 255));
+  draw_stopwatch_ring(elapsed);
+}
+
 static void fill_color565(uint16_t c565) {
   for (int i=0; i<PANEL_RES_X*PANEL_RES_Y; i++) fb[i]=c565;
   draw_full_frame();
@@ -1218,6 +1475,59 @@ static void effectStop() {
   effectRunning = false;
   effectMode = FX_NONE;
   effectNextMs = 0;
+}
+
+static void stop_media_playback() {
+  effectStop();
+  animPlaying = false;
+  if (animFile) animFile.close();
+}
+
+static void set_display_mode(DisplayMode mode) {
+  displayMode = mode;
+  clockNextMs = 0;
+  stopwatchNextMs = 0;
+  stop_media_playback();
+}
+
+static void reset_stopwatch(bool keepRunning) {
+  stopwatchElapsedMs = 0;
+  stopwatchStartMs = millis();
+  stopwatchRunning = keepRunning;
+}
+
+static void fetch_weather_now() {
+  if (WiFi.status() != WL_CONNECTED) {
+    weatherValid = false;
+    return;
+  }
+  WiFiClientSecure client;
+  client.setInsecure();
+  HTTPClient http;
+  if (!http.begin(client, WEATHER_URL)) {
+    weatherValid = false;
+    return;
+  }
+  int code = http.GET();
+  if (code == HTTP_CODE_OK) {
+    String payload = http.getString();
+    StaticJsonDocument<512> doc;
+    if (deserializeJson(doc, payload) == DeserializationError::Ok) {
+      JsonObject current = doc["current_weather"].as<JsonObject>();
+      if (!current.isNull()) {
+        weatherTempC = current["temperature"] | weatherTempC;
+        weatherCode = current["weathercode"] | weatherCode;
+        weatherValid = true;
+      } else {
+        weatherValid = false;
+      }
+    } else {
+      weatherValid = false;
+    }
+  } else {
+    weatherValid = false;
+  }
+  http.end();
 }
 
 static void effectStart(EffectMode mode) {
@@ -1545,8 +1855,50 @@ void onWsEvent(AsyncWebSocket*, AsyncWebSocketClient*, AwsEventType type, void *
       if (effectMode == FX_NONE) effectMode = requested;
       effectStart(effectMode);
     }
+  } else if (!strcmp(t,"mode")) {
+    const char* modeStr = doc["mode"] | "ui";
+    if (!strcmp(modeStr, "clock")) {
+      set_display_mode(MODE_CLOCK);
+    } else if (!strcmp(modeStr, "stopwatch")) {
+      set_display_mode(MODE_STOPWATCH);
+    } else {
+      set_display_mode(MODE_UI);
+    }
+  } else if (!strcmp(t,"clockfmt")) {
+    const char* fmt = doc["fmt"] | "hhmmss";
+    clockShowSeconds = strcmp(fmt, "hhmm") != 0;
+    clockNextMs = 0;
+  } else if (!strcmp(t,"weather")) {
+    int on = doc["on"] | 0;
+    weatherEnabled = (on == 1);
+    weatherNextMs = 0;
+    if (!weatherEnabled) {
+      weatherValid = false;
+    }
+  } else if (!strcmp(t,"stopwatch")) {
+    if (doc["ring"].is<uint32_t>()) {
+      stopwatchRingColor = rgb888_to_565(doc["ring"].as<uint32_t>());
+    }
+    int reset = doc["reset"] | 0;
+    if (reset == 1) {
+      reset_stopwatch(false);
+    }
+    if (doc["run"].is<int>()) {
+      int run = doc["run"].as<int>();
+      if (run == 1) {
+        if (!stopwatchRunning) {
+          stopwatchStartMs = millis() - stopwatchElapsedMs;
+          stopwatchRunning = true;
+        }
+      } else if (run == 0) {
+        if (stopwatchRunning) {
+          stopwatchElapsedMs = millis() - stopwatchStartMs;
+          stopwatchRunning = false;
+        }
+      }
+    }
   } else if (!strcmp(t,"bright")) {
-    int value = doc["v"] | 40;
+    int value = doc["v"] | 5;
     if (value < 5) value = 5;
     if (value > 255) value = 255;
     panelBrightness = (uint8_t)value;
@@ -1567,6 +1919,12 @@ void setup_wifi() {
   if (MDNS.begin(MDNS_NAME)) {
     Serial.print("mDNS: http://"); Serial.print(MDNS_NAME); Serial.println(".local");
   }
+}
+
+void setup_time() {
+  configTime(0, 0, NTP_SERVER);
+  setenv("TZ", TZ_INFO, 1);
+  tzset();
 }
 
 // =====================
@@ -1636,18 +1994,41 @@ void setup() {
   init_display_with_pins(basePins);
 
   setup_wifi();
+  setup_time();
   reinit_display_now(); // boot fix
   setup_server();
 
   dma_display->setTextSize(1);
   dma_display->setTextWrap(false);
-  dma_display->setCursor(2, 10);
-  dma_display->setTextColor(dma_display->color565(255,255,0));
-  dma_display->print("hub75");
+  render_clock_frame();
 }
 
 void loop() {
   ws.cleanupClients();
+
+  if (displayMode == MODE_CLOCK) {
+    uint32_t now = millis();
+    if (weatherEnabled && (weatherNextMs == 0 || (int32_t)(now - weatherNextMs) >= 0)) {
+      fetch_weather_now();
+      weatherNextMs = now + 600000;
+    }
+    if (clockNextMs == 0 || (int32_t)(now - clockNextMs) >= 0) {
+      render_clock_frame();
+      clockNextMs = now + 1000;
+    }
+    delay(2);
+    return;
+  }
+
+  if (displayMode == MODE_STOPWATCH) {
+    uint32_t now = millis();
+    if (stopwatchNextMs == 0 || (int32_t)(now - stopwatchNextMs) >= 0) {
+      render_stopwatch_frame();
+      stopwatchNextMs = now + 200;
+    }
+    delay(2);
+    return;
+  }
 
   if (animPlaying) {
     uint32_t now = millis();

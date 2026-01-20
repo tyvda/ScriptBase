@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-01-20 08:51:35 +0000
+- Optionales Wetter‑Overlay für Koblenz im Uhr‑Modus ergänzt (Temperatur + Kurzcode via Open‑Meteo), inkl. UI‑Toggle, WebSocket‑API und Fetch‑Logik im Sketch. Quelle: `main.sketch`.
+- Dokumentation für Wetter‑Option, Konfiguration und Bedienung ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-01-20 07:51:16 +0000
+- NTP‑Uhr (HH:MM/HH:MM:SS) und Stopuhr (HH:MM:SS) inkl. LED‑Kette am Rand, Display‑Modi und minimaler Start‑Helligkeit implementiert; Boot‑Text entfernt. Quelle: `main.sketch`.
+- Dokumentation für Uhr/Stopuhr‑Bedienung, NTP‑Konfiguration und WebSocket‑API ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-17 10:26:06 +0000
 - WLED‑ähnliche Effekte erweitert (Twinkle, Scanner, Waves) inkl. Effect‑State und Render‑Ticks im Sketch sowie UI‑Optionen. Quelle: `main.sketch`.
 - Dokumentation der neuen Effekte in README/How‑To/Tutorial sowie Tasks ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`, `tasks.md`.

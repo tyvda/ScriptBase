@@ -89,6 +89,18 @@ Falls der WebSocket‑Status in der UI auf „connecting…“ stehen bleibt, Br
 
 Im Bereich "Bild / GIF Tuning" steht ein Helligkeits‑Regler zur Verfügung. Dieser steuert die Panel‑Helligkeit direkt per WebSocket (`bright`).【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
 
+## 7.2) Uhr & Stopuhr (NTP)
+
+Der Bereich **Uhr / Stopuhr (NTP)** steuert die Zeitdarstellung:
+
+- **Modus**: `Uhr`, `Stopuhr` oder `Canvas & Media`.
+- **Uhrformat**: `HH:MM` oder `HH:MM:SS` (Uhrzeit kommt per NTP).
+- **Stopuhr**: Start/Stop/Reset; Anzeige `HH:MM:SS`.
+- **Wetter (Koblenz)**: Toggle aktivieren, damit Temperatur + Kurzcode im Uhr‑Modus angezeigt werden.
+- **LED‑Kette**: Farbe einstellen – die Kette umrundet den Rand in einer Minute (Start oben links → oben rechts → unten rechts → unten links).【F:esp32Hub75/main.sketch†L252-L340】【F:esp32Hub75/main.sketch†L1354-L1377】
+
+Die Zeitsynchronisation nutzt `pool.ntp.org` und die TZ‑Info aus der User‑Config (`TZ_INFO`). Wetterdaten kommen von `WEATHER_URL` (Open‑Meteo, Standort Koblenz).【F:esp32Hub75/main.sketch†L16-L26】【F:esp32Hub75/main.sketch†L1441-L1484】【F:esp32Hub75/main.sketch†L1832-L1835】
+
 ## 8) Bild senden
 
 1. PNG/JPG/WebP auswählen.
