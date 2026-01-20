@@ -94,7 +94,7 @@ Die UI enthält einen Bereich **Uhr / Stopuhr (NTP)**:
 2. **Uhrformat**: `HH:MM` oder `HH:MM:SS` (Clock‑Format wird per WebSocket gesetzt).
 3. **Stopuhr**: Start/Stop/Reset über Buttons; Anzeige ist immer `HH:MM:SS`.
 4. **Wetter (Koblenz)**: Toggle „Wetter“ aktivieren, um Temperatur + Kurzcode im Uhr‑Modus einzublenden.
-5. **LED‑Kette**: Farbe per Farbwähler einstellen; die Kette läuft in einer Minute einmal um den Panel‑Rand (Start oben links → oben rechts → unten rechts → unten links).【F:esp32Hub75/main.sketch†L252-L340】【F:esp32Hub75/main.sketch†L1354-L1377】
+5. **LED‑Kette**: Farbe per Farbwähler einstellen; die Kette läuft in einer Minute einmal um den Panel‑Rand (Start oben links → oben rechts → unten rechts → unten links). Bei exakt einer Minute erscheint ein kompletter Rahmen.【F:esp32Hub75/main.sketch†L252-L340】【F:esp32Hub75/main.sketch†L1363-L1408】
 
 Zeitbezug erfolgt über NTP (`pool.ntp.org`) und TZ‑Info im Sketch. Wetterdaten kommen von `WEATHER_URL` (Open‑Meteo, Standort Koblenz).【F:esp32Hub75/main.sketch†L16-L26】【F:esp32Hub75/main.sketch†L1441-L1484】【F:esp32Hub75/main.sketch†L1832-L1835】
 

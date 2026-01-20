@@ -1385,7 +1385,17 @@ static void draw_stopwatch_ring(uint32_t elapsedMs) {
   const uint16_t perimeter = (2 * (PANEL_RES_X + PANEL_RES_Y)) - 4;
   if (perimeter == 0) return;
   const uint32_t minuteMs = 60000;
-  uint32_t pos = (elapsedMs % minuteMs) * perimeter / minuteMs;
+  uint32_t cycleMs = elapsedMs % minuteMs;
+  if (cycleMs == 0 && elapsedMs > 0) {
+    for (uint32_t p = 0; p < perimeter; p++) {
+      int x = 0;
+      int y = 0;
+      perimeter_position(p, x, y);
+      dma_display->drawPixel(x, y, stopwatchRingColor);
+    }
+    return;
+  }
+  uint32_t pos = cycleMs * perimeter / minuteMs;
   for (uint8_t i = 0; i < stopwatchRingLength; i++) {
     uint32_t p = (pos + perimeter - i) % perimeter;
     int x = 0;

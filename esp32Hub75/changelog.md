@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-01-20 10:07:28 +0000
+- Stopuhr‑Kette ergänzt: Bei exakt einer Minute wird der komplette Panel‑Rahmen als Linie dargestellt. Quelle: `main.sketch`.
+- Dokumentation für Stopuhr‑Rahmenverhalten ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-20 08:51:35 +0000
 - Optionales Wetter‑Overlay für Koblenz im Uhr‑Modus ergänzt (Temperatur + Kurzcode via Open‑Meteo), inkl. UI‑Toggle, WebSocket‑API und Fetch‑Logik im Sketch. Quelle: `main.sketch`.
 - Dokumentation für Wetter‑Option, Konfiguration und Bedienung ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
