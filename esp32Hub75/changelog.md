@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-01-20 10:13:35 +0000
+- Wetteranzeige im Uhr‑Modus auf Icon‑Darstellung umgestellt und Standort‑Label entfernt. Quelle: `main.sketch`.
+- Dokumentation für Wetter‑Icons angepasst. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-20 10:07:28 +0000
 - Stopuhr‑Kette ergänzt: Bei exakt einer Minute wird der komplette Panel‑Rahmen als Linie dargestellt. Quelle: `main.sketch`.
 - Dokumentation für Stopuhr‑Rahmenverhalten ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.

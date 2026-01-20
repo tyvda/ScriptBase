@@ -22,7 +22,6 @@ static const char* MDNS_NAME = "hub75"; // http://hub75.local
 static const char* NTP_SERVER = "pool.ntp.org";
 static const char* TZ_INFO = "UTC0";
 static const char* WEATHER_URL = "https://api.open-meteo.com/v1/forecast?latitude=50.3569&longitude=7.5888&current_weather=true";
-static const char* WEATHER_LABEL = "KOB";
 
 // =====================
 // PANEL CONFIG
@@ -1300,17 +1299,92 @@ static void render_centered_text(const char* text, uint16_t color) {
   dma_display->print(text);
 }
 
-static const char* weather_code_label(int16_t code) {
-  if (code < 0) return "NA";
-  if (code == 0) return "SUN";
-  if (code == 1 || code == 2) return "CLR";
-  if (code == 3) return "CLD";
-  if (code == 45 || code == 48) return "FOG";
-  if ((code >= 51 && code <= 57) || (code >= 61 && code <= 67)) return "RAN";
-  if (code >= 71 && code <= 77) return "SNO";
-  if (code >= 80 && code <= 82) return "SHR";
-  if (code >= 95) return "STM";
-  return "WTH";
+static void draw_weather_icon(int16_t code, int x, int y) {
+  if (!dma_display) return;
+  uint16_t iconColor = dma_display->color565(140, 200, 255);
+  uint16_t rainColor = dma_display->color565(80, 160, 255);
+  uint16_t sunColor = dma_display->color565(255, 210, 80);
+
+  auto px = [&](int dx, int dy, uint16_t c) {
+    dma_display->drawPixel(x + dx, y + dy, c);
+  };
+
+  if (code < 0) {
+    px(3, 3, iconColor);
+    px(4, 3, iconColor);
+    px(3, 4, iconColor);
+    px(4, 4, iconColor);
+    return;
+  }
+
+  if (code == 0) {
+    px(3, 3, sunColor);
+    px(4, 3, sunColor);
+    px(3, 4, sunColor);
+    px(4, 4, sunColor);
+    px(3, 1, sunColor);
+    px(4, 1, sunColor);
+    px(3, 6, sunColor);
+    px(4, 6, sunColor);
+    px(1, 3, sunColor);
+    px(1, 4, sunColor);
+    px(6, 3, sunColor);
+    px(6, 4, sunColor);
+    return;
+  }
+
+  if (code == 1 || code == 2) {
+    px(2, 2, sunColor);
+    px(3, 2, sunColor);
+    px(2, 3, sunColor);
+    px(3, 3, sunColor);
+    px(4, 4, iconColor);
+    px(5, 4, iconColor);
+    px(3, 5, iconColor);
+    px(4, 5, iconColor);
+    px(5, 5, iconColor);
+    return;
+  }
+
+  if (code == 45 || code == 48) {
+    for (int dx = 1; dx <= 6; dx++) {
+      px(dx, 2, iconColor);
+      px(dx, 4, iconColor);
+      px(dx, 6, iconColor);
+    }
+    return;
+  }
+
+  bool rain = (code >= 51 && code <= 57) || (code >= 61 && code <= 67) || (code >= 80 && code <= 82);
+  bool snow = (code >= 71 && code <= 77);
+  if (code == 3 || rain || snow || code >= 95) {
+    px(1, 3, iconColor);
+    px(2, 2, iconColor);
+    px(3, 2, iconColor);
+    px(4, 2, iconColor);
+    px(5, 3, iconColor);
+    px(2, 4, iconColor);
+    px(3, 4, iconColor);
+    px(4, 4, iconColor);
+    px(5, 4, iconColor);
+    px(2, 5, iconColor);
+    px(3, 5, iconColor);
+    px(4, 5, iconColor);
+
+    if (rain) {
+      px(2, 6, rainColor);
+      px(4, 6, rainColor);
+      px(3, 7, rainColor);
+    } else if (snow) {
+      px(2, 6, iconColor);
+      px(4, 6, iconColor);
+      px(3, 7, iconColor);
+    } else if (code >= 95) {
+      px(3, 6, sunColor);
+      px(3, 7, sunColor);
+    }
+    return;
+  }
 }
 
 static void render_clock_frame() {
@@ -1344,15 +1418,19 @@ static void render_clock_frame() {
   dma_display->print(buf);
 
   if (weatherValid) {
-    char weatherBuf[18];
     int tempRounded = (int)lroundf(weatherTempC);
-    snprintf(weatherBuf, sizeof(weatherBuf), "%s %dC %s", WEATHER_LABEL, tempRounded, weather_code_label(weatherCode));
-    dma_display->setTextColor(dma_display->color565(120, 200, 255));
-    int wWidth = strlen(weatherBuf) * 6;
-    int wX = (PANEL_RES_X - wWidth) / 2;
-    if (wX < 0) wX = 0;
-    dma_display->setCursor(wX, PANEL_RES_Y - 9);
-    dma_display->print(weatherBuf);
+    char tempBuf[8];
+    snprintf(tempBuf, sizeof(tempBuf), "%dC", tempRounded);
+    dma_display->setTextColor(dma_display->color565(140, 200, 255));
+    int tempWidth = strlen(tempBuf) * 6;
+    int iconWidth = 8;
+    int totalWidth = iconWidth + 2 + tempWidth;
+    int startX = (PANEL_RES_X - totalWidth) / 2;
+    if (startX < 0) startX = 0;
+    int baseY = PANEL_RES_Y - 9;
+    draw_weather_icon(weatherCode, startX, baseY - 1);
+    dma_display->setCursor(startX + iconWidth + 2, baseY);
+    dma_display->print(tempBuf);
   } else {
     dma_display->setTextColor(dma_display->color565(100, 100, 100));
     dma_display->setCursor(2, PANEL_RES_Y - 9);

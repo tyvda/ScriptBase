@@ -114,9 +114,8 @@ static const char* MDNS_NAME = "hub75";
 static const char* NTP_SERVER = "pool.ntp.org";
 static const char* TZ_INFO = "UTC0";
 static const char* WEATHER_URL = "https://api.open-meteo.com/v1/forecast?latitude=50.3569&longitude=7.5888&current_weather=true";
-static const char* WEATHER_LABEL = "KOB";
 ```
-【F:esp32Hub75/main.sketch†L19-L26】
+【F:esp32Hub75/main.sketch†L19-L25】
 
 ### Panel‑Parameter
 
@@ -189,7 +188,7 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 - **Gamma/Boost**: LUT‑basiert, beeinflusst Bilder & GIF‑Frames im Browser (Preview + Upload).【F:esp32Hub75/main.sketch†L151-L314】
 - **Brightness**: UI‑Regler steuert die Panel‑Helligkeit (WebSocket `bright`).【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
 - **Uhr/Stopuhr**: NTP‑Uhr (HH:MM/HH:MM:SS) oder Stopuhr (HH:MM:SS) inkl. LED‑Kette, die pro Minute einmal den Panel‑Rand umläuft; bei exakt einer Minute erscheint ein kompletter Rahmen; Farbe im UI einstellbar.【F:esp32Hub75/main.sketch†L252-L340】【F:esp32Hub75/main.sketch†L1287-L1408】
-- **Wetter (Koblenz)**: Im Uhr‑Modus optional Temperatur + Kurzcode anzeigen (Overlay unter der Uhr).【F:esp32Hub75/main.sketch†L252-L340】【F:esp32Hub75/main.sketch†L1302-L1352】
+- **Wetter (Koblenz)**: Im Uhr‑Modus optional Temperatur mit Icon (Sonne/Wolke/Regen/Schnee etc.) anzeigen.【F:esp32Hub75/main.sketch†L252-L340】【F:esp32Hub75/main.sketch†L1303-L1369】
 - **Bild‑Mapping**: Bild‑Upload folgt derselben Canvas‑Mapping‑Pipeline wie GIFs (Image → Canvas → 64×32) und wird anschließend wie ein GIF‑Frame als `anim.bin` gepackt, hochgeladen und lokal vom ESP32 gerendert. 【F:esp32Hub75/main.sketch†L535-L799】
 - **Panel‑Redraw**: Button „Redraw Panel“ packt die aktuelle Pixelart als Single‑Frame‑`anim.bin` und lässt den ESP32 das Bild lokal anzeigen (wie bei GIFs), wodurch Unterbrechungen durch UI‑Jobs vermieden werden. 【F:esp32Hub75/main.sketch†L69-L799】
 - **Pixelart Save/Load**: Lokales Speichern/Laden im Browser (LocalStorage), ohne Server‑Roundtrip. 【F:esp32Hub75/main.sketch†L286-L575】
