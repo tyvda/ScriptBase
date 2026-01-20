@@ -104,6 +104,10 @@ Im Bereich "Bild / GIF Tuning" steht ein Helligkeits‑Regler zur Verfügung. Di
 
 Die GIF‑Dekodierung nutzt `gifuct-js` via CDN.【F:esp32Hub75/main.sketch†L222-L612】
 
+## 10) WLED‑ähnliche Effekte starten
+
+Im UI‑Bereich „WLED‑ähnliche Animationen“ kannst du Effekte wie Matrix, Blink, Colorfading, Rainbow, Kaminfeuer, Twinkle, Scanner oder Waves starten. Parameter wirken live (Speed, Intensity usw.). Start/Stop und Parameteränderungen werden via WebSocket übertragen.【F:esp32Hub75/main.sketch†L58-L1684】
+
 ## Implementierungscheck (Sketch-Abgleich)
 
 Die im Tutorial beschriebenen Funktionen (HUB75‑Betrieb, Pixelart, Bild‑Upload, GIF‑Import) sind im aktuellen Sketch enthalten und können direkt über die Web‑UI und Endpoints genutzt werden.【F:esp32Hub75/main.sketch†L13-L862】
@@ -122,11 +126,16 @@ Die im Tutorial beschriebenen Funktionen (HUB75‑Betrieb, Pixelart, Bild‑Uplo
 - **Colorfading**: Parameter z. B. Fade‑Speed, Farbpalette, Loop‑Modus.
 - **Rainbow**: Parameter z. B. Geschwindigkeit, Richtung, Sättigung/Intensität.
 - **Kaminfeuer**: Parameter z. B. Flammenhöhe, Glut‑Intensität, Flacker‑Stärke, Farbpalette.
+- **Twinkle**: Parameter z. B. Dichte, Speed, Intensität/Farbe.
+- **Scanner**: Parameter z. B. Speed, Breite/Trail, Richtung, Farbe.
+- **Waves**: Parameter z. B. Speed, Richtung, Intensität.
+Status: umgesetzt (Effekt‑Engine + UI‑Steuerung im Sketch).【F:esp32Hub75/main.sketch†L58-L1684】
 
 ## Taskliste (Nächste notwendige Aufgaben)
 
 1. **Presets für Inhalte** in LittleFS ablegen (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L777-L805】
 2. **Animation‑Builder** für Pixelart‑Sequenzen implementieren (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L90-L377】
+3. **Umsetzungs‑Task Animationen**: Effekt‑Engine + Effekte inkl. UI‑Parametersteuerung (umgesetzt in `main.sketch`, siehe `tasks.md`, Abschnitt B0).
 
 ## Aufgaben zur Umsetzung (Roadmap‑Features)
 

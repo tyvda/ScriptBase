@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-01-17 10:26:06 +0000
+- WLED‑ähnliche Effekte erweitert (Twinkle, Scanner, Waves) inkl. Effect‑State und Render‑Ticks im Sketch sowie UI‑Optionen. Quelle: `main.sketch`.
+- Dokumentation der neuen Effekte in README/How‑To/Tutorial sowie Tasks ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`, `tasks.md`.
+
+## 2026-01-17 09:57:45 +0000
+- WLED‑ähnliche Effekt‑Engine im Sketch implementiert (Matrix, Blink, Colorfading, Rainbow, Kaminfeuer) inklusive UI‑Parametersteuerung und WebSocket‑API. Quelle: `main.sketch`.
+- Dokumentation für Effekt‑Steuerung und neue UI‑Sektion ergänzt (README, How‑To, Tutorial) und Roadmap‑Status aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`, `tasks.md`.
+
+## 2026-01-17 09:46:24 +0000
+- Umsetzungs-Task für WLED-ähnliche Animationen ergänzt (Effekt-Engine, Effekte, UI-Parametersteuerung, Akzeptanzkriterien). Quelle: `tasks.md`.
+- Taskliste in README/How-To/Tutorial um Umsetzungs-Task für Animationen ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-17 08:21:46 +0000
 - GIF-Upload im Browser auf max. 50 Frames limitiert, um anim.bin-Uploads zu begrenzen. Quelle: `main.sketch`.
 - Dokumentation zur GIF-Frame-Limitierung ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.

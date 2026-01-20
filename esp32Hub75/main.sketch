@@ -79,6 +79,51 @@ static uint16_t animFrameIndex = 0;
 static uint32_t animNextMs = 0;
 
 // =====================
+// Effekt-Engine (WLED-ähnliche Animationen)
+// =====================
+enum EffectMode {
+  FX_NONE = 0,
+  FX_MATRIX,
+  FX_BLINK,
+  FX_COLORFADE,
+  FX_RAINBOW,
+  FX_FIRE,
+  FX_TWINKLE,
+  FX_SCANNER,
+  FX_WAVES
+};
+
+struct EffectParams {
+  uint16_t speedMs = 80;
+  uint8_t intensity = 180;
+  uint8_t density = 120;
+  uint8_t trail = 180;
+  uint8_t duty = 160;
+  int8_t direction = 1;
+  uint8_t cooling = 120;
+  uint8_t sparks = 120;
+  uint16_t color1 = 0x07E0; // grün
+  uint16_t color2 = 0xF800; // rot
+};
+
+static volatile bool effectRunning = false;
+static EffectMode effectMode = FX_NONE;
+static EffectParams effectParams{};
+static uint32_t effectNextMs = 0;
+
+static int8_t matrixPos[PANEL_RES_X];
+static uint8_t matrixLen[PANEL_RES_X];
+static bool matrixActive[PANEL_RES_X];
+static uint8_t fireHeat[PANEL_RES_X * PANEL_RES_Y];
+static uint8_t colorfadePhase = 0;
+static bool colorfadeForward = true;
+static uint16_t rainbowHue = 0;
+static uint32_t blinkStartMs = 0;
+static float scannerPos = 0.0f;
+static float scannerVel = 1.0f;
+static uint8_t twinkleMap[PANEL_RES_X * PANEL_RES_Y];
+
+// =====================
 // HTML UI
 // =====================
 static const char INDEX_HTML[] PROGMEM = R"HTML(
@@ -238,6 +283,81 @@ a{color:#9bd7ff}
       <div id="info"></div>
       <div id="err"></div>
     </div>
+
+    <hr>
+
+    <div>
+      <b>WLED‑ähnliche Animationen</b><br/>
+      <div class="row">
+        <label for="fxMode">Effekt</label>
+        <select id="fxMode">
+          <option value="matrix" selected>Matrix Kino‑Film</option>
+          <option value="blink">Blink</option>
+          <option value="colorfade">Colorfading</option>
+          <option value="rainbow">Rainbow</option>
+          <option value="fire">Kaminfeuer</option>
+          <option value="twinkle">Twinkle</option>
+          <option value="scanner">Scanner</option>
+          <option value="waves">Waves</option>
+        </select>
+        <button id="fxStart">Start</button>
+        <button id="fxStop">Stop</button>
+      </div>
+
+      <div class="row">
+        <label>Speed</label>
+        <input id="fxSpeed" type="range" min="20" max="300" value="80">
+        <span class="val" id="fxSpeedVal">80</span>
+
+        <label>Intensity</label>
+        <input id="fxIntensity" type="range" min="20" max="255" value="180">
+        <span class="val" id="fxIntensityVal">180</span>
+      </div>
+
+      <div class="row">
+        <label>Density</label>
+        <input id="fxDensity" type="range" min="10" max="255" value="120">
+        <span class="val" id="fxDensityVal">120</span>
+
+        <label>Trail</label>
+        <input id="fxTrail" type="range" min="10" max="255" value="180">
+        <span class="val" id="fxTrailVal">180</span>
+      </div>
+
+      <div class="row">
+        <label>Duty</label>
+        <input id="fxDuty" type="range" min="10" max="255" value="160">
+        <span class="val" id="fxDutyVal">160</span>
+
+        <label>Direction</label>
+        <select id="fxDirection">
+          <option value="1" selected>→</option>
+          <option value="-1">←</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <label>Cooling</label>
+        <input id="fxCooling" type="range" min="10" max="255" value="120">
+        <span class="val" id="fxCoolingVal">120</span>
+
+        <label>Sparks</label>
+        <input id="fxSparks" type="range" min="10" max="255" value="120">
+        <span class="val" id="fxSparksVal">120</span>
+      </div>
+
+      <div class="row">
+        <label>Color 1</label>
+        <input id="fxColor1" type="color" value="#00ff00">
+
+        <label>Color 2</label>
+        <input id="fxColor2" type="color" value="#ff0000">
+      </div>
+
+      <small>
+        Effekte laufen lokal auf dem ESP32. Start/Stop und Parameter werden via WebSocket gesteuert.
+      </small>
+    </div>
   </div>
 </div>
 
@@ -279,6 +399,26 @@ a{color:#9bd7ff}
   const colInput=document.getElementById('col');
   const savePixelartBtn=document.getElementById('savePixelart');
   const loadPixelartBtn=document.getElementById('loadPixelart');
+  const fxMode=document.getElementById('fxMode');
+  const fxStart=document.getElementById('fxStart');
+  const fxStop=document.getElementById('fxStop');
+  const fxSpeed=document.getElementById('fxSpeed');
+  const fxSpeedVal=document.getElementById('fxSpeedVal');
+  const fxIntensity=document.getElementById('fxIntensity');
+  const fxIntensityVal=document.getElementById('fxIntensityVal');
+  const fxDensity=document.getElementById('fxDensity');
+  const fxDensityVal=document.getElementById('fxDensityVal');
+  const fxTrail=document.getElementById('fxTrail');
+  const fxTrailVal=document.getElementById('fxTrailVal');
+  const fxDuty=document.getElementById('fxDuty');
+  const fxDutyVal=document.getElementById('fxDutyVal');
+  const fxDirection=document.getElementById('fxDirection');
+  const fxCooling=document.getElementById('fxCooling');
+  const fxCoolingVal=document.getElementById('fxCoolingVal');
+  const fxSparks=document.getElementById('fxSparks');
+  const fxSparksVal=document.getElementById('fxSparksVal');
+  const fxColor1=document.getElementById('fxColor1');
+  const fxColor2=document.getElementById('fxColor2');
 
   // ---- WebSocket
   var ws;
@@ -411,6 +551,85 @@ a{color:#9bd7ff}
   }
   brightnessEl.addEventListener('input', sendBrightness);
   sendBrightness();
+
+  const fxState = {
+    mode: fxMode.value,
+    running: false,
+    speed: parseInt(fxSpeed.value,10),
+    intensity: parseInt(fxIntensity.value,10),
+    density: parseInt(fxDensity.value,10),
+    trail: parseInt(fxTrail.value,10),
+    duty: parseInt(fxDuty.value,10),
+    direction: parseInt(fxDirection.value,10),
+    cooling: parseInt(fxCooling.value,10),
+    sparks: parseInt(fxSparks.value,10),
+    color1: hexToRgb(fxColor1.value),
+    color2: hexToRgb(fxColor2.value),
+  };
+
+  function updateFxDisplay(){
+    fxSpeedVal.textContent = String(fxState.speed);
+    fxIntensityVal.textContent = String(fxState.intensity);
+    fxDensityVal.textContent = String(fxState.density);
+    fxTrailVal.textContent = String(fxState.trail);
+    fxDutyVal.textContent = String(fxState.duty);
+    fxCoolingVal.textContent = String(fxState.cooling);
+    fxSparksVal.textContent = String(fxState.sparks);
+  }
+  updateFxDisplay();
+
+  function sendFx(runOverride){
+    if (typeof runOverride === "boolean") fxState.running = runOverride;
+    sendJson({
+      t:"fx",
+      mode: fxState.mode,
+      run: fxState.running ? 1 : 0,
+      speed: fxState.speed,
+      intensity: fxState.intensity,
+      density: fxState.density,
+      trail: fxState.trail,
+      duty: fxState.duty,
+      dir: fxState.direction,
+      cooling: fxState.cooling,
+      sparks: fxState.sparks,
+      c1: fxState.color1,
+      c2: fxState.color2,
+    });
+  }
+
+  fxMode.addEventListener('change', () => {
+    fxState.mode = fxMode.value;
+    if (fxState.running) sendFx(true);
+  });
+  fxStart.addEventListener('click', () => sendFx(true));
+  fxStop.addEventListener('click', () => sendFx(false));
+
+  function bindFxRange(el, key, valEl){
+    el.addEventListener('input', () => {
+      fxState[key] = parseInt(el.value,10);
+      if (valEl) valEl.textContent = String(fxState[key]);
+      if (fxState.running) sendFx(true);
+    });
+  }
+  bindFxRange(fxSpeed, "speed", fxSpeedVal);
+  bindFxRange(fxIntensity, "intensity", fxIntensityVal);
+  bindFxRange(fxDensity, "density", fxDensityVal);
+  bindFxRange(fxTrail, "trail", fxTrailVal);
+  bindFxRange(fxDuty, "duty", fxDutyVal);
+  bindFxRange(fxCooling, "cooling", fxCoolingVal);
+  bindFxRange(fxSparks, "sparks", fxSparksVal);
+  fxDirection.addEventListener('change', () => {
+    fxState.direction = parseInt(fxDirection.value,10);
+    if (fxState.running) sendFx(true);
+  });
+  fxColor1.addEventListener('input', () => {
+    fxState.color1 = hexToRgb(fxColor1.value);
+    if (fxState.running) sendFx(true);
+  });
+  fxColor2.addEventListener('input', () => {
+    fxState.color2 = hexToRgb(fxColor2.value);
+    if (fxState.running) sendFx(true);
+  });
 
   function applyLUT(v){ return lut[v&255]; }
   function rgb888To565LUT(r,g,b){
@@ -883,6 +1102,48 @@ static inline uint16_t rgb888_to_565(uint32_t rrggbb) {
   return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
 }
 
+static inline uint16_t scale565(uint16_t c, uint8_t factor) {
+  uint8_t r = (c >> 11) & 0x1F;
+  uint8_t g = (c >> 5) & 0x3F;
+  uint8_t b = c & 0x1F;
+  r = (uint16_t)r * factor >> 8;
+  g = (uint16_t)g * factor >> 8;
+  b = (uint16_t)b * factor >> 8;
+  return (r << 11) | (g << 5) | b;
+}
+
+static inline uint16_t blend565(uint16_t a, uint16_t b, uint8_t t) {
+  uint8_t ar = (a >> 11) & 0x1F;
+  uint8_t ag = (a >> 5) & 0x3F;
+  uint8_t ab = a & 0x1F;
+  uint8_t br = (b >> 11) & 0x1F;
+  uint8_t bg = (b >> 5) & 0x3F;
+  uint8_t bb = b & 0x1F;
+  uint8_t r = (uint16_t)ar + (((int16_t)br - ar) * t >> 8);
+  uint8_t g = (uint16_t)ag + (((int16_t)bg - ag) * t >> 8);
+  uint8_t bch = (uint16_t)ab + (((int16_t)bb - ab) * t >> 8);
+  return (r << 11) | (g << 5) | bch;
+}
+
+static uint16_t hsv_to_565(uint16_t h, uint8_t s, uint8_t v) {
+  h %= 360;
+  uint8_t region = h / 60;
+  uint8_t remainder = (h % 60) * 255 / 60;
+  uint8_t p = (uint16_t)v * (255 - s) >> 8;
+  uint8_t q = (uint16_t)v * (255 - ((uint16_t)s * remainder >> 8)) >> 8;
+  uint8_t t = (uint16_t)v * (255 - ((uint16_t)s * (255 - remainder) >> 8)) >> 8;
+  uint8_t r, g, b;
+  switch(region) {
+    case 0: r = v; g = t; b = p; break;
+    case 1: r = q; g = v; b = p; break;
+    case 2: r = p; g = v; b = t; break;
+    case 3: r = p; g = q; b = v; break;
+    case 4: r = t; g = p; b = v; break;
+    default: r = v; g = p; b = q; break;
+  }
+  return rgb888_to_565((r << 16) | (g << 8) | b);
+}
+
 static void draw_full_frame() {
   for (int y=0; y<PANEL_RES_Y; y++)
     for (int x=0; x<PANEL_RES_X; x++)
@@ -892,6 +1153,243 @@ static void draw_full_frame() {
 static void fill_color565(uint16_t c565) {
   for (int i=0; i<PANEL_RES_X*PANEL_RES_Y; i++) fb[i]=c565;
   draw_full_frame();
+}
+
+static void fade_frame(uint8_t factor) {
+  for (int i=0; i<PANEL_RES_X*PANEL_RES_Y; i++) fb[i] = scale565(fb[i], factor);
+}
+
+static uint16_t fire_color(uint8_t heat) {
+  uint8_t r=0,g=0,b=0;
+  if (heat > 170) {
+    r = 255;
+    g = 255;
+    b = (heat - 170) * 3;
+  } else if (heat > 85) {
+    r = 255;
+    g = (heat - 85) * 3;
+    b = 0;
+  } else {
+    r = heat * 3;
+    g = 0;
+    b = 0;
+  }
+  return rgb888_to_565((r << 16) | (g << 8) | b);
+}
+
+static EffectMode effectModeFromString(const char* mode) {
+  if (!mode || !*mode) return FX_NONE;
+  if (!strcmp(mode, "matrix")) return FX_MATRIX;
+  if (!strcmp(mode, "blink")) return FX_BLINK;
+  if (!strcmp(mode, "colorfade")) return FX_COLORFADE;
+  if (!strcmp(mode, "rainbow")) return FX_RAINBOW;
+  if (!strcmp(mode, "fire")) return FX_FIRE;
+  if (!strcmp(mode, "twinkle")) return FX_TWINKLE;
+  if (!strcmp(mode, "scanner")) return FX_SCANNER;
+  if (!strcmp(mode, "waves")) return FX_WAVES;
+  return FX_NONE;
+}
+
+static void effectResetState(EffectMode mode) {
+  if (mode == FX_MATRIX) {
+    for (int x=0; x<PANEL_RES_X; x++) {
+      matrixActive[x] = false;
+      matrixPos[x] = 0;
+      matrixLen[x] = 0;
+    }
+  } else if (mode == FX_COLORFADE) {
+    colorfadePhase = 0;
+    colorfadeForward = true;
+  } else if (mode == FX_RAINBOW) {
+    rainbowHue = 0;
+  } else if (mode == FX_FIRE) {
+    memset(fireHeat, 0, sizeof(fireHeat));
+  } else if (mode == FX_BLINK) {
+    blinkStartMs = millis();
+  } else if (mode == FX_SCANNER) {
+    scannerPos = 0.0f;
+    scannerVel = effectParams.direction < 0 ? -0.6f : 0.6f;
+  } else if (mode == FX_TWINKLE) {
+    memset(twinkleMap, 0, sizeof(twinkleMap));
+  }
+}
+
+static void effectStop() {
+  effectRunning = false;
+  effectMode = FX_NONE;
+  effectNextMs = 0;
+}
+
+static void effectStart(EffectMode mode) {
+  if (mode == FX_NONE) return;
+  effectRunning = true;
+  effectMode = mode;
+  effectNextMs = 0;
+  if (animPlaying) {
+    animPlaying = false;
+    if (animFile) animFile.close();
+  }
+  effectResetState(mode);
+}
+
+static void effectTickMatrix() {
+  uint8_t fade = 255 - (uint16_t)effectParams.trail * 180 / 255;
+  if (fade < 30) fade = 30;
+  fade_frame(fade);
+
+  uint8_t trailLen = 1 + (effectParams.trail / 32);
+  uint16_t baseColor = scale565(effectParams.color1, effectParams.intensity);
+
+  for (int x=0; x<PANEL_RES_X; x++) {
+    if (!matrixActive[x] && random(0, 256) < effectParams.density) {
+      matrixActive[x] = true;
+      matrixPos[x] = 0;
+      matrixLen[x] = trailLen;
+    }
+    if (matrixActive[x]) {
+      int head = matrixPos[x];
+      for (int t=0; t<=matrixLen[x]; t++) {
+        int y = head - t;
+        if (y < 0 || y >= PANEL_RES_Y) continue;
+        uint8_t falloff = 255 - (uint16_t)t * 200 / (matrixLen[x] + 1);
+        fb[y*PANEL_RES_X + x] = scale565(baseColor, falloff);
+      }
+      matrixPos[x]++;
+      if (matrixPos[x] - matrixLen[x] > PANEL_RES_Y + 2) {
+        matrixActive[x] = false;
+      }
+    }
+  }
+  draw_full_frame();
+}
+
+static void effectTickBlink(uint32_t now) {
+  uint16_t period = effectParams.speedMs < 60 ? 60 : effectParams.speedMs;
+  uint32_t elapsed = (now - blinkStartMs) % period;
+  uint32_t onTime = (uint32_t)period * effectParams.duty / 255;
+  if (elapsed < onTime) {
+    fill_color565(scale565(effectParams.color1, effectParams.intensity));
+  } else {
+    fill_color565(0x0000);
+  }
+}
+
+static void effectTickColorfade() {
+  uint16_t blended = blend565(effectParams.color1, effectParams.color2, colorfadePhase);
+  fill_color565(scale565(blended, effectParams.intensity));
+  if (colorfadeForward) {
+    colorfadePhase += 6;
+    if (colorfadePhase >= 250) { colorfadePhase = 255; colorfadeForward = false; }
+  } else {
+    if (colorfadePhase <= 6) { colorfadePhase = 0; colorfadeForward = true; }
+    else colorfadePhase -= 6;
+  }
+}
+
+static void effectTickRainbow() {
+  uint8_t intensity = effectParams.intensity;
+  for (int y=0; y<PANEL_RES_Y; y++) {
+    for (int x=0; x<PANEL_RES_X; x++) {
+      uint16_t hue = (rainbowHue + x*4 + y*2) % 360;
+      uint16_t col = hsv_to_565(hue, 255, intensity);
+      fb[y*PANEL_RES_X + x] = col;
+    }
+  }
+  draw_full_frame();
+  int16_t dir = effectParams.direction < 0 ? -1 : 1;
+  rainbowHue = (rainbowHue + dir + 360) % 360;
+}
+
+static void effectTickFire() {
+  uint8_t cooling = effectParams.cooling;
+  uint8_t sparks = effectParams.sparks;
+
+  for (int i=0; i<PANEL_RES_X*PANEL_RES_Y; i++) {
+    uint8_t cool = random(0, (cooling / 12) + 2);
+    fireHeat[i] = (cool > fireHeat[i]) ? 0 : (fireHeat[i] - cool);
+  }
+
+  for (int y=PANEL_RES_Y-1; y>=2; y--) {
+    for (int x=0; x<PANEL_RES_X; x++) {
+      int idx = y*PANEL_RES_X + x;
+      int below = idx - PANEL_RES_X;
+      int left = (x == 0) ? below : (below - 1);
+      int right = (x == PANEL_RES_X-1) ? below : (below + 1);
+      uint16_t val = fireHeat[below] + fireHeat[left] + fireHeat[right] + fireHeat[idx];
+      fireHeat[idx - PANEL_RES_X] = val / 4;
+    }
+  }
+
+  for (int x=0; x<PANEL_RES_X; x++) {
+    if (random(0, 256) < sparks) {
+      fireHeat[(PANEL_RES_Y-1)*PANEL_RES_X + x] = random(160, 255);
+    }
+  }
+
+  for (int y=0; y<PANEL_RES_Y; y++) {
+    for (int x=0; x<PANEL_RES_X; x++) {
+      uint8_t heat = fireHeat[y*PANEL_RES_X + x];
+      uint16_t col = fire_color(heat);
+      fb[y*PANEL_RES_X + x] = scale565(col, effectParams.intensity);
+    }
+  }
+  draw_full_frame();
+}
+
+static void effectTickTwinkle() {
+  fade_frame(235);
+  uint16_t baseColor = scale565(effectParams.color1, effectParams.intensity);
+  for (int i=0; i<PANEL_RES_X*PANEL_RES_Y; i++) {
+    if (random(0, 256) < effectParams.density) {
+      twinkleMap[i] = 255;
+    }
+    if (twinkleMap[i] > 0) {
+      uint8_t glow = twinkleMap[i];
+      fb[i] = scale565(baseColor, glow);
+      twinkleMap[i] = glow > 20 ? (glow - 20) : 0;
+    }
+  }
+  draw_full_frame();
+}
+
+static void effectTickScanner() {
+  fade_frame(220);
+  uint8_t width = 1 + (effectParams.trail / 64);
+  uint16_t col = scale565(effectParams.color1, effectParams.intensity);
+  int head = (int)scannerPos;
+  for (int x=0; x<PANEL_RES_X; x++) {
+    int dist = abs(x - head);
+    if (dist <= width) {
+      uint8_t falloff = 255 - (dist * 180 / (width + 1));
+      for (int y=0; y<PANEL_RES_Y; y++) {
+        fb[y*PANEL_RES_X + x] = scale565(col, falloff);
+      }
+    }
+  }
+  scannerPos += scannerVel;
+  if (scannerPos >= (PANEL_RES_X - 1) || scannerPos <= 0) {
+    scannerVel = -scannerVel;
+    scannerPos = scannerPos <= 0 ? 0 : (PANEL_RES_X - 1);
+  }
+  draw_full_frame();
+}
+
+static void effectTickWaves() {
+  uint16_t baseHue = rainbowHue;
+  uint8_t intensity = effectParams.intensity;
+  float speed = (effectParams.speedMs < 20 ? 20 : effectParams.speedMs) / 80.0f;
+  for (int y=0; y<PANEL_RES_Y; y++) {
+    for (int x=0; x<PANEL_RES_X; x++) {
+      float phase = (x * 0.35f + y * 0.22f) + (baseHue * 0.02f);
+      float wave = sinf(phase) * 0.5f + 0.5f;
+      uint8_t val = (uint8_t)(wave * intensity);
+      uint16_t hue = (uint16_t)((baseHue + x * 6 + y * 4) % 360);
+      fb[y*PANEL_RES_X + x] = hsv_to_565(hue, 255, val);
+    }
+  }
+  draw_full_frame();
+  int16_t dir = effectParams.direction < 0 ? -1 : 1;
+  rainbowHue = (uint16_t)((int)rainbowHue + (int)(dir * speed * 2) + 360) % 360;
 }
 
 static void predrive_gpio_low(const HubPins& p) {
@@ -987,6 +1485,7 @@ void onWsEvent(AsyncWebSocket*, AsyncWebSocketClient*, AwsEventType type, void *
     memcpy(frame_rx + info->index, data, len);
     if (info->final) {
       if (info->len == frame_rx_expected && frame_rx[0] == 0x46) {
+        effectStop();
         animPlaying = false;
         memcpy((uint8_t*)fb, frame_rx + 1, PANEL_RES_X*PANEL_RES_Y*2);
         draw_full_frame();
@@ -1002,6 +1501,7 @@ void onWsEvent(AsyncWebSocket*, AsyncWebSocketClient*, AwsEventType type, void *
   const char* t = doc["t"] | "";
 
   if (!strcmp(t,"px")) {
+    effectStop();
     animPlaying = false;
     int x = doc["x"] | -1;
     int y = doc["y"] | -1;
@@ -1012,16 +1512,39 @@ void onWsEvent(AsyncWebSocket*, AsyncWebSocketClient*, AwsEventType type, void *
       dma_display->drawPixel(x, y, c565);
     }
   } else if (!strcmp(t,"clear")) {
+    effectStop();
     animPlaying = false;
     memset(fb,0,sizeof(fb));
     dma_display->clearScreen();
   } else if (!strcmp(t,"fill")) {
+    effectStop();
     animPlaying = false;
     uint32_t ccol = doc["c"] | 0;
     fill_color565(rgb888_to_565(ccol));
   } else if (!strcmp(t,"stop")) {
     animPlaying = false;
     if (animFile) animFile.close();
+  } else if (!strcmp(t,"fx")) {
+    const char* modeStr = doc["mode"] | "";
+    if (doc["speed"].is<int>()) effectParams.speedMs = (uint16_t)doc["speed"].as<int>();
+    if (doc["intensity"].is<int>()) effectParams.intensity = (uint8_t)doc["intensity"].as<int>();
+    if (doc["density"].is<int>()) effectParams.density = (uint8_t)doc["density"].as<int>();
+    if (doc["trail"].is<int>()) effectParams.trail = (uint8_t)doc["trail"].as<int>();
+    if (doc["duty"].is<int>()) effectParams.duty = (uint8_t)doc["duty"].as<int>();
+    if (doc["dir"].is<int>()) effectParams.direction = doc["dir"].as<int>() < 0 ? -1 : 1;
+    if (doc["cooling"].is<int>()) effectParams.cooling = (uint8_t)doc["cooling"].as<int>();
+    if (doc["sparks"].is<int>()) effectParams.sparks = (uint8_t)doc["sparks"].as<int>();
+    if (doc["c1"].is<uint32_t>()) effectParams.color1 = rgb888_to_565(doc["c1"].as<uint32_t>());
+    if (doc["c2"].is<uint32_t>()) effectParams.color2 = rgb888_to_565(doc["c2"].as<uint32_t>());
+
+    EffectMode requested = effectModeFromString(modeStr);
+    if (requested != FX_NONE) effectMode = requested;
+    int run = doc["run"] | -1;
+    if (run == 0) effectStop();
+    else if (run == 1) {
+      if (effectMode == FX_NONE) effectMode = requested;
+      effectStart(effectMode);
+    }
   } else if (!strcmp(t,"bright")) {
     int value = doc["v"] | 40;
     if (value < 5) value = 5;
@@ -1067,6 +1590,7 @@ void setup_server() {
     [](AsyncWebServerRequest*, String, size_t index, uint8_t *data, size_t len, bool final) {
       static File up;
       if (index == 0) {
+        effectStop();
         animPlaying = false;
         if (animFile) animFile.close();
         up = LittleFS.open(ANIM_PATH, "w");
@@ -1077,6 +1601,7 @@ void setup_server() {
   );
 
   server.on("/api/anim/play", HTTP_GET, [](AsyncWebServerRequest *req){
+    effectStop();
     animPlaying = false;
     if (animOpenAndReadHeader()) {
       animPlaying = true;
@@ -1144,6 +1669,25 @@ void loop() {
         }
         animNextMs = now + delayMs;
       }
+    }
+  }
+
+  if (effectRunning) {
+    uint32_t now = millis();
+    uint16_t interval = effectParams.speedMs < 20 ? 20 : effectParams.speedMs;
+    if (effectNextMs == 0 || (int32_t)(now - effectNextMs) >= 0) {
+      switch (effectMode) {
+        case FX_MATRIX: effectTickMatrix(); break;
+        case FX_BLINK: effectTickBlink(now); break;
+        case FX_COLORFADE: effectTickColorfade(); break;
+        case FX_RAINBOW: effectTickRainbow(); break;
+        case FX_FIRE: effectTickFire(); break;
+        case FX_TWINKLE: effectTickTwinkle(); break;
+        case FX_SCANNER: effectTickScanner(); break;
+        case FX_WAVES: effectTickWaves(); break;
+        default: break;
+      }
+      effectNextMs = now + interval;
     }
   }
 
