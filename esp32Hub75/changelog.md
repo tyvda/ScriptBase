@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-01-20 11:51:00 +0000
+- Wetter‑Layout angepasst: Uhr oben vollflächig, unten links 16×16‑Icon, unten rechts Temperatur. Quelle: `main.sketch`.
+- Dokumentation für das neue Wetter‑Layout aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-20 10:13:35 +0000
 - Wetteranzeige im Uhr‑Modus auf Icon‑Darstellung umgestellt und Standort‑Label entfernt. Quelle: `main.sketch`.
 - Dokumentation für Wetter‑Icons angepasst. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
