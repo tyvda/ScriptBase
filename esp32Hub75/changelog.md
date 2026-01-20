@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-01-20 12:54:28 +0000
+- Uhranzeige stabilisiert (fixe Zeichenposition) und UI‑Regler für Uhrfarbe + Uhr‑Helligkeit ergänzt. Quelle: `main.sketch`.
+- Dokumentation für Uhrfarbe/Uhr‑Helligkeit ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-01-20 11:51:00 +0000
+- Wetter‑Layout angepasst: Uhr oben vollflächig, unten links 16×16‑Icon, unten rechts Temperatur. Quelle: `main.sketch`.
+- Dokumentation für das neue Wetter‑Layout aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-01-20 10:13:35 +0000
+- Wetteranzeige im Uhr‑Modus auf Icon‑Darstellung umgestellt und Standort‑Label entfernt. Quelle: `main.sketch`.
+- Dokumentation für Wetter‑Icons angepasst. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-01-20 10:07:28 +0000
+- Stopuhr‑Kette ergänzt: Bei exakt einer Minute wird der komplette Panel‑Rahmen als Linie dargestellt. Quelle: `main.sketch`.
+- Dokumentation für Stopuhr‑Rahmenverhalten ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-01-20 08:51:35 +0000
+- Optionales Wetter‑Overlay für Koblenz im Uhr‑Modus ergänzt (Temperatur + Kurzcode via Open‑Meteo), inkl. UI‑Toggle, WebSocket‑API und Fetch‑Logik im Sketch. Quelle: `main.sketch`.
+- Dokumentation für Wetter‑Option, Konfiguration und Bedienung ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-01-20 07:51:16 +0000
+- NTP‑Uhr (HH:MM/HH:MM:SS) und Stopuhr (HH:MM:SS) inkl. LED‑Kette am Rand, Display‑Modi und minimaler Start‑Helligkeit implementiert; Boot‑Text entfernt. Quelle: `main.sketch`.
+- Dokumentation für Uhr/Stopuhr‑Bedienung, NTP‑Konfiguration und WebSocket‑API ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-17 10:26:06 +0000
 - WLED‑ähnliche Effekte erweitert (Twinkle, Scanner, Waves) inkl. Effect‑State und Render‑Ticks im Sketch sowie UI‑Optionen. Quelle: `main.sketch`.
 - Dokumentation der neuen Effekte in README/How‑To/Tutorial sowie Tasks ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`, `tasks.md`.

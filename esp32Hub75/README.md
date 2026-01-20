@@ -15,6 +15,8 @@ Kein Cloud‑Zwang, kein WLED, kein externer Server.
 - GIF‑Upload inkl. browserseitiger Dekodierung und RLE‑Kompression für schnelle Wiedergabe am ESP32 (Upload aktuell auf max. 50 Frames limitiert).【F:esp32Hub75/main.sketch†L222-L612】
 - WebSocket‑Streaming von Full‑Frames (RGB565) und Einzelpixel‑Updates (JSON).【F:esp32Hub75/main.sketch†L318-L760】
 - Helligkeitssteuerung im UI (WebSocket, `setBrightness8`).【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
+- NTP‑Uhr (HH:MM oder HH:MM:SS) und Stopuhr (HH:MM:SS) mit einstellbarer LED‑Kettenfarbe für den Panel‑Rand.【F:esp32Hub75/main.sketch†L1279-L1340】
+- Optionales Wetter‑Overlay für Koblenz im Uhr‑Modus (Temperatur + Kurzcode).【F:esp32Hub75/main.sketch†L1302-L1352】【F:esp32Hub75/main.sketch†L1455-L1484】
 - WLED‑ähnliche Animationen (Matrix, Blink, Colorfading, Rainbow, Kaminfeuer, Twinkle, Scanner, Waves) mit UI‑Parametern und WebSocket‑Steuerung.【F:esp32Hub75/main.sketch†L58-L1684】
 
 ## Implementierungscheck (Sketch-Abgleich)
@@ -109,8 +111,11 @@ Die exakten Konfigurationsstellen sind in `main.sketch` beschrieben.【F:esp32Hu
 static const char* WIFI_SSID = "DEIN_SSID";
 static const char* WIFI_PASS = "DEIN_PASS";
 static const char* MDNS_NAME = "hub75";
+static const char* NTP_SERVER = "pool.ntp.org";
+static const char* TZ_INFO = "UTC0";
+static const char* WEATHER_URL = "https://api.open-meteo.com/v1/forecast?latitude=50.3569&longitude=7.5888&current_weather=true";
 ```
-【F:esp32Hub75/main.sketch†L19-L21】
+【F:esp32Hub75/main.sketch†L19-L25】
 
 ### Panel‑Parameter
 
@@ -182,6 +187,9 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 - **Reinit**: Neuinitialisiert das Panel‑GPIO‑Setup per `/api/reinit`.【F:esp32Hub75/main.sketch†L368-L369】【F:esp32Hub75/main.sketch†L822-L825】
 - **Gamma/Boost**: LUT‑basiert, beeinflusst Bilder & GIF‑Frames im Browser (Preview + Upload).【F:esp32Hub75/main.sketch†L151-L314】
 - **Brightness**: UI‑Regler steuert die Panel‑Helligkeit (WebSocket `bright`).【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
+- **Uhr/Stopuhr**: NTP‑Uhr (HH:MM/HH:MM:SS) oder Stopuhr (HH:MM:SS) inkl. LED‑Kette, die pro Minute einmal den Panel‑Rand umläuft; bei exakt einer Minute erscheint ein kompletter Rahmen; Farbe im UI einstellbar.【F:esp32Hub75/main.sketch†L252-L340】【F:esp32Hub75/main.sketch†L1287-L1408】
+- **Uhrfarbe**: Uhrfarbe und Uhr‑Helligkeit lassen sich im UI separat einstellen (wirkt nur auf die Uhrzeit).【F:esp32Hub75/main.sketch†L252-L340】【F:esp32Hub75/main.sketch†L1468-L1515】
+- **Wetter (Koblenz)**: Im Uhr‑Modus optional Temperatur mit 16×16‑Icon (links unten) und Temperatur rechts unten anzeigen, Uhr bleibt in der oberen Hälfte.【F:esp32Hub75/main.sketch†L252-L340】【F:esp32Hub75/main.sketch†L1302-L1458】
 - **Bild‑Mapping**: Bild‑Upload folgt derselben Canvas‑Mapping‑Pipeline wie GIFs (Image → Canvas → 64×32) und wird anschließend wie ein GIF‑Frame als `anim.bin` gepackt, hochgeladen und lokal vom ESP32 gerendert. 【F:esp32Hub75/main.sketch†L535-L799】
 - **Panel‑Redraw**: Button „Redraw Panel“ packt die aktuelle Pixelart als Single‑Frame‑`anim.bin` und lässt den ESP32 das Bild lokal anzeigen (wie bei GIFs), wodurch Unterbrechungen durch UI‑Jobs vermieden werden. 【F:esp32Hub75/main.sketch†L69-L799】
 - **Pixelart Save/Load**: Lokales Speichern/Laden im Browser (LocalStorage), ohne Server‑Roundtrip. 【F:esp32Hub75/main.sketch†L286-L575】
@@ -208,6 +216,11 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
   - `{"t":"stop"}` – Animation stoppen.【F:esp32Hub75/main.sketch†L736-L739】
   - `{"t":"bright","v":128}` – Helligkeit (5–255) setzen.【F:esp32Hub75/main.sketch†L736-L768】
   - `{"t":"fx","mode":"matrix","run":1,"speed":80,"intensity":180,"density":120,"trail":180,"duty":160,"dir":1,"cooling":120,"sparks":120,"c1":0x00FF00,"c2":0xFF0000}` – WLED‑ähnliche Effekte starten/parametrieren.【F:esp32Hub75/main.sketch†L94-L1149】
+  - `{"t":"mode","mode":"clock"}` – Display‑Modus setzen (`ui`, `clock`, `stopwatch`).【F:esp32Hub75/main.sketch†L1688-L1797】
+  - `{"t":"clockfmt","fmt":"hhmm"}` – Uhrformat wählen (`hhmm` oder `hhmmss`).【F:esp32Hub75/main.sketch†L1688-L1797】
+  - `{"t":"clock","c":0xFFFFFF,"i":255}` – Uhrfarbe (RGB) und Uhr‑Helligkeit (10–255) setzen.【F:esp32Hub75/main.sketch†L1872-L1905】
+  - `{"t":"weather","on":1}` – Wetter‑Overlay im Uhr‑Modus aktivieren/deaktivieren.【F:esp32Hub75/main.sketch†L1688-L1802】
+  - `{"t":"stopwatch","run":1,"reset":0,"ring":0x00FF00}` – Stopuhr steuern und LED‑Kettenfarbe setzen.【F:esp32Hub75/main.sketch†L1688-L1797】
 
 ## Animationen (anim.bin)
 
