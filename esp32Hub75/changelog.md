@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-01-20 12:54:28 +0000
+- Uhranzeige stabilisiert (fixe Zeichenposition) und UI‑Regler für Uhrfarbe + Uhr‑Helligkeit ergänzt. Quelle: `main.sketch`.
+- Dokumentation für Uhrfarbe/Uhr‑Helligkeit ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-20 11:51:00 +0000
 - Wetter‑Layout angepasst: Uhr oben vollflächig, unten links 16×16‑Icon, unten rechts Temperatur. Quelle: `main.sketch`.
 - Dokumentation für das neue Wetter‑Layout aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.

@@ -66,6 +66,8 @@ enum DisplayMode {
 static DisplayMode displayMode = MODE_CLOCK;
 static bool clockShowSeconds = true;
 static uint32_t clockNextMs = 0;
+static uint32_t clockColor = 0xFFFFFF;
+static uint8_t clockIntensity = 255;
 static uint32_t stopwatchNextMs = 0;
 static bool stopwatchRunning = false;
 static uint32_t stopwatchStartMs = 0;
@@ -286,6 +288,15 @@ a{color:#9bd7ff}
       </div>
 
       <div class="row">
+        <label for="clockColor">Uhrfarbe</label>
+        <input id="clockColor" type="color" value="#ffffff">
+
+        <label for="clockIntensity">Uhr‑Helligkeit</label>
+        <input id="clockIntensity" type="range" min="10" max="255" value="255">
+        <span class="val" id="clockIntensityVal">255</span>
+      </div>
+
+      <div class="row">
         <button id="stopwatchStart">Start</button>
         <button id="stopwatchStop">Stop</button>
         <button id="stopwatchReset">Reset</button>
@@ -471,6 +482,9 @@ a{color:#9bd7ff}
   const displayMode=document.getElementById('displayMode');
   const clockFormat=document.getElementById('clockFormat');
   const weatherToggle=document.getElementById('weatherToggle');
+  const clockColor=document.getElementById('clockColor');
+  const clockIntensity=document.getElementById('clockIntensity');
+  const clockIntensityVal=document.getElementById('clockIntensityVal');
   const stopwatchStart=document.getElementById('stopwatchStart');
   const stopwatchStop=document.getElementById('stopwatchStop');
   const stopwatchReset=document.getElementById('stopwatchReset');
@@ -725,6 +739,8 @@ a{color:#9bd7ff}
   const clockState = {
     format: clockFormat.value,
     weather: weatherToggle.value,
+    color: hexToRgb(clockColor.value),
+    intensity: parseInt(clockIntensity.value,10),
   };
 
   const stopwatchState = {
@@ -736,6 +752,7 @@ a{color:#9bd7ff}
     sendJson({t:"mode", mode: displayMode.value});
     sendJson({t:"clockfmt", fmt: clockState.format});
     sendJson({t:"weather", on: clockState.weather === "on" ? 1 : 0});
+    sendJson({t:"clock", c: clockState.color, i: clockState.intensity});
     sendJson({t:"stopwatch", ring: stopwatchState.color});
   }
 
@@ -751,6 +768,17 @@ a{color:#9bd7ff}
   weatherToggle.addEventListener('change', () => {
     clockState.weather = weatherToggle.value;
     sendJson({t:"weather", on: clockState.weather === "on" ? 1 : 0});
+  });
+
+  clockColor.addEventListener('input', () => {
+    clockState.color = hexToRgb(clockColor.value);
+    sendJson({t:"clock", c: clockState.color});
+  });
+
+  clockIntensity.addEventListener('input', () => {
+    clockState.intensity = parseInt(clockIntensity.value,10);
+    clockIntensityVal.textContent = String(clockState.intensity);
+    sendJson({t:"clock", i: clockState.intensity});
   });
 
   stopwatchStart.addEventListener('click', () => {
@@ -1299,6 +1327,17 @@ static void render_centered_text(const char* text, uint16_t color) {
   dma_display->print(text);
 }
 
+static void render_fixed_text(const char* text, uint16_t color, int y) {
+  if (!dma_display || !text) return;
+  size_t len = strlen(text);
+  int textWidth = (int)len * 6;
+  int x = (PANEL_RES_X - textWidth) / 2;
+  if (x < 0) x = 0;
+  for (size_t i = 0; i < len; i++) {
+    dma_display->drawChar(x + (int)i * 6, y, text[i], color, 0, 1);
+  }
+}
+
 static void draw_icon16(const uint16_t *rows, uint16_t color, int x, int y) {
   if (!dma_display || !rows) return;
   for (int ry = 0; ry < 16; ry++) {
@@ -1481,22 +1520,20 @@ static void render_clock_frame() {
     buf[sizeof(buf)-1] = '\0';
   }
 
+  uint16_t clockColor565 = scale565(rgb888_to_565(clockColor), clockIntensity);
+  uint16_t timeColor = timeOk ? clockColor565 : dma_display->color565(80, 80, 80);
   if (!weatherEnabled) {
-    render_centered_text(buf, timeOk ? dma_display->color565(255, 255, 255) : dma_display->color565(80, 80, 80));
+    render_centered_text(buf, timeColor);
     return;
   }
 
   dma_display->clearScreen();
   dma_display->setTextSize(1);
-  dma_display->setTextColor(timeOk ? dma_display->color565(255, 255, 255) : dma_display->color565(80, 80, 80));
-  int timeWidth = strlen(buf) * 6;
-  int timeX = (PANEL_RES_X - timeWidth) / 2;
-  if (timeX < 0) timeX = 0;
+  dma_display->setTextColor(timeColor);
   int topHalfHeight = PANEL_RES_Y / 2;
   int timeY = (topHalfHeight - 8) / 2;
   if (timeY < 0) timeY = 0;
-  dma_display->setCursor(timeX, timeY);
-  dma_display->print(buf);
+  render_fixed_text(buf, timeColor, timeY);
 
   if (weatherValid) {
     int tempRounded = (int)lroundf(weatherTempC);
@@ -2045,6 +2082,15 @@ void onWsEvent(AsyncWebSocket*, AsyncWebSocketClient*, AwsEventType type, void *
     if (!weatherEnabled) {
       weatherValid = false;
     }
+  } else if (!strcmp(t,"clock")) {
+    if (doc["c"].is<uint32_t>()) clockColor = doc["c"].as<uint32_t>();
+    if (doc["i"].is<int>()) {
+      int intensity = doc["i"].as<int>();
+      if (intensity < 10) intensity = 10;
+      if (intensity > 255) intensity = 255;
+      clockIntensity = (uint8_t)intensity;
+    }
+    clockNextMs = 0;
   } else if (!strcmp(t,"stopwatch")) {
     if (doc["ring"].is<uint32_t>()) {
       stopwatchRingColor = rgb888_to_565(doc["ring"].as<uint32_t>());
