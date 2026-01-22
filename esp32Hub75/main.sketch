@@ -165,44 +165,204 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>ESP32 HUB75 64x32</title>
 <style>
-body{font-family:system-ui,Arial;margin:0;background:#111;color:#eee}
-header{padding:12px 16px;background:#1b1b1b;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.pill{background:#2a2a2a;padding:6px 10px;border-radius:999px;font-size:14px;border:1px solid #444}
-#wrap{display:flex;gap:16px;flex-wrap:wrap;padding:16px}
-canvas{image-rendering:pixelated;background:#000;border:1px solid #333;border-radius:10px;background-image:linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px);background-size:12px 12px}
-.swatch{width:22px;height:22px;border-radius:6px;border:1px solid #555;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(0,0,0,0.4)}
-.swatch.selected{outline:2px solid #9bd7ff;outline-offset:1px}
-.panel{background:#1b1b1b;border:1px solid #333;border-radius:12px;padding:12px;min-width:460px;max-width:560px}
-button{background:#2a2a2a;color:#eee;border:1px solid #444;border-radius:10px;padding:10px 12px;cursor:pointer}
-button:hover{border-color:#666}
-input[type="color"]{width:44px;height:44px;border:none;background:none;cursor:pointer}
+:root{
+  --bg:#f5f1ea;
+  --bg-panel:#ffffff;
+  --ink:#111111;
+  --muted:#5f5b52;
+  --border:#d6d1c8;
+  --accent:#ff5a3c;
+  --accent-soft:#fff0ec;
+  --shadow:0 14px 30px rgba(15, 15, 15, 0.12);
+  --radius:18px;
+  --mono:"Space Mono","IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+  --sans:"Inter","Helvetica Neue",system-ui,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+body{
+  font-family:var(--sans);
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+}
+header{
+  padding:18px 22px;
+  background:var(--bg-panel);
+  border-bottom:1px solid var(--border);
+  display:flex;
+  gap:18px;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  position:sticky;
+  top:0;
+  z-index:10;
+}
+.brand{display:flex;flex-direction:column;gap:4px}
+.brand-title{
+  font-family:var(--mono);
+  font-size:22px;
+  letter-spacing:0.18em;
+  text-transform:uppercase;
+}
+.brand-sub{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+.header-pills{display:flex;gap:10px;flex-wrap:wrap}
+.pill{
+  background:var(--accent-soft);
+  padding:6px 12px;
+  border-radius:999px;
+  font-size:11px;
+  border:1px solid var(--border);
+  font-family:var(--mono);
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+}
+#wrap{
+  display:grid;
+  grid-template-columns:minmax(280px, 1fr) minmax(320px, 560px);
+  gap:20px;
+  padding:22px;
+}
+canvas{
+  image-rendering:pixelated;
+  background:#0b0b0b;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  background-image:linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px);
+  box-shadow:var(--shadow);
+}
+.panel{
+  background:var(--bg-panel);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:16px;
+  box-shadow:var(--shadow);
+}
+.panel-title{
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:0.12em;
+  font-size:12px;
+  color:var(--muted);
+  margin-bottom:12px;
+}
+.panel-meta{
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--muted);
+  margin-top:10px;
+}
+.swatch{
+  width:22px;
+  height:22px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  cursor:pointer;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,0.25);
+}
+.swatch.selected{outline:2px solid var(--accent);outline-offset:2px}
+button{
+  background:var(--ink);
+  color:#fdfbf6;
+  border:1px solid var(--ink);
+  border-radius:12px;
+  padding:10px 14px;
+  cursor:pointer;
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:0.08em;
+  font-size:11px;
+}
+button:hover{background:var(--accent);border-color:var(--accent)}
+input[type="color"]{
+  width:44px;
+  height:44px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:#fff;
+  cursor:pointer;
+}
 input[type="file"]{max-width:100%}
-select{background:#2a2a2a;color:#eee;border:1px solid #444;border-radius:10px;padding:10px 12px}
-input[type="range"]{width:220px}
-.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0}
-small{color:#aaa;line-height:1.35}
-#status{font-weight:800}
-.ok{color:#7CFC90}.bad{color:#ff6b6b}
-progress{width:100%;height:14px}
-#err{white-space:pre-wrap;color:#ff6b6b;font-size:12px;margin-top:8px}
+select{
+  background:#f8f5f0;
+  color:var(--ink);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:10px 12px;
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:0.06em;
+  font-size:11px;
+}
+input[type="range"]{width:230px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}
+label{
+  font-family:var(--mono);
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.08em;
+  color:var(--muted);
+}
+small{color:var(--muted);line-height:1.5}
+#status{font-weight:700}
+.ok{color:#2d9a59}.bad{color:#c73a2a}
+progress{width:100%;height:14px;accent-color:var(--accent)}
+#err{white-space:pre-wrap;color:#c73a2a;font-size:12px;margin-top:8px}
 #info{margin-top:8px}
-.badge{font-size:12px;border:1px solid #444;border-radius:999px;padding:4px 8px;background:#222}
-hr{border-color:#2a2a2a}
+.badge{
+  font-size:10px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:4px 8px;
+  background:#f4f0ea;
+  font-family:var(--mono);
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+}
+hr{border:none;border-top:1px solid var(--border);margin:18px 0}
 .val{font-variant-numeric:tabular-nums;min-width:52px;display:inline-block}
-a{color:#9bd7ff}
+a{color:var(--accent)}
+.section-header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.section-title{
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:0.12em;
+  font-size:12px;
+  margin-bottom:6px;
+}
+@media (max-width: 980px){
+  #wrap{grid-template-columns:1fr}
+}
 </style>
 </head><body>
 <header>
-  <div class="pill">64×32 Pixelart + Images + GIF</div>
-  <div class="pill">WS: <span id="status">connecting…</span></div>
-  <div class="pill">Host: <span id="host"></span></div>
-  <div class="pill"><span class="badge">Panel: 64×32 (2:1)</span></div>
+  <div class="brand">
+    <div class="brand-title">HUB75 Steuerung</div>
+    <div class="brand-sub">ESP32 64×32 Interface</div>
+  </div>
+  <div class="header-pills">
+    <div class="pill">64×32 Pixelart + Bilder + GIF</div>
+    <div class="pill">WS: <span id="status">connecting…</span></div>
+    <div class="pill">Host: <span id="host"></span></div>
+    <div class="pill"><span class="badge">Panel: 64×32 (2:1)</span></div>
+  </div>
 </header>
 
 <div id="wrap">
-  <canvas id="c"></canvas>
+  <div class="panel panel--canvas">
+    <div class="panel-title">Canvas</div>
+    <canvas id="c"></canvas>
+    <div class="panel-meta">Raster‑Preview · 64×32 · Live‑Panel‑Sync</div>
+  </div>
 
   <div class="panel">
+    <div class="section-title">Pixelart‑Editor</div>
     <div class="row">
       <label>Color</label>
       <input id="col" type="color" value="#ffcc00">
@@ -231,9 +391,9 @@ a{color:#9bd7ff}
     <hr>
 
     <div>
-      <div class="row" style="justify-content:space-between">
-        <b>Bild / GIF Tuning</b>
-        <span class="badge">wirkt auf Bilder + GIF</span>
+      <div class="section-header">
+        <div class="section-title">Bild / GIF Tuning</div>
+        <span class="badge">Bilder + GIF</span>
       </div>
 
       <div class="row">
@@ -261,8 +421,8 @@ a{color:#9bd7ff}
     <hr>
 
     <div>
-      <div class="row" style="justify-content:space-between">
-        <b>Uhr / Stopuhr (NTP)</b>
+      <div class="section-header">
+        <div class="section-title">Uhr / Stopuhr (NTP)</div>
         <span class="badge">Display‑Modus</span>
       </div>
 
@@ -313,7 +473,7 @@ a{color:#9bd7ff}
     <hr>
 
     <div>
-      <b>Bild (PNG/JPG/WebP) → 64×32</b><br/>
+      <div class="section-title">Bild (PNG/JPG/WebP) → 64×32</div>
       <input id="imgFile" type="file" accept="image/*">
       <div class="row">
         <label for="srcAspectImg">Quelle</label>
@@ -340,7 +500,7 @@ a{color:#9bd7ff}
     <hr>
 
     <div>
-      <b>GIF Upload (Browser decode)</b><br/>
+      <div class="section-title">GIF‑Upload (Browser‑Decode)</div>
       <input id="gifFile" type="file" accept="image/gif">
 
       <div class="row">
@@ -373,7 +533,7 @@ a{color:#9bd7ff}
     <hr>
 
     <div>
-      <b>WLED‑ähnliche Animationen</b><br/>
+      <div class="section-title">WLED‑ähnliche Animationen</div>
       <div class="row">
         <label for="fxMode">Effekt</label>
         <select id="fxMode">

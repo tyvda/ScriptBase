@@ -6,6 +6,8 @@ Dieses Tutorial führt Schritt für Schritt durch Konfiguration, Flash und Nutzu
 
 Das Projekt ist ein lokaler LED‑Matrix‑Controller für ein HUB75‑Panel (64×32, 1/16 Scan) auf ESP32‑Basis. Es bietet eine Web‑UI mit Pixel‑Editor, Bild‑Upload und GIF‑Animation – ohne Cloud‑Zwang oder externen Server.【F:esp32Hub75/main.sketch†L1-L904】
 
+Die Oberfläche ist modern und klar im Teenage‑Engineering‑Stil aufgebaut (helles Kartenlayout, Mono‑Typografie, prägnante Status‑Pills).【F:esp32Hub75/main.sketch†L167-L412】
+
 ## 1) WLAN & mDNS konfigurieren
 
 Im Sketch die Zugangsdaten anpassen:

@@ -179,6 +179,7 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 
 ## Web‑UI & Bedienung
 
+- **Designsprache**: Helles, hochwertiges UI im Teenage‑Engineering‑Stil mit Kartenlayout, Mono‑Typografie, prägnanten Status‑Pills und klarer Hierarchie zwischen Canvas und Controls.【F:esp32Hub75/main.sketch†L167-L412】
 - **Pixel‑Zeichnen**: Linksklick malt, Rechtsklick löscht (schwarz). Brush‑Größe ist 1×1 bis 4×4.【F:esp32Hub75/main.sketch†L90-L365】
 - **Farbpalette**: Schnellwahl‑Palette setzt die aktive Zeichenfarbe.【F:esp32Hub75/main.sketch†L120-L425】
 - **Canvas‑Grid**: feine Linien trennen Pixel optisch, damit jedes Pixel klar erkennbar ist.【F:esp32Hub75/main.sketch†L92-L105】

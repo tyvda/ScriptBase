@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-01-21 06:51:15 +0000
+- Web‑UI im Teenage‑Engineering‑Stil überarbeitet: helles Kartenlayout, neue Header‑Struktur, Mono‑Typografie und modernisierte Controls/Canvas‑Panel. Quelle: `main.sketch`.
+- Dokumentation zur neuen UI‑Designsprache ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-20 12:54:28 +0000
 - Uhranzeige stabilisiert (fixe Zeichenposition) und UI‑Regler für Uhrfarbe + Uhr‑Helligkeit ergänzt. Quelle: `main.sketch`.
 - Dokumentation für Uhrfarbe/Uhr‑Helligkeit ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
