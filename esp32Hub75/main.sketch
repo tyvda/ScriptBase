@@ -472,24 +472,35 @@ a{color:var(--accent)}
 
     <div class="tab-panel" data-tab="pixelart" role="tabpanel">
       <div class="section-title">Pixelart‑Editor</div>
-      <div class="row">
-        <label>Color</label>
-        <input id="col" type="color" value="#ffcc00">
-        <div id="palette" class="row" style="margin:0"></div>
-        <label>Brush</label>
-        <select id="brush">
-          <option value="1" selected>1×1</option>
-          <option value="2">2×2</option>
-          <option value="3">3×3</option>
-          <option value="4">4×4</option>
-        </select>
-        <button id="clear" type="button">Clear</button>
-        <button id="fill" type="button">Fill</button>
-        <button id="reinit" type="button">Reinit</button>
-        <button id="redrawPanel" type="button">Redraw Panel</button>
-        <button id="savePixelart" type="button">Save</button>
-        <button id="loadPixelart" type="button">Load</button>
-      </div>
+    <div class="row">
+      <label>Color</label>
+      <input id="col" type="color" value="#ffcc00">
+      <div id="palette" class="row" style="margin:0"></div>
+      <label>Brush</label>
+      <select id="brush">
+        <option value="1" selected>1×1</option>
+        <option value="2">2×2</option>
+        <option value="3">3×3</option>
+        <option value="4">4×4</option>
+      </select>
+      <label>Slot</label>
+      <select id="pixelSlot">
+        <option value="1" selected>Slot 1</option>
+        <option value="2">Slot 2</option>
+        <option value="3">Slot 3</option>
+        <option value="4">Slot 4</option>
+        <option value="5">Slot 5</option>
+        <option value="6">Slot 6</option>
+        <option value="7">Slot 7</option>
+        <option value="8">Slot 8</option>
+      </select>
+      <button id="clear" type="button">Clear</button>
+      <button id="fill" type="button">Fill</button>
+      <button id="reinit" type="button">Reinit</button>
+      <button id="redrawPanel" type="button">Redraw Panel</button>
+      <button id="savePixelart" type="button">Save</button>
+      <button id="loadPixelart" type="button">Load</button>
+    </div>
 
       <small>
         Pixelart: Click/Drag · Right-Click = Erase (black).<br/>
@@ -736,6 +747,7 @@ a{color:var(--accent)}
   const stopwatchColor=document.getElementById('stopwatchColor');
 
   const brushSel=document.getElementById('brush');
+  const pixelSlot=document.getElementById('pixelSlot');
   const paletteEl=document.getElementById('palette');
   const colInput=document.getElementById('col');
   const savePixelartBtn=document.getElementById('savePixelart');
@@ -869,6 +881,7 @@ a{color:var(--accent)}
   // Preview buffer RGB888 0xRRGGBB
   const pix=new Uint32Array(W*H);
   const PIXELART_STORAGE_KEY = "hub75.pixelart.v1";
+  const PIXELART_SLOT_KEY = "hub75.pixelart.slot.v1";
   function redraw(){
     for(let y=0;y<H;y++){
       for(let x=0;x<W;x++){
@@ -1181,6 +1194,30 @@ a{color:var(--accent)}
   colInput.addEventListener('input', () => setActiveSwatch(colInput.value));
   setActiveSwatch(colInput.value);
 
+  function getSlotValue(){
+    const raw = parseInt(pixelSlot.value, 10);
+    if (Number.isFinite(raw) && raw >= 1 && raw <= 8) return raw;
+    return 1;
+  }
+
+  function slotStorageKey(slot){
+    return `${PIXELART_STORAGE_KEY}.slot.${slot}`;
+  }
+
+  function persistSlot(slot){
+    localStorage.setItem(PIXELART_SLOT_KEY, String(slot));
+  }
+
+  function restoreSlot(){
+    const raw = parseInt(localStorage.getItem(PIXELART_SLOT_KEY) || "1", 10);
+    const slot = Number.isFinite(raw) && raw >= 1 && raw <= 8 ? raw : 1;
+    pixelSlot.value = String(slot);
+  }
+  restoreSlot();
+  pixelSlot.addEventListener('change', () => {
+    persistSlot(getSlotValue());
+  });
+
   document.getElementById('clear').onclick=()=>{
     pix.fill(0); redraw();
     enqueuePanelWork(async()=>{ sendJson({t:"clear"}); });
@@ -1203,15 +1240,17 @@ a{color:var(--accent)}
 
   function savePixelartToLocal(){
     try{
+      const slot = getSlotValue();
       const payload = {
         v: 1,
         w: W,
         h: H,
         data: Array.from(pix),
         savedAt: Date.now(),
+        slot,
       };
-      localStorage.setItem(PIXELART_STORAGE_KEY, JSON.stringify(payload));
-      infoEl.textContent = "Pixelart gespeichert (lokal im Browser).";
+      localStorage.setItem(slotStorageKey(slot), JSON.stringify(payload));
+      infoEl.textContent = `Pixelart in Slot ${slot} gespeichert (lokal im Browser).`;
     }catch(err){
       errEl.textContent = "Save fehlgeschlagen: " + (err?.message || String(err));
     }
@@ -1219,9 +1258,10 @@ a{color:var(--accent)}
 
   function loadPixelartFromLocal(){
     try{
-      const raw = localStorage.getItem(PIXELART_STORAGE_KEY);
+      const slot = getSlotValue();
+      const raw = localStorage.getItem(slotStorageKey(slot));
       if(!raw){
-        errEl.textContent = "Kein lokaler Pixelart-Slot gefunden.";
+        errEl.textContent = `Kein lokaler Pixelart-Slot ${slot} gefunden.`;
         return;
       }
       const parsed = JSON.parse(raw);
@@ -1241,7 +1281,7 @@ a{color:var(--accent)}
       }
       for(let i=0;i<W*H;i++){ pix[i] = data[i] >>> 0; }
       redraw();
-      infoEl.textContent = "Pixelart geladen (lokal im Browser).";
+      infoEl.textContent = `Pixelart aus Slot ${slot} geladen (lokal im Browser).`;
     }catch(err){
       errEl.textContent = "Load fehlgeschlagen: " + (err?.message || String(err));
     }

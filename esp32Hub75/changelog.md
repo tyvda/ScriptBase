@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-01-22 14:20:43 +0000
+- Pixelart Save/Load um 8 auswählbare Slots erweitert (Slot-Auswahl in der UI, Slot-Persistenz, Slot-spezifische LocalStorage-Keys). Quelle: `main.sketch`.
+- Dokumentation für Save/Load-Slots ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-22 13:58:24 +0000
 - Tab-Wechsel setzt nun den Display-Modus automatisch (Uhr -> `clock`, alle anderen -> `ui`), inklusive Sync zwischen Tab und Moduswahl. Quelle: `main.sketch`.
 - Doku ergänzt, dass Icon-Tabs den Modus umschalten (README/How-To/Tutorial). Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
