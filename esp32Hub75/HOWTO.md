@@ -6,7 +6,7 @@ Dieses Dokument sammelt kurze Rezepte für typische Aufgaben mit dem Sketch in `
 
 Der ESP32 stellt lokal eine Web‑UI, Upload‑Workflows für Bilder/GIFs sowie eine Animation‑Engine bereit und steuert das HUB75‑Panel direkt per I2S DMA – ohne externe Server.【F:esp32Hub75/main.sketch†L1-L904】
 
-Hinweis: Die Web‑UI bietet eine Farbpalette und ein feines Canvas‑Grid; die Zeichenfläche ist intern 64×32 und wird nur optisch skaliert.【F:esp32Hub75/main.sketch†L92-L356】
+Hinweis: Die Web‑UI ist im hellen Teenage‑Engineering‑Look mit Kartenlayout und Mono‑Typografie gestaltet; die Farbpalette und das feine Canvas‑Grid trennen die Pixel klar, die Zeichenfläche ist intern 64×32 und wird nur optisch skaliert.【F:esp32Hub75/main.sketch†L92-L412】
 
 ## Panel neu initialisieren (Reinit)
 
@@ -41,7 +41,7 @@ Einzelpixel kannst du via JSON‑Nachricht auf `/ws` senden:
 
 ## Pixelart lokal speichern/laden (Browser)
 
-Die Buttons **Save** und **Load** speichern die aktuelle Pixelart lokal im Browser (LocalStorage) und laden sie wieder, ohne Server‑Kontakt. Nach dem Laden kannst du mit „Redraw Panel“ erneut ans Panel senden.【F:esp32Hub75/main.sketch†L286-L575】
+Die Buttons **Save** und **Load** speichern die aktuelle Pixelart lokal im Browser (LocalStorage) in einem versionierten Format mit Größenprüfung und laden sie wieder, ohne Server‑Kontakt. Nach dem Laden kannst du mit „Redraw Panel“ erneut ans Panel senden.【F:esp32Hub75/main.sketch†L1066-L1113】
 
 ## Pixelart erneut auf Panel zeichnen
 

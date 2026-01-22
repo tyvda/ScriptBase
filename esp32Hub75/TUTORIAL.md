@@ -6,6 +6,8 @@ Dieses Tutorial führt Schritt für Schritt durch Konfiguration, Flash und Nutzu
 
 Das Projekt ist ein lokaler LED‑Matrix‑Controller für ein HUB75‑Panel (64×32, 1/16 Scan) auf ESP32‑Basis. Es bietet eine Web‑UI mit Pixel‑Editor, Bild‑Upload und GIF‑Animation – ohne Cloud‑Zwang oder externen Server.【F:esp32Hub75/main.sketch†L1-L904】
 
+Die Oberfläche ist modern und klar im Teenage‑Engineering‑Stil aufgebaut (helles Kartenlayout, Mono‑Typografie, prägnante Status‑Pills).【F:esp32Hub75/main.sketch†L167-L412】
+
 ## 1) WLAN & mDNS konfigurieren
 
 Im Sketch die Zugangsdaten anpassen:
@@ -83,7 +85,7 @@ Falls der WebSocket‑Status in der UI auf „connecting…“ stehen bleibt, Br
 - Die Farbpalette setzt die aktive Zeichenfarbe; das Canvas ist intern 64×32 und wird nur optisch skaliert.【F:esp32Hub75/main.sketch†L120-L356】
 - `Reinit` initialisiert das Display neu und löscht die Canvas/Panel‑Daten (Pixelart startet sauber neu).【F:esp32Hub75/main.sketch†L368-L377】【F:esp32Hub75/main.sketch†L820-L825】
 - Der Button „Redraw Panel“ packt die aktuelle Pixelart als Single‑Frame‑`anim.bin` und lässt den ESP32 sie lokal wie ein GIF rendern (keine `px`‑Flut, keine Unterbrechung durch UI‑Aktionen).【F:esp32Hub75/main.sketch†L69-L799】
-- **Save/Load** speichert die Pixelart lokal im Browser (LocalStorage) und lädt sie wieder in das Canvas.【F:esp32Hub75/main.sketch†L286-L575】
+- **Save/Load** speichert die Pixelart lokal im Browser (LocalStorage) als versioniertes Format mit Größenprüfung und lädt sie wieder in das Canvas.【F:esp32Hub75/main.sketch†L1066-L1113】
 
 ## 7.1) Helligkeit einstellen
 
