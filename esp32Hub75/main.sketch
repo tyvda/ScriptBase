@@ -374,12 +374,12 @@ a{color:var(--accent)}
         <option value="3">3×3</option>
         <option value="4">4×4</option>
       </select>
-      <button id="clear">Clear</button>
-      <button id="fill">Fill</button>
-      <button id="reinit">Reinit</button>
-      <button id="redrawPanel">Redraw Panel</button>
-      <button id="savePixelart">Save</button>
-      <button id="loadPixelart">Load</button>
+      <button id="clear" type="button">Clear</button>
+      <button id="fill" type="button">Fill</button>
+      <button id="reinit" type="button">Reinit</button>
+      <button id="redrawPanel" type="button">Redraw Panel</button>
+      <button id="savePixelart" type="button">Save</button>
+      <button id="loadPixelart" type="button">Load</button>
     </div>
 
     <small>
@@ -457,9 +457,9 @@ a{color:var(--accent)}
       </div>
 
       <div class="row">
-        <button id="stopwatchStart">Start</button>
-        <button id="stopwatchStop">Stop</button>
-        <button id="stopwatchReset">Reset</button>
+        <button id="stopwatchStart" type="button">Start</button>
+        <button id="stopwatchStop" type="button">Stop</button>
+        <button id="stopwatchReset" type="button">Reset</button>
 
         <label for="stopwatchColor">Kette</label>
         <input id="stopwatchColor" type="color" value="#00ff00">
@@ -490,8 +490,8 @@ a{color:var(--accent)}
         </select>
       </div>
       <div class="row">
-        <button id="previewImg">Preview</button>
-        <button id="sendImg">Send to Panel</button>
+        <button id="previewImg" type="button">Preview</button>
+        <button id="sendImg" type="button">Send to Panel</button>
       </div>
       <small>Preview zeichnet ins Canvas. "Send" packt als Single-Frame anim.bin und rendert lokal am ESP32.</small>
       <div id="imgInfo" style="margin-top:8px"></div>
@@ -519,9 +519,9 @@ a{color:var(--accent)}
       </div>
 
       <div class="row" style="margin-top:10px">
-        <button id="prepGif">Prepare & Upload</button>
-        <button id="playGif">Play</button>
-        <button id="stopGif">Stop</button>
+        <button id="prepGif" type="button">Prepare & Upload</button>
+        <button id="playGif" type="button">Play</button>
+        <button id="stopGif" type="button">Stop</button>
       </div>
 
       <progress id="p" value="0" max="100"></progress>
@@ -546,8 +546,8 @@ a{color:var(--accent)}
           <option value="scanner">Scanner</option>
           <option value="waves">Waves</option>
         </select>
-        <button id="fxStart">Start</button>
-        <button id="fxStop">Stop</button>
+        <button id="fxStart" type="button">Start</button>
+        <button id="fxStop" type="button">Stop</button>
       </div>
 
       <div class="row">
@@ -1065,8 +1065,14 @@ a{color:var(--accent)}
 
   function savePixelartToLocal(){
     try{
-      const data = Array.from(pix);
-      localStorage.setItem(PIXELART_STORAGE_KEY, JSON.stringify(data));
+      const payload = {
+        v: 1,
+        w: W,
+        h: H,
+        data: Array.from(pix),
+        savedAt: Date.now(),
+      };
+      localStorage.setItem(PIXELART_STORAGE_KEY, JSON.stringify(payload));
       infoEl.textContent = "Pixelart gespeichert (lokal im Browser).";
     }catch(err){
       errEl.textContent = "Save fehlgeschlagen: " + (err?.message || String(err));
@@ -1076,10 +1082,24 @@ a{color:var(--accent)}
   function loadPixelartFromLocal(){
     try{
       const raw = localStorage.getItem(PIXELART_STORAGE_KEY);
-      if(!raw) return alert("Kein lokaler Pixelart-Slot gefunden.");
-      const data = JSON.parse(raw);
+      if(!raw){
+        errEl.textContent = "Kein lokaler Pixelart-Slot gefunden.";
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      let data = null;
+      if(Array.isArray(parsed)){
+        data = parsed;
+      }else if(parsed && Array.isArray(parsed.data)){
+        if(parsed.w !== W || parsed.h !== H){
+          errEl.textContent = "Gespeicherte Pixelart hat falsches Format.";
+          return;
+        }
+        data = parsed.data;
+      }
       if(!Array.isArray(data) || data.length !== W*H){
-        return alert("Gespeicherte Pixelart ist inkompatibel.");
+        errEl.textContent = "Gespeicherte Pixelart ist inkompatibel.";
+        return;
       }
       for(let i=0;i<W*H;i++){ pix[i] = data[i] >>> 0; }
       redraw();

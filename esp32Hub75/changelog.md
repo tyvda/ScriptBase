@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-01-22 10:25:00 +0000
+- Pixelart Save/Load stabilisiert: versioniertes LocalStorage‑Format, validierte Dimensionen und klarere Fehlermeldungen. Quelle: `main.sketch`.
+- Buttons explizit als `type="button"` markiert, um Save/Load‑Clicks zuverlässig ohne Seiteneffekte auszuführen. Quelle: `main.sketch`.
+- Dokumentation für das robuste Save/Load‑Verhalten aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-21 06:51:15 +0000
 - Web‑UI im Teenage‑Engineering‑Stil überarbeitet: helles Kartenlayout, neue Header‑Struktur, Mono‑Typografie und modernisierte Controls/Canvas‑Panel. Quelle: `main.sketch`.
 - Dokumentation zur neuen UI‑Designsprache ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.

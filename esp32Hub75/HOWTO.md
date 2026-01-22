@@ -41,7 +41,7 @@ Einzelpixel kannst du via JSON‑Nachricht auf `/ws` senden:
 
 ## Pixelart lokal speichern/laden (Browser)
 
-Die Buttons **Save** und **Load** speichern die aktuelle Pixelart lokal im Browser (LocalStorage) und laden sie wieder, ohne Server‑Kontakt. Nach dem Laden kannst du mit „Redraw Panel“ erneut ans Panel senden.【F:esp32Hub75/main.sketch†L286-L575】
+Die Buttons **Save** und **Load** speichern die aktuelle Pixelart lokal im Browser (LocalStorage) in einem versionierten Format mit Größenprüfung und laden sie wieder, ohne Server‑Kontakt. Nach dem Laden kannst du mit „Redraw Panel“ erneut ans Panel senden.【F:esp32Hub75/main.sketch†L1066-L1113】
 
 ## Pixelart erneut auf Panel zeichnen
 
