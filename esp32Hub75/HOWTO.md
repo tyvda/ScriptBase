@@ -5,7 +5,7 @@ Dieses Dokument sammelt kurze Rezepte für typische Aufgaben mit dem Sketch in `
 ## Überblick
 
 Der ESP32 stellt lokal eine Web‑UI, Upload‑Workflows für Bilder/GIFs sowie eine Animation‑Engine bereit und steuert das HUB75‑Panel direkt per I2S DMA – ohne externe Server.【F:esp32Hub75/main.sketch†L1-L904】
-Die Menüs sind oben als Symbol‑Tabs organisiert (Uhr, Pixelart, Anzeige, Animation, Settings); je Tab erscheinen die passenden Controls.【F:esp32Hub75/main.sketch†L360-L694】
+Die Menüs sind oben als Symbol‑Tabs organisiert (Uhr, Pixelart, Anzeige, Animation, Settings); je Tab erscheinen die passenden Controls. Beim Wechsel setzt die UI automatisch den Display‑Modus (Uhr → `clock`, alle anderen → `ui`).【F:esp32Hub75/main.sketch†L360-L920】
 
 Hinweis: Die Web‑UI ist im hellen Teenage‑Engineering‑Look mit Kartenlayout und Mono‑Typografie gestaltet; die Farbpalette und das feine Canvas‑Grid trennen die Pixel klar, die Zeichenfläche ist intern 64×32 und wird nur optisch skaliert.【F:esp32Hub75/main.sketch†L92-L412】
 
@@ -89,7 +89,7 @@ Die Web‑UI sendet Helligkeitswerte per WebSocket:
 
 ## Uhr/Stopuhr nutzen (NTP)
 
-Wechsle in den Tab **Uhr**; dort findest du den Bereich **Uhr / Stopuhr (NTP)**:
+Wechsle in den Tab **Uhr**; dort findest du den Bereich **Uhr / Stopuhr (NTP)**. Der Tab‑Wechsel setzt den Modus automatisch auf `clock`.【F:esp32Hub75/main.sketch†L360-L920】
 
 1. **Modus wählen**: `Uhr`, `Stopuhr` oder `Canvas & Media` (zurück zu Pixel/GIF/FX).
 2. **Uhrformat**: `HH:MM` oder `HH:MM:SS` (Clock‑Format wird per WebSocket gesetzt).

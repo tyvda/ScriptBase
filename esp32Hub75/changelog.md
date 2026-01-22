@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-01-22 13:58:24 +0000
+- Tab-Wechsel setzt nun den Display-Modus automatisch (Uhr -> `clock`, alle anderen -> `ui`), inklusive Sync zwischen Tab und Moduswahl. Quelle: `main.sketch`.
+- Doku ergänzt, dass Icon-Tabs den Modus umschalten (README/How-To/Tutorial). Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-22 13:14:21 +0000
 - Web-UI in Symbol-Tabs gegliedert (Uhr, Pixelart, Anzeige, Animation, Settings) und tab-spezifische Menüs inkl. Helligkeitsregler pro Seite ergänzt; Bild/GIF-Tuning in Settings gebündelt. Quelle: `main.sketch`.
 - Dokumentation auf Tab-Navigation, neue Menüstruktur und Helligkeitsregler pro Tab aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.

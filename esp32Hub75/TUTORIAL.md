@@ -6,7 +6,7 @@ Dieses Tutorial führt Schritt für Schritt durch Konfiguration, Flash und Nutzu
 
 Das Projekt ist ein lokaler LED‑Matrix‑Controller für ein HUB75‑Panel (64×32, 1/16 Scan) auf ESP32‑Basis. Es bietet eine Web‑UI mit Pixel‑Editor, Bild‑Upload und GIF‑Animation – ohne Cloud‑Zwang oder externen Server.【F:esp32Hub75/main.sketch†L1-L904】
 
-Die Oberfläche ist modern und klar im Teenage‑Engineering‑Stil aufgebaut (helles Kartenlayout, Mono‑Typografie, prägnante Status‑Pills). Die Menüs sind oben als Symbol‑Tabs organisiert (Uhr, Pixelart, Anzeige, Animation, Settings).【F:esp32Hub75/main.sketch†L167-L694】
+Die Oberfläche ist modern und klar im Teenage‑Engineering‑Stil aufgebaut (helles Kartenlayout, Mono‑Typografie, prägnante Status‑Pills). Die Menüs sind oben als Symbol‑Tabs organisiert (Uhr, Pixelart, Anzeige, Animation, Settings) und setzen beim Wechsel automatisch den Display‑Modus (Uhr → `clock`, alle anderen → `ui`).【F:esp32Hub75/main.sketch†L167-L920】
 
 ## 1) WLAN & mDNS konfigurieren
 
@@ -77,7 +77,7 @@ Falls der WebSocket‑Status in der UI auf „connecting…“ stehen bleibt, Br
 
 ## 7) Pixel‑Zeichnen
 
-Öffne den Tab **Pixelart**, um den Editor zu sehen.
+Öffne den Tab **Pixelart**, um den Editor zu sehen. Der Tab setzt den Modus automatisch auf `ui`.【F:esp32Hub75/main.sketch†L360-L920】
 
 - Linksklick malt mit Farbe.
 - Rechtsklick löscht (schwarz).
@@ -95,7 +95,7 @@ Jeder Tab enthält einen Helligkeits‑Regler. Er steuert die Panel‑Helligkeit
 
 ## 7.2) Uhr & Stopuhr (NTP)
 
-Wechsle in den Tab **Uhr**. Dort steuert der Bereich **Uhr / Stopuhr (NTP)** die Zeitdarstellung:
+Wechsle in den Tab **Uhr**. Dort steuert der Bereich **Uhr / Stopuhr (NTP)** die Zeitdarstellung; der Tab setzt den Modus automatisch auf `clock`.【F:esp32Hub75/main.sketch†L360-L920】
 
 - **Modus**: `Uhr`, `Stopuhr` oder `Canvas & Media`.
 - **Uhrformat**: `HH:MM` oder `HH:MM:SS` (Uhrzeit kommt per NTP).
@@ -108,7 +108,7 @@ Die Zeitsynchronisation nutzt `pool.ntp.org` und die TZ‑Info aus der User‑Co
 
 ## 8) Bild senden
 
-Wechsle in den Tab **Anzeige**.
+Wechsle in den Tab **Anzeige** (Modus automatisch `ui`).
 1. PNG/JPG/WebP auswählen.
 2. Optional Aspect (Auto/4:3/16:9) und Mapping (Cover/Contain) wählen.
 3. `Preview` zeichnet in die UI, `Send to Panel` packt das Bild als Single‑Frame‑`anim.bin` (wie GIF‑Frames) und lässt den ESP32 das Bild lokal rendern.【F:esp32Hub75/main.sketch†L142-L799】
@@ -116,7 +116,7 @@ Wechsle in den Tab **Anzeige**.
 
 ## 9) GIF vorbereiten & abspielen
 
-Der GIF‑Upload befindet sich ebenfalls im Tab **Anzeige**.
+Der GIF‑Upload befindet sich ebenfalls im Tab **Anzeige** (Modus automatisch `ui`).
 1. GIF auswählen.
 2. `Prepare & Upload` erstellt `anim.bin` im Browser und lädt es hoch (max. 50 Frames).
 3. `Play` startet die Animation, `Stop` stoppt sie.
@@ -125,7 +125,7 @@ Die GIF‑Dekodierung nutzt `gifuct-js` via CDN.【F:esp32Hub75/main.sketch†L2
 
 ## 10) WLED‑ähnliche Effekte starten
 
-Öffne den Tab **Animation**. Im UI‑Bereich „WLED‑ähnliche Animationen“ kannst du Effekte wie Matrix, Blink, Colorfading, Rainbow, Kaminfeuer, Twinkle, Scanner oder Waves starten. Parameter wirken live (Speed, Intensity usw.). Start/Stop und Parameteränderungen werden via WebSocket übertragen.【F:esp32Hub75/main.sketch†L58-L1684】
+Öffne den Tab **Animation** (Modus automatisch `ui`). Im UI‑Bereich „WLED‑ähnliche Animationen“ kannst du Effekte wie Matrix, Blink, Colorfading, Rainbow, Kaminfeuer, Twinkle, Scanner oder Waves starten. Parameter wirken live (Speed, Intensity usw.). Start/Stop und Parameteränderungen werden via WebSocket übertragen.【F:esp32Hub75/main.sketch†L58-L1684】
 
 ## Implementierungscheck (Sketch-Abgleich)
 

@@ -762,6 +762,13 @@ a{color:var(--accent)}
   const fxColor2=document.getElementById('fxColor2');
   const tabButtons=Array.from(document.querySelectorAll('.mode-tab'));
   const tabPanels=Array.from(document.querySelectorAll('.tab-panel'));
+  const tabModeMap = {
+    clock: "clock",
+    pixelart: "ui",
+    display: "ui",
+    animation: "ui",
+    settings: "ui",
+  };
 
   function setActiveTab(tabId){
     tabButtons.forEach((btn)=>{
@@ -773,8 +780,28 @@ a{color:var(--accent)}
       panel.classList.toggle('active', panel.dataset.tab === tabId);
     });
   }
+
+  function applyDisplayMode(mode, options = {}){
+    const { send = true, syncTab = false } = options;
+    displayMode.value = mode;
+    if (send) sendJson({t:"mode", mode});
+    if (syncTab){
+      if (mode === "clock" || mode === "stopwatch") {
+        setActiveTab("clock");
+      } else {
+        setActiveTab("pixelart");
+      }
+    }
+  }
+
+  function switchTab(tabId){
+    setActiveTab(tabId);
+    const mode = tabModeMap[tabId];
+    if (mode) applyDisplayMode(mode, { send: true, syncTab: false });
+  }
+
   tabButtons.forEach((btn)=>{
-    btn.addEventListener('click', ()=> setActiveTab(btn.dataset.tab));
+    btn.addEventListener('click', ()=> switchTab(btn.dataset.tab));
   });
 
   // ---- WebSocket
@@ -1028,7 +1055,7 @@ a{color:var(--accent)}
   }
 
   displayMode.addEventListener('change', () => {
-    sendJson({t:"mode", mode: displayMode.value});
+    applyDisplayMode(displayMode.value, { send: true, syncTab: true });
   });
 
   clockFormat.addEventListener('change', () => {
