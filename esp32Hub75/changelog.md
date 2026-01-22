@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-01-22 13:14:21 +0000
+- Web-UI in Symbol-Tabs gegliedert (Uhr, Pixelart, Anzeige, Animation, Settings) und tab-spezifische Menüs inkl. Helligkeitsregler pro Seite ergänzt; Bild/GIF-Tuning in Settings gebündelt. Quelle: `main.sketch`.
+- Dokumentation auf Tab-Navigation, neue Menüstruktur und Helligkeitsregler pro Tab aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-22 10:25:00 +0000
 - Pixelart Save/Load stabilisiert: versioniertes LocalStorage‑Format, validierte Dimensionen und klarere Fehlermeldungen. Quelle: `main.sketch`.
 - Buttons explizit als `type="button"` markiert, um Save/Load‑Clicks zuverlässig ohne Seiteneffekte auszuführen. Quelle: `main.sketch`.

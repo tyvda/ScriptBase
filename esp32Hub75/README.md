@@ -11,6 +11,7 @@ Kein Cloud‑Zwang, kein WLED, kein externer Server.
 ## Features
 
 - Web‑UI mit Pixel‑Editor (Brush, Clear/Fill, Reinit).【F:esp32Hub75/main.sketch†L67-L377】
+- Symbolbasierte Tab‑Navigation für Uhr, Pixelart, Anzeige, Animation und Settings (jeweils eigenes Menü).【F:esp32Hub75/main.sketch†L167-L610】
 - Bild‑Upload (PNG/JPG/WebP) mit Aspect‑Mapping (Auto/4:3/16:9) und Cover/Contain‑Scaling.【F:esp32Hub75/main.sketch†L142-L454】
 - GIF‑Upload inkl. browserseitiger Dekodierung und RLE‑Kompression für schnelle Wiedergabe am ESP32 (Upload aktuell auf max. 50 Frames limitiert).【F:esp32Hub75/main.sketch†L222-L612】
 - WebSocket‑Streaming von Full‑Frames (RGB565) und Einzelpixel‑Updates (JSON).【F:esp32Hub75/main.sketch†L318-L760】
@@ -180,14 +181,15 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 ## Web‑UI & Bedienung
 
 - **Designsprache**: Helles, hochwertiges UI im Teenage‑Engineering‑Stil mit Kartenlayout, Mono‑Typografie, prägnanten Status‑Pills und klarer Hierarchie zwischen Canvas und Controls.【F:esp32Hub75/main.sketch†L167-L412】
+- **Tabs (Symbole)**: Oben wählst du zwischen Uhr, Pixelart, Anzeige, Animation und Settings; pro Tab erscheint das passende Menü.【F:esp32Hub75/main.sketch†L360-L694】
 - **Pixel‑Zeichnen**: Linksklick malt, Rechtsklick löscht (schwarz). Brush‑Größe ist 1×1 bis 4×4.【F:esp32Hub75/main.sketch†L90-L365】
 - **Farbpalette**: Schnellwahl‑Palette setzt die aktive Zeichenfarbe.【F:esp32Hub75/main.sketch†L120-L425】
 - **Canvas‑Grid**: feine Linien trennen Pixel optisch, damit jedes Pixel klar erkennbar ist.【F:esp32Hub75/main.sketch†L92-L105】
 - **Canvas‑Mapping**: interne Auflösung 64×32, visuell skaliert ohne Versatz.【F:esp32Hub75/main.sketch†L243-L356】
 - **Clear/Fill**: Clear leert das Panel, Fill füllt mit der aktiven Farbe.【F:esp32Hub75/main.sketch†L352-L364】
 - **Reinit**: Neuinitialisiert das Panel‑GPIO‑Setup per `/api/reinit`.【F:esp32Hub75/main.sketch†L368-L369】【F:esp32Hub75/main.sketch†L822-L825】
-- **Gamma/Boost**: LUT‑basiert, beeinflusst Bilder & GIF‑Frames im Browser (Preview + Upload).【F:esp32Hub75/main.sketch†L151-L314】
-- **Brightness**: UI‑Regler steuert die Panel‑Helligkeit (WebSocket `bright`).【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
+- **Gamma/Boost**: LUT‑basiert, beeinflusst Bilder & GIF‑Frames im Browser (Preview + Upload) und liegt in den Settings.【F:esp32Hub75/main.sketch†L151-L314】
+- **Helligkeit**: Jeder Tab hat einen Helligkeits‑Regler, der die Panel‑Helligkeit per WebSocket `bright` steuert.【F:esp32Hub75/main.sketch†L386-L694】【F:esp32Hub75/main.sketch†L802-L835】
 - **Uhr/Stopuhr**: NTP‑Uhr (HH:MM/HH:MM:SS) oder Stopuhr (HH:MM:SS) inkl. LED‑Kette, die pro Minute einmal den Panel‑Rand umläuft; bei exakt einer Minute erscheint ein kompletter Rahmen; Farbe im UI einstellbar.【F:esp32Hub75/main.sketch†L252-L340】【F:esp32Hub75/main.sketch†L1287-L1408】
 - **Uhrfarbe**: Uhrfarbe und Uhr‑Helligkeit lassen sich im UI separat einstellen (wirkt nur auf die Uhrzeit).【F:esp32Hub75/main.sketch†L252-L340】【F:esp32Hub75/main.sketch†L1468-L1515】
 - **Wetter (Koblenz)**: Im Uhr‑Modus optional Temperatur mit 16×16‑Icon (links unten) und Temperatur rechts unten anzeigen, Uhr bleibt in der oberen Hälfte.【F:esp32Hub75/main.sketch†L252-L340】【F:esp32Hub75/main.sketch†L1302-L1458】
