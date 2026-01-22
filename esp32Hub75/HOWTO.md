@@ -5,6 +5,7 @@ Dieses Dokument sammelt kurze Rezepte für typische Aufgaben mit dem Sketch in `
 ## Überblick
 
 Der ESP32 stellt lokal eine Web‑UI, Upload‑Workflows für Bilder/GIFs sowie eine Animation‑Engine bereit und steuert das HUB75‑Panel direkt per I2S DMA – ohne externe Server.【F:esp32Hub75/main.sketch†L1-L904】
+Die Menüs sind oben als Symbol‑Tabs organisiert (Uhr, Pixelart, Anzeige, Animation, Settings); je Tab erscheinen die passenden Controls. Beim Wechsel setzt die UI automatisch den Display‑Modus (Uhr → `clock`, alle anderen → `ui`).【F:esp32Hub75/main.sketch†L360-L920】
 
 Hinweis: Die Web‑UI ist im hellen Teenage‑Engineering‑Look mit Kartenlayout und Mono‑Typografie gestaltet; die Farbpalette und das feine Canvas‑Grid trennen die Pixel klar, die Zeichenfläche ist intern 64×32 und wird nur optisch skaliert.【F:esp32Hub75/main.sketch†L92-L412】
 
@@ -41,7 +42,7 @@ Einzelpixel kannst du via JSON‑Nachricht auf `/ws` senden:
 
 ## Pixelart lokal speichern/laden (Browser)
 
-Die Buttons **Save** und **Load** speichern die aktuelle Pixelart lokal im Browser (LocalStorage) in einem versionierten Format mit Größenprüfung und laden sie wieder, ohne Server‑Kontakt. Nach dem Laden kannst du mit „Redraw Panel“ erneut ans Panel senden.【F:esp32Hub75/main.sketch†L1066-L1113】
+Die Buttons **Save** und **Load** speichern die aktuelle Pixelart lokal im Browser (LocalStorage) in 8 auswählbaren Slots mit versioniertem Format und Größenprüfung und laden sie wieder, ohne Server‑Kontakt. Nach dem Laden kannst du mit „Redraw Panel“ erneut ans Panel senden.【F:esp32Hub75/main.sketch†L473-L1113】
 
 ## Pixelart erneut auf Panel zeichnen
 
@@ -84,11 +85,11 @@ Die Web‑UI sendet Helligkeitswerte per WebSocket:
 {"t":"bright","v":128}
 ```
 
-`v` ist ein Wert von 5 bis 255 und steuert `setBrightness8` am Panel.【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
+`v` ist ein Wert von 5 bis 255 und steuert `setBrightness8` am Panel. Der Regler ist in jedem Tab verfügbar (Uhr, Pixelart, Anzeige, Animation, Settings).【F:esp32Hub75/main.sketch†L386-L835】
 
 ## Uhr/Stopuhr nutzen (NTP)
 
-Die UI enthält einen Bereich **Uhr / Stopuhr (NTP)**:
+Wechsle in den Tab **Uhr**; dort findest du den Bereich **Uhr / Stopuhr (NTP)**. Der Tab‑Wechsel setzt den Modus automatisch auf `clock`.【F:esp32Hub75/main.sketch†L360-L920】
 
 1. **Modus wählen**: `Uhr`, `Stopuhr` oder `Canvas & Media` (zurück zu Pixel/GIF/FX).
 2. **Uhrformat**: `HH:MM` oder `HH:MM:SS` (Clock‑Format wird per WebSocket gesetzt).

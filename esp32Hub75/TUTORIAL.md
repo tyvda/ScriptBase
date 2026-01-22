@@ -6,7 +6,7 @@ Dieses Tutorial führt Schritt für Schritt durch Konfiguration, Flash und Nutzu
 
 Das Projekt ist ein lokaler LED‑Matrix‑Controller für ein HUB75‑Panel (64×32, 1/16 Scan) auf ESP32‑Basis. Es bietet eine Web‑UI mit Pixel‑Editor, Bild‑Upload und GIF‑Animation – ohne Cloud‑Zwang oder externen Server.【F:esp32Hub75/main.sketch†L1-L904】
 
-Die Oberfläche ist modern und klar im Teenage‑Engineering‑Stil aufgebaut (helles Kartenlayout, Mono‑Typografie, prägnante Status‑Pills).【F:esp32Hub75/main.sketch†L167-L412】
+Die Oberfläche ist modern und klar im Teenage‑Engineering‑Stil aufgebaut (helles Kartenlayout, Mono‑Typografie, prägnante Status‑Pills). Die Menüs sind oben als Symbol‑Tabs organisiert (Uhr, Pixelart, Anzeige, Animation, Settings) und setzen beim Wechsel automatisch den Display‑Modus (Uhr → `clock`, alle anderen → `ui`).【F:esp32Hub75/main.sketch†L167-L920】
 
 ## 1) WLAN & mDNS konfigurieren
 
@@ -77,6 +77,8 @@ Falls der WebSocket‑Status in der UI auf „connecting…“ stehen bleibt, Br
 
 ## 7) Pixel‑Zeichnen
 
+Öffne den Tab **Pixelart**, um den Editor zu sehen. Der Tab setzt den Modus automatisch auf `ui`.【F:esp32Hub75/main.sketch†L360-L920】
+
 - Linksklick malt mit Farbe.
 - Rechtsklick löscht (schwarz).
 - Brush‑Größe 1×1 bis 4×4.
@@ -85,15 +87,15 @@ Falls der WebSocket‑Status in der UI auf „connecting…“ stehen bleibt, Br
 - Die Farbpalette setzt die aktive Zeichenfarbe; das Canvas ist intern 64×32 und wird nur optisch skaliert.【F:esp32Hub75/main.sketch†L120-L356】
 - `Reinit` initialisiert das Display neu und löscht die Canvas/Panel‑Daten (Pixelart startet sauber neu).【F:esp32Hub75/main.sketch†L368-L377】【F:esp32Hub75/main.sketch†L820-L825】
 - Der Button „Redraw Panel“ packt die aktuelle Pixelart als Single‑Frame‑`anim.bin` und lässt den ESP32 sie lokal wie ein GIF rendern (keine `px`‑Flut, keine Unterbrechung durch UI‑Aktionen).【F:esp32Hub75/main.sketch†L69-L799】
-- **Save/Load** speichert die Pixelart lokal im Browser (LocalStorage) als versioniertes Format mit Größenprüfung und lädt sie wieder in das Canvas.【F:esp32Hub75/main.sketch†L1066-L1113】
+- **Save/Load** speichert die Pixelart lokal im Browser (LocalStorage) in 8 auswählbaren Slots als versioniertes Format mit Größenprüfung und lädt sie wieder in das Canvas.【F:esp32Hub75/main.sketch†L473-L1113】
 
 ## 7.1) Helligkeit einstellen
 
-Im Bereich "Bild / GIF Tuning" steht ein Helligkeits‑Regler zur Verfügung. Dieser steuert die Panel‑Helligkeit direkt per WebSocket (`bright`).【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
+Jeder Tab enthält einen Helligkeits‑Regler. Er steuert die Panel‑Helligkeit direkt per WebSocket (`bright`).【F:esp32Hub75/main.sketch†L386-L835】
 
 ## 7.2) Uhr & Stopuhr (NTP)
 
-Der Bereich **Uhr / Stopuhr (NTP)** steuert die Zeitdarstellung:
+Wechsle in den Tab **Uhr**. Dort steuert der Bereich **Uhr / Stopuhr (NTP)** die Zeitdarstellung; der Tab setzt den Modus automatisch auf `clock`.【F:esp32Hub75/main.sketch†L360-L920】
 
 - **Modus**: `Uhr`, `Stopuhr` oder `Canvas & Media`.
 - **Uhrformat**: `HH:MM` oder `HH:MM:SS` (Uhrzeit kommt per NTP).
@@ -106,6 +108,7 @@ Die Zeitsynchronisation nutzt `pool.ntp.org` und die TZ‑Info aus der User‑Co
 
 ## 8) Bild senden
 
+Wechsle in den Tab **Anzeige** (Modus automatisch `ui`).
 1. PNG/JPG/WebP auswählen.
 2. Optional Aspect (Auto/4:3/16:9) und Mapping (Cover/Contain) wählen.
 3. `Preview` zeichnet in die UI, `Send to Panel` packt das Bild als Single‑Frame‑`anim.bin` (wie GIF‑Frames) und lässt den ESP32 das Bild lokal rendern.【F:esp32Hub75/main.sketch†L142-L799】
@@ -113,6 +116,7 @@ Die Zeitsynchronisation nutzt `pool.ntp.org` und die TZ‑Info aus der User‑Co
 
 ## 9) GIF vorbereiten & abspielen
 
+Der GIF‑Upload befindet sich ebenfalls im Tab **Anzeige** (Modus automatisch `ui`).
 1. GIF auswählen.
 2. `Prepare & Upload` erstellt `anim.bin` im Browser und lädt es hoch (max. 50 Frames).
 3. `Play` startet die Animation, `Stop` stoppt sie.
@@ -121,7 +125,7 @@ Die GIF‑Dekodierung nutzt `gifuct-js` via CDN.【F:esp32Hub75/main.sketch†L2
 
 ## 10) WLED‑ähnliche Effekte starten
 
-Im UI‑Bereich „WLED‑ähnliche Animationen“ kannst du Effekte wie Matrix, Blink, Colorfading, Rainbow, Kaminfeuer, Twinkle, Scanner oder Waves starten. Parameter wirken live (Speed, Intensity usw.). Start/Stop und Parameteränderungen werden via WebSocket übertragen.【F:esp32Hub75/main.sketch†L58-L1684】
+Öffne den Tab **Animation** (Modus automatisch `ui`). Im UI‑Bereich „WLED‑ähnliche Animationen“ kannst du Effekte wie Matrix, Blink, Colorfading, Rainbow, Kaminfeuer, Twinkle, Scanner oder Waves starten. Parameter wirken live (Speed, Intensity usw.). Start/Stop und Parameteränderungen werden via WebSocket übertragen.【F:esp32Hub75/main.sketch†L58-L1684】
 
 ## Implementierungscheck (Sketch-Abgleich)
 

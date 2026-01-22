@@ -336,6 +336,37 @@ a{color:var(--accent)}
   font-size:12px;
   margin-bottom:6px;
 }
+.mode-tabs{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  padding:12px 22px 16px;
+  background:var(--bg-panel);
+  border-bottom:1px solid var(--border);
+}
+.mode-tab{
+  background:#f7f3ed;
+  color:var(--ink);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:8px 12px;
+  display:flex;
+  gap:8px;
+  align-items:center;
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:0.08em;
+  font-size:11px;
+  cursor:pointer;
+}
+.mode-tab.active{
+  background:var(--accent);
+  color:#fff;
+  border-color:var(--accent);
+}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+.tab-panel + .tab-panel{margin-top:0}
 @media (max-width: 980px){
   #wrap{grid-template-columns:1fr}
 }
@@ -354,6 +385,24 @@ a{color:var(--accent)}
   </div>
 </header>
 
+<div class="mode-tabs" role="tablist" aria-label="Display-Menü">
+  <button class="mode-tab active" type="button" data-tab="clock" role="tab" aria-selected="true">
+    <span>🕒</span><span>Uhr</span>
+  </button>
+  <button class="mode-tab" type="button" data-tab="pixelart" role="tab" aria-selected="false">
+    <span>🎨</span><span>Pixelart</span>
+  </button>
+  <button class="mode-tab" type="button" data-tab="display" role="tab" aria-selected="false">
+    <span>📺</span><span>Anzeige</span>
+  </button>
+  <button class="mode-tab" type="button" data-tab="animation" role="tab" aria-selected="false">
+    <span>✨</span><span>Animation</span>
+  </button>
+  <button class="mode-tab" type="button" data-tab="settings" role="tab" aria-selected="false">
+    <span>⚙️</span><span>Setting</span>
+  </button>
+</div>
+
 <div id="wrap">
   <div class="panel panel--canvas">
     <div class="panel-title">Canvas</div>
@@ -361,66 +410,8 @@ a{color:var(--accent)}
     <div class="panel-meta">Raster‑Preview · 64×32 · Live‑Panel‑Sync</div>
   </div>
 
-  <div class="panel">
-    <div class="section-title">Pixelart‑Editor</div>
-    <div class="row">
-      <label>Color</label>
-      <input id="col" type="color" value="#ffcc00">
-      <div id="palette" class="row" style="margin:0"></div>
-      <label>Brush</label>
-      <select id="brush">
-        <option value="1" selected>1×1</option>
-        <option value="2">2×2</option>
-        <option value="3">3×3</option>
-        <option value="4">4×4</option>
-      </select>
-      <button id="clear" type="button">Clear</button>
-      <button id="fill" type="button">Fill</button>
-      <button id="reinit" type="button">Reinit</button>
-      <button id="redrawPanel" type="button">Redraw Panel</button>
-      <button id="savePixelart" type="button">Save</button>
-      <button id="loadPixelart" type="button">Load</button>
-    </div>
-
-    <small>
-      Pixelart: Click/Drag · Right-Click = Erase (black).<br/>
-      Brush malt ein Quadrat um den Cursor (zentriert).<br/>
-      Beim Zeichnen/Frames senden wird Animation automatisch gestoppt.
-    </small>
-
-    <hr>
-
-    <div>
-      <div class="section-header">
-        <div class="section-title">Bild / GIF Tuning</div>
-        <span class="badge">Bilder + GIF</span>
-      </div>
-
-      <div class="row">
-        <label>Gamma</label>
-        <input id="gamma" type="range" min="50" max="260" value="120">
-        <span class="val" id="gammaVal">1.20</span>
-
-        <label>Boost</label>
-        <input id="boost" type="range" min="50" max="200" value="110">
-        <span class="val" id="boostVal">1.10</span>
-      </div>
-
-      <div class="row">
-        <label>Brightness</label>
-        <input id="brightness" type="range" min="5" max="255" value="5">
-        <span class="val" id="brightnessVal">5</span>
-      </div>
-
-      <small>
-        Gamma (≈0.5–2.6) korrigiert die Helligkeitskurve, Boost ist ein linearer Gain.
-        Alles per LUT (schnell).
-      </small>
-    </div>
-
-    <hr>
-
-    <div>
+  <div class="panel panel--menu">
+    <div class="tab-panel active" data-tab="clock" role="tabpanel">
       <div class="section-header">
         <div class="section-title">Uhr / Stopuhr (NTP)</div>
         <span class="badge">Display‑Modus</span>
@@ -468,71 +459,135 @@ a{color:var(--accent)}
       <small>
         Uhr holt die Zeit per NTP. Optional Wetterdaten für Koblenz im Uhr‑Modus. Stopuhr zeigt HH:MM:SS und lässt eine LED‑Kette pro Minute umlaufen.
       </small>
+
+      <hr>
+
+      <div class="section-title">Helligkeit</div>
+      <div class="row">
+        <label>Panel</label>
+        <input class="brightness-input" type="range" min="5" max="255" value="5">
+        <span class="val brightness-val">5</span>
+      </div>
     </div>
 
-    <hr>
-
-    <div>
-      <div class="section-title">Bild (PNG/JPG/WebP) → 64×32</div>
-      <input id="imgFile" type="file" accept="image/*">
-      <div class="row">
-        <label for="srcAspectImg">Quelle</label>
-        <select id="srcAspectImg">
-          <option value="auto" selected>Auto</option>
-          <option value="4:3">4:3</option>
-          <option value="16:9">16:9</option>
-        </select>
-
-        <label for="scaleModeImg">Mapping</label>
-        <select id="scaleModeImg">
-          <option value="cover" selected>Cover (Crop)</option>
-          <option value="contain">Contain (Letterbox)</option>
-        </select>
-      </div>
-      <div class="row">
-        <button id="previewImg" type="button">Preview</button>
-        <button id="sendImg" type="button">Send to Panel</button>
-      </div>
-      <small>Preview zeichnet ins Canvas. "Send" packt als Single-Frame anim.bin und rendert lokal am ESP32.</small>
-      <div id="imgInfo" style="margin-top:8px"></div>
+    <div class="tab-panel" data-tab="pixelart" role="tabpanel">
+      <div class="section-title">Pixelart‑Editor</div>
+    <div class="row">
+      <label>Color</label>
+      <input id="col" type="color" value="#ffcc00">
+      <div id="palette" class="row" style="margin:0"></div>
+      <label>Brush</label>
+      <select id="brush">
+        <option value="1" selected>1×1</option>
+        <option value="2">2×2</option>
+        <option value="3">3×3</option>
+        <option value="4">4×4</option>
+      </select>
+      <label>Slot</label>
+      <select id="pixelSlot">
+        <option value="1" selected>Slot 1</option>
+        <option value="2">Slot 2</option>
+        <option value="3">Slot 3</option>
+        <option value="4">Slot 4</option>
+        <option value="5">Slot 5</option>
+        <option value="6">Slot 6</option>
+        <option value="7">Slot 7</option>
+        <option value="8">Slot 8</option>
+      </select>
+      <button id="clear" type="button">Clear</button>
+      <button id="fill" type="button">Fill</button>
+      <button id="reinit" type="button">Reinit</button>
+      <button id="redrawPanel" type="button">Redraw Panel</button>
+      <button id="savePixelart" type="button">Save</button>
+      <button id="loadPixelart" type="button">Load</button>
     </div>
 
-    <hr>
+      <small>
+        Pixelart: Click/Drag · Right-Click = Erase (black).<br/>
+        Brush malt ein Quadrat um den Cursor (zentriert).<br/>
+        Beim Zeichnen/Frames senden wird Animation automatisch gestoppt.
+      </small>
 
-    <div>
-      <div class="section-title">GIF‑Upload (Browser‑Decode)</div>
-      <input id="gifFile" type="file" accept="image/gif">
+      <hr>
 
+      <div class="section-title">Helligkeit</div>
       <div class="row">
-        <label for="srcAspectGif">Quelle</label>
-        <select id="srcAspectGif">
-          <option value="auto" selected>Auto</option>
-          <option value="4:3">4:3</option>
-          <option value="16:9">16:9</option>
-        </select>
-
-        <label for="scaleModeGif">Mapping</label>
-        <select id="scaleModeGif">
-          <option value="cover" selected>Cover (Crop)</option>
-          <option value="contain">Contain (Letterbox)</option>
-        </select>
+        <label>Panel</label>
+        <input class="brightness-input" type="range" min="5" max="255" value="5">
+        <span class="val brightness-val">5</span>
       </div>
-
-      <div class="row" style="margin-top:10px">
-        <button id="prepGif" type="button">Prepare & Upload</button>
-        <button id="playGif" type="button">Play</button>
-        <button id="stopGif" type="button">Stop</button>
-      </div>
-
-      <progress id="p" value="0" max="100"></progress>
-      <small>GIF nutzt <b>gifuct-js</b> vom Internet (CDN).</small>
-      <div id="info"></div>
-      <div id="err"></div>
     </div>
 
-    <hr>
+    <div class="tab-panel" data-tab="display" role="tabpanel">
+      <div class="section-title">Anzeige & Upload</div>
+      <div class="row">
+        <label>Panel</label>
+        <input class="brightness-input" type="range" min="5" max="255" value="5">
+        <span class="val brightness-val">5</span>
+      </div>
 
-    <div>
+      <hr>
+
+      <div>
+        <div class="section-title">Bild (PNG/JPG/WebP) → 64×32</div>
+        <input id="imgFile" type="file" accept="image/*">
+        <div class="row">
+          <label for="srcAspectImg">Quelle</label>
+          <select id="srcAspectImg">
+            <option value="auto" selected>Auto</option>
+            <option value="4:3">4:3</option>
+            <option value="16:9">16:9</option>
+          </select>
+
+          <label for="scaleModeImg">Mapping</label>
+          <select id="scaleModeImg">
+            <option value="cover" selected>Cover (Crop)</option>
+            <option value="contain">Contain (Letterbox)</option>
+          </select>
+        </div>
+        <div class="row">
+          <button id="previewImg" type="button">Preview</button>
+          <button id="sendImg" type="button">Send to Panel</button>
+        </div>
+        <small>Preview zeichnet ins Canvas. "Send" packt als Single-Frame anim.bin und rendert lokal am ESP32.</small>
+        <div id="imgInfo" style="margin-top:8px"></div>
+      </div>
+
+      <hr>
+
+      <div>
+        <div class="section-title">GIF‑Upload (Browser‑Decode)</div>
+        <input id="gifFile" type="file" accept="image/gif">
+
+        <div class="row">
+          <label for="srcAspectGif">Quelle</label>
+          <select id="srcAspectGif">
+            <option value="auto" selected>Auto</option>
+            <option value="4:3">4:3</option>
+            <option value="16:9">16:9</option>
+          </select>
+
+          <label for="scaleModeGif">Mapping</label>
+          <select id="scaleModeGif">
+            <option value="cover" selected>Cover (Crop)</option>
+            <option value="contain">Contain (Letterbox)</option>
+          </select>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <button id="prepGif" type="button">Prepare & Upload</button>
+          <button id="playGif" type="button">Play</button>
+          <button id="stopGif" type="button">Stop</button>
+        </div>
+
+        <progress id="p" value="0" max="100"></progress>
+        <small>GIF nutzt <b>gifuct-js</b> vom Internet (CDN).</small>
+        <div id="info"></div>
+        <div id="err"></div>
+      </div>
+    </div>
+
+    <div class="tab-panel" data-tab="animation" role="tabpanel">
       <div class="section-title">WLED‑ähnliche Animationen</div>
       <div class="row">
         <label for="fxMode">Effekt</label>
@@ -603,6 +658,47 @@ a{color:var(--accent)}
       <small>
         Effekte laufen lokal auf dem ESP32. Start/Stop und Parameter werden via WebSocket gesteuert.
       </small>
+
+      <hr>
+
+      <div class="section-title">Helligkeit</div>
+      <div class="row">
+        <label>Panel</label>
+        <input class="brightness-input" type="range" min="5" max="255" value="5">
+        <span class="val brightness-val">5</span>
+      </div>
+    </div>
+
+    <div class="tab-panel" data-tab="settings" role="tabpanel">
+      <div class="section-title">Setting</div>
+      <div class="section-header">
+        <div class="section-title">Bild / GIF Tuning</div>
+        <span class="badge">Bilder + GIF</span>
+      </div>
+
+      <div class="row">
+        <label>Gamma</label>
+        <input id="gamma" type="range" min="50" max="260" value="120">
+        <span class="val" id="gammaVal">1.20</span>
+
+        <label>Boost</label>
+        <input id="boost" type="range" min="50" max="200" value="110">
+        <span class="val" id="boostVal">1.10</span>
+      </div>
+
+      <small>
+        Gamma (≈0.5–2.6) korrigiert die Helligkeitskurve, Boost ist ein linearer Gain.
+        Alles per LUT (schnell).
+      </small>
+
+      <hr>
+
+      <div class="section-title">Helligkeit</div>
+      <div class="row">
+        <label>Panel</label>
+        <input class="brightness-input" type="range" min="5" max="255" value="5">
+        <span class="val brightness-val">5</span>
+      </div>
     </div>
   </div>
 </div>
@@ -637,8 +733,8 @@ a{color:var(--accent)}
   const boostEl=document.getElementById('boost');
   const gammaVal=document.getElementById('gammaVal');
   const boostVal=document.getElementById('boostVal');
-  const brightnessEl=document.getElementById('brightness');
-  const brightnessVal=document.getElementById('brightnessVal');
+  const brightnessInputs=Array.from(document.querySelectorAll('.brightness-input'));
+  const brightnessVals=Array.from(document.querySelectorAll('.brightness-val'));
   const displayMode=document.getElementById('displayMode');
   const clockFormat=document.getElementById('clockFormat');
   const weatherToggle=document.getElementById('weatherToggle');
@@ -651,6 +747,7 @@ a{color:var(--accent)}
   const stopwatchColor=document.getElementById('stopwatchColor');
 
   const brushSel=document.getElementById('brush');
+  const pixelSlot=document.getElementById('pixelSlot');
   const paletteEl=document.getElementById('palette');
   const colInput=document.getElementById('col');
   const savePixelartBtn=document.getElementById('savePixelart');
@@ -675,6 +772,49 @@ a{color:var(--accent)}
   const fxSparksVal=document.getElementById('fxSparksVal');
   const fxColor1=document.getElementById('fxColor1');
   const fxColor2=document.getElementById('fxColor2');
+  const tabButtons=Array.from(document.querySelectorAll('.mode-tab'));
+  const tabPanels=Array.from(document.querySelectorAll('.tab-panel'));
+  const tabModeMap = {
+    clock: "clock",
+    pixelart: "ui",
+    display: "ui",
+    animation: "ui",
+    settings: "ui",
+  };
+
+  function setActiveTab(tabId){
+    tabButtons.forEach((btn)=>{
+      const isActive = btn.dataset.tab === tabId;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+    tabPanels.forEach((panel)=>{
+      panel.classList.toggle('active', panel.dataset.tab === tabId);
+    });
+  }
+
+  function applyDisplayMode(mode, options = {}){
+    const { send = true, syncTab = false } = options;
+    displayMode.value = mode;
+    if (send) sendJson({t:"mode", mode});
+    if (syncTab){
+      if (mode === "clock" || mode === "stopwatch") {
+        setActiveTab("clock");
+      } else {
+        setActiveTab("pixelart");
+      }
+    }
+  }
+
+  function switchTab(tabId){
+    setActiveTab(tabId);
+    const mode = tabModeMap[tabId];
+    if (mode) applyDisplayMode(mode, { send: true, syncTab: false });
+  }
+
+  tabButtons.forEach((btn)=>{
+    btn.addEventListener('click', ()=> switchTab(btn.dataset.tab));
+  });
 
   // ---- WebSocket
   var ws;
@@ -741,6 +881,7 @@ a{color:var(--accent)}
   // Preview buffer RGB888 0xRRGGBB
   const pix=new Uint32Array(W*H);
   const PIXELART_STORAGE_KEY = "hub75.pixelart.v1";
+  const PIXELART_SLOT_KEY = "hub75.pixelart.slot.v1";
   function redraw(){
     for(let y=0;y<H;y++){
       for(let x=0;x<W;x++){
@@ -800,13 +941,23 @@ a{color:var(--accent)}
 
   function clamp(v, min, max){ return Math.min(max, Math.max(min, v)); }
 
-  function sendBrightness(){
-    const value = clamp(parseInt(brightnessEl.value,10) || 5, 5, 255);
-    brightnessVal.textContent = String(value);
+  function setBrightnessUI(value){
+    brightnessInputs.forEach((input)=>{ input.value = String(value); });
+    brightnessVals.forEach((val)=>{ val.textContent = String(value); });
+  }
+
+  function sendBrightness(valueRaw){
+    const value = clamp(parseInt(valueRaw,10) || 5, 5, 255);
+    setBrightnessUI(value);
     sendJson({t:"bright", v:value});
   }
-  brightnessEl.addEventListener('input', sendBrightness);
-  sendBrightness();
+
+  brightnessInputs.forEach((input)=>{
+    input.addEventListener('input', (event)=> sendBrightness(event.target.value));
+  });
+  if (brightnessInputs.length) {
+    sendBrightness(brightnessInputs[0].value);
+  }
 
   const fxState = {
     mode: fxMode.value,
@@ -917,7 +1068,7 @@ a{color:var(--accent)}
   }
 
   displayMode.addEventListener('change', () => {
-    sendJson({t:"mode", mode: displayMode.value});
+    applyDisplayMode(displayMode.value, { send: true, syncTab: true });
   });
 
   clockFormat.addEventListener('change', () => {
@@ -1043,6 +1194,30 @@ a{color:var(--accent)}
   colInput.addEventListener('input', () => setActiveSwatch(colInput.value));
   setActiveSwatch(colInput.value);
 
+  function getSlotValue(){
+    const raw = parseInt(pixelSlot.value, 10);
+    if (Number.isFinite(raw) && raw >= 1 && raw <= 8) return raw;
+    return 1;
+  }
+
+  function slotStorageKey(slot){
+    return `${PIXELART_STORAGE_KEY}.slot.${slot}`;
+  }
+
+  function persistSlot(slot){
+    localStorage.setItem(PIXELART_SLOT_KEY, String(slot));
+  }
+
+  function restoreSlot(){
+    const raw = parseInt(localStorage.getItem(PIXELART_SLOT_KEY) || "1", 10);
+    const slot = Number.isFinite(raw) && raw >= 1 && raw <= 8 ? raw : 1;
+    pixelSlot.value = String(slot);
+  }
+  restoreSlot();
+  pixelSlot.addEventListener('change', () => {
+    persistSlot(getSlotValue());
+  });
+
   document.getElementById('clear').onclick=()=>{
     pix.fill(0); redraw();
     enqueuePanelWork(async()=>{ sendJson({t:"clear"}); });
@@ -1065,15 +1240,17 @@ a{color:var(--accent)}
 
   function savePixelartToLocal(){
     try{
+      const slot = getSlotValue();
       const payload = {
         v: 1,
         w: W,
         h: H,
         data: Array.from(pix),
         savedAt: Date.now(),
+        slot,
       };
-      localStorage.setItem(PIXELART_STORAGE_KEY, JSON.stringify(payload));
-      infoEl.textContent = "Pixelart gespeichert (lokal im Browser).";
+      localStorage.setItem(slotStorageKey(slot), JSON.stringify(payload));
+      infoEl.textContent = `Pixelart in Slot ${slot} gespeichert (lokal im Browser).`;
     }catch(err){
       errEl.textContent = "Save fehlgeschlagen: " + (err?.message || String(err));
     }
@@ -1081,9 +1258,10 @@ a{color:var(--accent)}
 
   function loadPixelartFromLocal(){
     try{
-      const raw = localStorage.getItem(PIXELART_STORAGE_KEY);
+      const slot = getSlotValue();
+      const raw = localStorage.getItem(slotStorageKey(slot));
       if(!raw){
-        errEl.textContent = "Kein lokaler Pixelart-Slot gefunden.";
+        errEl.textContent = `Kein lokaler Pixelart-Slot ${slot} gefunden.`;
         return;
       }
       const parsed = JSON.parse(raw);
@@ -1103,7 +1281,7 @@ a{color:var(--accent)}
       }
       for(let i=0;i<W*H;i++){ pix[i] = data[i] >>> 0; }
       redraw();
-      infoEl.textContent = "Pixelart geladen (lokal im Browser).";
+      infoEl.textContent = `Pixelart aus Slot ${slot} geladen (lokal im Browser).`;
     }catch(err){
       errEl.textContent = "Load fehlgeschlagen: " + (err?.message || String(err));
     }
