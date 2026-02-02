@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-02-02 08:02:59 +0000
+- Pixelart-Upload-Handler korrigiert (AsyncWebServer ohne `responseSent`), damit der Sketch wieder kompiliert. Quelle: `main.sketch`.
+
 ## 2026-02-02 07:51:01 +0000
 - Pixelart‑Speicher persistent auf dem ESP32 ergänzt (LittleFS) inklusive `/api/pixelart` zum Speichern/Laden. Quelle: `main.sketch`.
 - UI‑Save/Load erweitert: speichert nun Browser + ESP32, lädt bevorzugt vom ESP32. Quelle: `main.sketch`.
