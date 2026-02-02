@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-02-02 09:50:48 +0000
+- Pixelart-Upload-Handler auf serverseitige Antwort nach Upload-Ende umgestellt, um UI-Load-Probleme zu beheben. Quelle: `main.sketch`.
+- Dokumentation zum Upload-Verhalten ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-02-02 08:02:59 +0000
 - Pixelart-Upload-Handler korrigiert (AsyncWebServer ohne `responseSent`), damit der Sketch wieder kompiliert. Quelle: `main.sketch`.
 

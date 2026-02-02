@@ -123,6 +123,12 @@ struct AnimHeader {
 };
 #pragma pack(pop)
 
+struct PixelartUpload {
+  String body;
+  bool tooLarge = false;
+  bool failed = false;
+};
+
 static File animFile;
 static AnimHeader animHdr{};
 static uint16_t animFrameIndex = 0;
@@ -2604,32 +2610,43 @@ void setup_server() {
     req->send(LittleFS, PIXELART_PATH, "application/json");
   });
 
-  server.on("/api/pixelart", HTTP_POST, [](AsyncWebServerRequest *req){},
+  server.on("/api/pixelart", HTTP_POST,
+    [](AsyncWebServerRequest *req){
+      auto* ctx = static_cast<PixelartUpload*>(req->_tempObject);
+      if (!ctx) {
+        req->send(400, "text/plain", "pixelart missing");
+        return;
+      }
+      if (ctx->tooLarge) {
+        req->send(413, "text/plain", "pixelart too large");
+      } else if (ctx->failed) {
+        req->send(500, "text/plain", "pixelart store failed");
+      } else {
+        req->send(200, "text/plain", "pixelart stored");
+      }
+      delete ctx;
+      req->_tempObject = nullptr;
+    },
     nullptr,
     [](AsyncWebServerRequest *req, uint8_t *data, size_t len, size_t index, size_t total) {
       if (index == 0) {
-        req->_tempObject = new String();
+        req->_tempObject = new PixelartUpload();
       }
-      String* body = static_cast<String*>(req->_tempObject);
-      if (!body) return;
-      if (body->length() + len > PIXELART_MAX_BYTES) {
-        req->send(413, "text/plain", "pixelart too large");
-        delete body;
-        req->_tempObject = nullptr;
+      auto* ctx = static_cast<PixelartUpload*>(req->_tempObject);
+      if (!ctx || ctx->tooLarge) return;
+      if (ctx->body.length() + len > PIXELART_MAX_BYTES) {
+        ctx->tooLarge = true;
         return;
       }
-      body->concat(reinterpret_cast<const char*>(data), len);
+      ctx->body.concat(reinterpret_cast<const char*>(data), len);
       if (index + len != total) return;
       File out = LittleFS.open(PIXELART_PATH, "w");
       if (!out) {
-        req->send(500, "text/plain", "pixelart store failed");
-      } else {
-        out.print(*body);
-        out.close();
-        req->send(200, "text/plain", "pixelart stored");
+        ctx->failed = true;
+        return;
       }
-      delete body;
-      req->_tempObject = nullptr;
+      out.print(ctx->body);
+      out.close();
     }
   );
 
