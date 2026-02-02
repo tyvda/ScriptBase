@@ -209,7 +209,7 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 - **Wetter (Koblenz)**: Im Uhr‑Modus optional Temperatur mit 16×16‑Icon (links unten) und Temperatur rechts unten anzeigen, Uhr bleibt in der oberen Hälfte.【F:esp32Hub75/main.sketch†L252-L340】【F:esp32Hub75/main.sketch†L1302-L1458】
 - **Bild‑Mapping**: Bild‑Upload folgt derselben Canvas‑Mapping‑Pipeline wie GIFs (Image → Canvas → 64×32) und wird anschließend wie ein GIF‑Frame als `anim.bin` gepackt, hochgeladen und lokal vom ESP32 gerendert. 【F:esp32Hub75/main.sketch†L535-L799】
 - **Panel‑Redraw**: Button „Redraw Panel“ packt die aktuelle Pixelart als Single‑Frame‑`anim.bin` und lässt den ESP32 das Bild lokal anzeigen (wie bei GIFs), wodurch Unterbrechungen durch UI‑Jobs vermieden werden. 【F:esp32Hub75/main.sketch†L69-L799】
-- **Pixelart Save/Load**: Speichert in Browser‑LocalStorage **und** persistent auf dem ESP32 (LittleFS) mit versioniertem Format und Größenprüfung; Laden bevorzugt vom ESP32. Die Speicherung erfolgt serverseitig nach vollständigem Upload. 【F:esp32Hub75/main.sketch†L1066-L1161】【F:esp32Hub75/main.sketch†L2599-L2654】
+- **Pixelart Save/Load**: Speichert in Browser‑LocalStorage **und** persistent auf dem ESP32 (LittleFS) mit versioniertem Format und Größenprüfung; Laden bevorzugt vom ESP32. Die Speicherung erfolgt serverseitig (Streaming) nach vollständigem Upload. 【F:esp32Hub75/main.sketch†L1066-L1161】【F:esp32Hub75/main.sketch†L2599-L2658】
 - **WLED‑ähnliche Effekte**: Eigener UI‑Bereich mit Start/Stop, Speed/Intensity sowie Effekt‑Parametern (Matrix, Blink, Colorfading, Rainbow, Kaminfeuer, Twinkle, Scanner, Waves).【F:esp32Hub75/main.sketch†L58-L1684】
 
 ## Netzwerk‑API (HTTP + WebSocket)

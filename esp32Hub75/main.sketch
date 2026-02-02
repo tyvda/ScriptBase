@@ -124,7 +124,8 @@ struct AnimHeader {
 #pragma pack(pop)
 
 struct PixelartUpload {
-  String body;
+  File file;
+  size_t size = 0;
   bool tooLarge = false;
   bool failed = false;
 };
@@ -2618,10 +2619,15 @@ void setup_server() {
         return;
       }
       if (ctx->tooLarge) {
+        if (ctx->file) ctx->file.close();
+        LittleFS.remove(PIXELART_PATH);
         req->send(413, "text/plain", "pixelart too large");
       } else if (ctx->failed) {
+        if (ctx->file) ctx->file.close();
+        LittleFS.remove(PIXELART_PATH);
         req->send(500, "text/plain", "pixelart store failed");
       } else {
+        if (ctx->file) ctx->file.close();
         req->send(200, "text/plain", "pixelart stored");
       }
       delete ctx;
@@ -2633,20 +2639,23 @@ void setup_server() {
         req->_tempObject = new PixelartUpload();
       }
       auto* ctx = static_cast<PixelartUpload*>(req->_tempObject);
-      if (!ctx || ctx->tooLarge) return;
-      if (ctx->body.length() + len > PIXELART_MAX_BYTES) {
+      if (!ctx || ctx->tooLarge || ctx->failed) return;
+      if (ctx->size + len > PIXELART_MAX_BYTES) {
         ctx->tooLarge = true;
         return;
       }
-      ctx->body.concat(reinterpret_cast<const char*>(data), len);
-      if (index + len != total) return;
-      File out = LittleFS.open(PIXELART_PATH, "w");
-      if (!out) {
-        ctx->failed = true;
-        return;
+      if (index == 0) {
+        ctx->file = LittleFS.open(PIXELART_PATH, "w");
+        if (!ctx->file) {
+          ctx->failed = true;
+          return;
+        }
       }
-      out.print(ctx->body);
-      out.close();
+      if (ctx->file.write(data, len) != len) {
+        ctx->failed = true;
+      } else {
+        ctx->size += len;
+      }
     }
   );
 

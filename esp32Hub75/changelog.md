@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-02-02 10:13:51 +0000
+- Pixelart-Upload speichert jetzt streaming direkt nach LittleFS und antwortet erst nach Abschluss, um Web-UI-Ladeprobleme zu vermeiden. Quelle: `main.sketch`.
+- Dokumentation auf Streaming-Upload angepasst. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-02-02 09:50:48 +0000
 - Pixelart-Upload-Handler auf serverseitige Antwort nach Upload-Ende umgestellt, um UI-Load-Probleme zu beheben. Quelle: `main.sketch`.
 - Dokumentation zum Upload-Verhalten ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.

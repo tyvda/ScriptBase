@@ -85,7 +85,7 @@ Falls der WebSocket‑Status in der UI auf „connecting…“ stehen bleibt, Br
 - Die Farbpalette setzt die aktive Zeichenfarbe; das Canvas ist intern 64×32 und wird nur optisch skaliert.【F:esp32Hub75/main.sketch†L120-L356】
 - `Reinit` initialisiert das Display neu und löscht die Canvas/Panel‑Daten (Pixelart startet sauber neu).【F:esp32Hub75/main.sketch†L368-L377】【F:esp32Hub75/main.sketch†L820-L825】
 - Der Button „Redraw Panel“ packt die aktuelle Pixelart als Single‑Frame‑`anim.bin` und lässt den ESP32 sie lokal wie ein GIF rendern (keine `px`‑Flut, keine Unterbrechung durch UI‑Aktionen).【F:esp32Hub75/main.sketch†L69-L799】
-- **Save/Load** speichert die Pixelart lokal im Browser **und** persistent auf dem ESP32 (LittleFS) als versioniertes Format mit Größenprüfung; beim Laden wird zuerst der ESP32 genutzt. Die Speicherung erfolgt serverseitig nach vollständigem Upload.【F:esp32Hub75/main.sketch†L1066-L1161】【F:esp32Hub75/main.sketch†L2599-L2654】
+- **Save/Load** speichert die Pixelart lokal im Browser **und** persistent auf dem ESP32 (LittleFS) als versioniertes Format mit Größenprüfung; beim Laden wird zuerst der ESP32 genutzt. Die Speicherung erfolgt serverseitig (Streaming) nach vollständigem Upload.【F:esp32Hub75/main.sketch†L1066-L1161】【F:esp32Hub75/main.sketch†L2599-L2658】
 
 ## 7.1) Helligkeit einstellen
 
