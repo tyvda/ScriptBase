@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-02-02 13:17:29 +0000
+- Schlafmodus blockiert den Loop nicht mehr, damit Uhr und Webserver weiterlaufen. Quelle: `main.sketch`.
+- Dokumentation zur laufenden Uhr im Schlafmodus ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-02-02 12:32:47 +0000
 - Pixelart-Upload mit Größenlimit früher validiert, um fehlerhafte Uploads schneller zu stoppen. Quelle: `main.sketch`.
 - Dokumentation zur Größenbegrenzung ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.

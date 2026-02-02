@@ -2740,10 +2740,6 @@ void setup() {
 void loop() {
   ws.cleanupClients();
   update_sleep_state();
-  if (sleepActive && sleep_dim_percent() == 0) {
-    delay(50);
-    return;
-  }
 
   if (displayMode == MODE_CLOCK) {
     uint32_t now = millis();
