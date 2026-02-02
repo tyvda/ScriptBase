@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-02-02 12:32:47 +0000
+- Pixelart-Upload mit Größenlimit früher validiert, um fehlerhafte Uploads schneller zu stoppen. Quelle: `main.sketch`.
+- Dokumentation zur Größenbegrenzung ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-02-02 10:13:51 +0000
 - Pixelart-Upload speichert jetzt streaming direkt nach LittleFS und antwortet erst nach Abschluss, um Web-UI-Ladeprobleme zu vermeiden. Quelle: `main.sketch`.
 - Dokumentation auf Streaming-Upload angepasst. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.

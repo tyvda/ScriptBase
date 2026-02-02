@@ -2640,6 +2640,10 @@ void setup_server() {
       }
       auto* ctx = static_cast<PixelartUpload*>(req->_tempObject);
       if (!ctx || ctx->tooLarge || ctx->failed) return;
+      if (index == 0 && total > PIXELART_MAX_BYTES) {
+        ctx->tooLarge = true;
+        return;
+      }
       if (ctx->size + len > PIXELART_MAX_BYTES) {
         ctx->tooLarge = true;
         return;
