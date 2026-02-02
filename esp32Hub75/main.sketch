@@ -62,6 +62,8 @@ static uint8_t panelBrightness = 5;
 static bool sleepActive = false;
 static uint32_t sleepNextCheckMs = 0;
 static const char* SLEEP_CFG_PATH = "/sleep.json";
+static const char* PIXELART_PATH = "/pixelart.json";
+static const size_t PIXELART_MAX_BYTES = 200000;
 
 // =====================
 // Clock / Stopwatch
@@ -1175,7 +1177,42 @@ a{color:var(--accent)}
 
   document.getElementById('redrawPanel').onclick=()=>{ redrawPanelFromPix(); };
 
-  function savePixelartToLocal(){
+  async function savePixelartToDevice(payload){
+    const res = await fetch("/api/pixelart", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(await res.text());
+  }
+
+  async function loadPixelartFromDevice(){
+    const res = await fetch("/api/pixelart");
+    if (!res.ok) return null;
+    return res.json();
+  }
+
+  function parsePixelartPayload(parsed){
+    let data = null;
+    if(Array.isArray(parsed)){
+      data = parsed;
+    }else if(parsed && Array.isArray(parsed.data)){
+      if(parsed.w !== W || parsed.h !== H){
+        errEl.textContent = "Gespeicherte Pixelart hat falsches Format.";
+        return null;
+      }
+      data = parsed.data;
+    }
+    if(!Array.isArray(data) || data.length !== W*H){
+      errEl.textContent = "Gespeicherte Pixelart ist inkompatibel.";
+      return null;
+    }
+    for(let i=0;i<W*H;i++){ pix[i] = data[i] >>> 0; }
+    redraw();
+    return data;
+  }
+
+  async function savePixelart(){
     try{
       const payload = {
         v: 1,
@@ -1185,44 +1222,38 @@ a{color:var(--accent)}
         savedAt: Date.now(),
       };
       localStorage.setItem(PIXELART_STORAGE_KEY, JSON.stringify(payload));
-      infoEl.textContent = "Pixelart gespeichert (lokal im Browser).";
+      await savePixelartToDevice(payload);
+      infoEl.textContent = "Pixelart gespeichert (Browser + ESP32).";
     }catch(err){
       errEl.textContent = "Save fehlgeschlagen: " + (err?.message || String(err));
     }
   }
 
-  function loadPixelartFromLocal(){
+  async function loadPixelart(){
     try{
+      const remote = await loadPixelartFromDevice();
+      if(remote){
+        const ok = parsePixelartPayload(remote);
+        if(ok){
+          infoEl.textContent = "Pixelart geladen (ESP32).";
+          return;
+        }
+      }
       const raw = localStorage.getItem(PIXELART_STORAGE_KEY);
       if(!raw){
-        errEl.textContent = "Kein lokaler Pixelart-Slot gefunden.";
+        errEl.textContent = "Kein Pixelart-Slot gefunden.";
         return;
       }
       const parsed = JSON.parse(raw);
-      let data = null;
-      if(Array.isArray(parsed)){
-        data = parsed;
-      }else if(parsed && Array.isArray(parsed.data)){
-        if(parsed.w !== W || parsed.h !== H){
-          errEl.textContent = "Gespeicherte Pixelart hat falsches Format.";
-          return;
-        }
-        data = parsed.data;
-      }
-      if(!Array.isArray(data) || data.length !== W*H){
-        errEl.textContent = "Gespeicherte Pixelart ist inkompatibel.";
-        return;
-      }
-      for(let i=0;i<W*H;i++){ pix[i] = data[i] >>> 0; }
-      redraw();
-      infoEl.textContent = "Pixelart geladen (lokal im Browser).";
+      const ok = parsePixelartPayload(parsed);
+      if(ok) infoEl.textContent = "Pixelart geladen (Browser).";
     }catch(err){
       errEl.textContent = "Load fehlgeschlagen: " + (err?.message || String(err));
     }
   }
 
-  savePixelartBtn.onclick=()=> savePixelartToLocal();
-  loadPixelartBtn.onclick=()=> loadPixelartFromLocal();
+  savePixelartBtn.onclick=()=> savePixelart();
+  loadPixelartBtn.onclick=()=> loadPixelart();
 
   // ===== Aspect/Scale mapping =====
   function desiredAspectValue(sel) {
@@ -2564,6 +2595,43 @@ void setup_server() {
     reinit_display_now();
     req->send(200, "text/plain", "reinit ok");
   });
+
+  server.on("/api/pixelart", HTTP_GET, [](AsyncWebServerRequest *req){
+    if (!LittleFS.exists(PIXELART_PATH)) {
+      req->send(404, "text/plain", "no pixelart");
+      return;
+    }
+    req->send(LittleFS, PIXELART_PATH, "application/json");
+  });
+
+  server.on("/api/pixelart", HTTP_POST, [](AsyncWebServerRequest *req){},
+    nullptr,
+    [](AsyncWebServerRequest *req, uint8_t *data, size_t len, size_t index, size_t total) {
+      if (index == 0) {
+        req->_tempObject = new String();
+      }
+      String* body = static_cast<String*>(req->_tempObject);
+      if (!body) return;
+      if (body->length() + len > PIXELART_MAX_BYTES) {
+        if (!req->responseSent()) req->send(413, "text/plain", "pixelart too large");
+        delete body;
+        req->_tempObject = nullptr;
+        return;
+      }
+      body->concat(reinterpret_cast<const char*>(data), len);
+      if (index + len != total) return;
+      File out = LittleFS.open(PIXELART_PATH, "w");
+      if (!out) {
+        if (!req->responseSent()) req->send(500, "text/plain", "pixelart store failed");
+      } else {
+        out.print(*body);
+        out.close();
+        if (!req->responseSent()) req->send(200, "text/plain", "pixelart stored");
+      }
+      delete body;
+      req->_tempObject = nullptr;
+    }
+  );
 
   server.on("/api/sleep", HTTP_GET, [](AsyncWebServerRequest *req){
     StaticJsonDocument<256> doc;

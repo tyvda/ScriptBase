@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-02-02 07:51:01 +0000
+- Pixelart‑Speicher persistent auf dem ESP32 ergänzt (LittleFS) inklusive `/api/pixelart` zum Speichern/Laden. Quelle: `main.sketch`.
+- UI‑Save/Load erweitert: speichert nun Browser + ESP32, lädt bevorzugt vom ESP32. Quelle: `main.sketch`.
+- Dokumentation für persistentes Pixelart‑Speichern aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-02-02 07:42:36 +0000
 - Schlafzeit über Web‑UI konfigurierbar gemacht und in LittleFS persistent gespeichert (auch nach Stromausfall). Quelle: `main.sketch`.
 - Schlafzeit‑API ergänzt (`/api/sleep`) und UI‑Felder für Start/Ende/Dimmung ergänzt. Quelle: `main.sketch`.
