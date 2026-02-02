@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-02-02 13:53:03 +0000
+- Pixelart-Speicherung auf Browser-LocalStorage zurückgesetzt, um Web-UI-Hänger zu vermeiden. Quelle: `main.sketch`.
+- Dokumentation für lokales Pixelart-Save/Load aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-02-02 13:17:29 +0000
 - Schlafmodus blockiert den Loop nicht mehr, damit Uhr und Webserver weiterlaufen. Quelle: `main.sketch`.
 - Dokumentation zur laufenden Uhr im Schlafmodus ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.

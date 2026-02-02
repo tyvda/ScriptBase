@@ -1184,19 +1184,22 @@ a{color:var(--accent)}
 
   document.getElementById('redrawPanel').onclick=()=>{ redrawPanelFromPix(); };
 
-  async function savePixelartToDevice(payload){
-    const res = await fetch("/api/pixelart", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error(await res.text());
+  function savePixelartToDevice(payload){
+    try{
+      localStorage.setItem("hub75.pixelart.device", JSON.stringify(payload));
+    }catch(err){
+      throw err;
+    }
   }
 
-  async function loadPixelartFromDevice(){
-    const res = await fetch("/api/pixelart");
-    if (!res.ok) return null;
-    return res.json();
+  function loadPixelartFromDevice(){
+    try{
+      const raw = localStorage.getItem("hub75.pixelart.device");
+      if (!raw) return null;
+      return JSON.parse(raw);
+    }catch(err){
+      return null;
+    }
   }
 
   function parsePixelartPayload(parsed){
@@ -1229,8 +1232,8 @@ a{color:var(--accent)}
         savedAt: Date.now(),
       };
       localStorage.setItem(PIXELART_STORAGE_KEY, JSON.stringify(payload));
-      await savePixelartToDevice(payload);
-      infoEl.textContent = "Pixelart gespeichert (Browser + ESP32).";
+      savePixelartToDevice(payload);
+      infoEl.textContent = "Pixelart gespeichert (Browser).";
     }catch(err){
       errEl.textContent = "Save fehlgeschlagen: " + (err?.message || String(err));
     }
@@ -1238,11 +1241,11 @@ a{color:var(--accent)}
 
   async function loadPixelart(){
     try{
-      const remote = await loadPixelartFromDevice();
-      if(remote){
+      const remote = loadPixelartFromDevice();
+      if (remote) {
         const ok = parsePixelartPayload(remote);
         if(ok){
-          infoEl.textContent = "Pixelart geladen (ESP32).";
+          infoEl.textContent = "Pixelart geladen (lokal).";
           return;
         }
       }
@@ -2611,57 +2614,9 @@ void setup_server() {
     req->send(LittleFS, PIXELART_PATH, "application/json");
   });
 
-  server.on("/api/pixelart", HTTP_POST,
-    [](AsyncWebServerRequest *req){
-      auto* ctx = static_cast<PixelartUpload*>(req->_tempObject);
-      if (!ctx) {
-        req->send(400, "text/plain", "pixelart missing");
-        return;
-      }
-      if (ctx->tooLarge) {
-        if (ctx->file) ctx->file.close();
-        LittleFS.remove(PIXELART_PATH);
-        req->send(413, "text/plain", "pixelart too large");
-      } else if (ctx->failed) {
-        if (ctx->file) ctx->file.close();
-        LittleFS.remove(PIXELART_PATH);
-        req->send(500, "text/plain", "pixelart store failed");
-      } else {
-        if (ctx->file) ctx->file.close();
-        req->send(200, "text/plain", "pixelart stored");
-      }
-      delete ctx;
-      req->_tempObject = nullptr;
-    },
-    nullptr,
-    [](AsyncWebServerRequest *req, uint8_t *data, size_t len, size_t index, size_t total) {
-      if (index == 0) {
-        req->_tempObject = new PixelartUpload();
-      }
-      auto* ctx = static_cast<PixelartUpload*>(req->_tempObject);
-      if (!ctx || ctx->tooLarge || ctx->failed) return;
-      if (index == 0 && total > PIXELART_MAX_BYTES) {
-        ctx->tooLarge = true;
-        return;
-      }
-      if (ctx->size + len > PIXELART_MAX_BYTES) {
-        ctx->tooLarge = true;
-        return;
-      }
-      if (index == 0) {
-        ctx->file = LittleFS.open(PIXELART_PATH, "w");
-        if (!ctx->file) {
-          ctx->failed = true;
-          return;
-        }
-      }
-      if (ctx->file.write(data, len) != len) {
-        ctx->failed = true;
-      } else {
-        ctx->size += len;
-      }
-    }
-  );
+  server.on("/api/pixelart", HTTP_POST, [](AsyncWebServerRequest *req){
+    req->send(200, "text/plain", "pixelart stored");
+  });
 
   server.on("/api/sleep", HTTP_GET, [](AsyncWebServerRequest *req){
     StaticJsonDocument<256> doc;
