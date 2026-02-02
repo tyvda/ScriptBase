@@ -111,16 +111,16 @@ Für Winterzeit/Sommerzeit in Deutschland ist `TZ_INFO` auf `CET/CEST` gesetzt. 
 Das Panel kann automatisch innerhalb eines Zeitfensters abgeschaltet werden (z. B. nachts). Der Zeitplan basiert auf der NTP‑Zeit und greift auch nach einem Neustart:
 
 ```cpp
-static const bool SLEEP_ENABLED = true;
-static const uint8_t SLEEP_START_HOUR = 23;
-static const uint8_t SLEEP_START_MINUTE = 0;
-static const uint8_t SLEEP_END_HOUR = 6;
-static const uint8_t SLEEP_END_MINUTE = 0;
-static const uint8_t SLEEP_DIM_PERCENT = 10;
+static bool sleepEnabled = true;
+static uint8_t sleepStartHour = 23;
+static uint8_t sleepStartMinute = 0;
+static uint8_t sleepEndHour = 6;
+static uint8_t sleepEndMinute = 0;
+static uint8_t sleepDimPercent = 10;
 ```
 【F:esp32Hub75/main.sketch†L19-L36】【F:esp32Hub75/main.sketch†L836-L886】
 
-`SLEEP_DIM_PERCENT` definiert die Schlaf‑Helligkeit zwischen 0–20 % (0 % = aus).【F:esp32Hub75/main.sketch†L19-L36】【F:esp32Hub75/main.sketch†L2198-L2224】
+Die Web‑UI ist die primäre Konfiguration und speichert die Schlafzeit in LittleFS, sodass sie nach Stromausfall erhalten bleibt. `sleepDimPercent` definiert die Schlaf‑Helligkeit zwischen 0–20 % (0 % = aus).【F:esp32Hub75/main.sketch†L19-L36】【F:esp32Hub75/main.sketch†L2198-L2268】【F:esp32Hub75/main.sketch†L2490-L2535】
 
 ## 8) Bild senden
 

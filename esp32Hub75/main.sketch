@@ -22,12 +22,12 @@ static const char* MDNS_NAME = "hub75"; // http://hub75.local
 static const char* NTP_SERVER = "pool.ntp.org";
 static const char* TZ_INFO = "CET-1CEST,M3.5.0/02,M10.5.0/03";
 static const char* WEATHER_URL = "https://api.open-meteo.com/v1/forecast?latitude=50.3569&longitude=7.5888&current_weather=true";
-static const bool SLEEP_ENABLED = true;
-static const uint8_t SLEEP_START_HOUR = 23;
-static const uint8_t SLEEP_START_MINUTE = 0;
-static const uint8_t SLEEP_END_HOUR = 6;
-static const uint8_t SLEEP_END_MINUTE = 0;
-static const uint8_t SLEEP_DIM_PERCENT = 10;
+static bool sleepEnabled = true;
+static uint8_t sleepStartHour = 23;
+static uint8_t sleepStartMinute = 0;
+static uint8_t sleepEndHour = 6;
+static uint8_t sleepEndMinute = 0;
+static uint8_t sleepDimPercent = 10;
 
 // =====================
 // PANEL CONFIG
@@ -61,6 +61,7 @@ static uint16_t fb[PANEL_RES_X * PANEL_RES_Y];
 static uint8_t panelBrightness = 5;
 static bool sleepActive = false;
 static uint32_t sleepNextCheckMs = 0;
+static const char* SLEEP_CFG_PATH = "/sleep.json";
 
 // =====================
 // Clock / Stopwatch
@@ -90,6 +91,8 @@ static bool weatherValid = false;
 
 static void apply_panel_brightness();
 static void update_sleep_state();
+static void load_sleep_config();
+static void save_sleep_config();
 
 // =====================
 // WEB
@@ -476,8 +479,29 @@ a{color:var(--accent)}
         <input id="stopwatchColor" type="color" value="#00ff00">
       </div>
 
+      <div class="row">
+        <label for="sleepEnabled">Schlafzeit</label>
+        <select id="sleepEnabled">
+          <option value="on" selected>An</option>
+          <option value="off">Aus</option>
+        </select>
+
+        <label for="sleepStart">Start</label>
+        <input id="sleepStart" type="time" value="23:00">
+
+        <label for="sleepEnd">Ende</label>
+        <input id="sleepEnd" type="time" value="06:00">
+      </div>
+
+      <div class="row">
+        <label for="sleepDim">Schlaf‑Dimmung</label>
+        <input id="sleepDim" type="range" min="0" max="20" value="10">
+        <span class="val" id="sleepDimVal">10%</span>
+      </div>
+
       <small>
         Uhr holt die Zeit per NTP. Optional Wetterdaten für Koblenz im Uhr‑Modus. Stopuhr zeigt HH:MM:SS und lässt eine LED‑Kette pro Minute umlaufen.
+        Schlafzeit wird in LittleFS gespeichert und bleibt nach Stromausfall erhalten.
       </small>
     </div>
 
@@ -660,6 +684,11 @@ a{color:var(--accent)}
   const stopwatchStop=document.getElementById('stopwatchStop');
   const stopwatchReset=document.getElementById('stopwatchReset');
   const stopwatchColor=document.getElementById('stopwatchColor');
+  const sleepEnabled=document.getElementById('sleepEnabled');
+  const sleepStart=document.getElementById('sleepStart');
+  const sleepEnd=document.getElementById('sleepEnd');
+  const sleepDim=document.getElementById('sleepDim');
+  const sleepDimVal=document.getElementById('sleepDimVal');
 
   const brushSel=document.getElementById('brush');
   const paletteEl=document.getElementById('palette');
@@ -692,7 +721,7 @@ a{color:var(--accent)}
   function connect(){
     ws = new WebSocket(`ws://${host}/ws`);
     ws.binaryType = "arraybuffer";
-    ws.onopen=()=>{ statusEl.textContent="connected"; statusEl.className="ok"; syncDisplayState(); };
+    ws.onopen=()=>{ statusEl.textContent="connected"; statusEl.className="ok"; syncDisplayState(); fetchSleepConfig(); };
     ws.onclose=()=>{ statusEl.textContent="disconnected"; statusEl.className="bad"; setTimeout(connect,800); };
     ws.onerror=()=>{ statusEl.textContent="error"; statusEl.className="bad"; };
   }
@@ -919,12 +948,66 @@ a{color:var(--accent)}
     color: hexToRgb(stopwatchColor.value),
   };
 
+  const sleepState = {
+    enabled: sleepEnabled.value,
+    start: sleepStart.value,
+    end: sleepEnd.value,
+    dim: parseInt(sleepDim.value,10),
+  };
+
+  function pad2(v){ return String(v).padStart(2, "0"); }
+  function parseTime(value){
+    const parts = value.split(":");
+    if (parts.length < 2) return {h:0,m:0};
+    const h = Math.min(23, Math.max(0, parseInt(parts[0],10) || 0));
+    const m = Math.min(59, Math.max(0, parseInt(parts[1],10) || 0));
+    return {h,m};
+  }
+  function formatTime(h,m){ return `${pad2(h)}:${pad2(m)}`; }
+
+  function syncSleepUi(){
+    sleepEnabled.value = sleepState.enabled;
+    sleepStart.value = sleepState.start;
+    sleepEnd.value = sleepState.end;
+    sleepDim.value = String(sleepState.dim);
+    sleepDimVal.textContent = `${sleepState.dim}%`;
+  }
+  syncSleepUi();
+
   function syncDisplayState(){
     sendJson({t:"mode", mode: displayMode.value});
     sendJson({t:"clockfmt", fmt: clockState.format});
     sendJson({t:"weather", on: clockState.weather === "on" ? 1 : 0});
     sendJson({t:"clock", c: clockState.color, i: clockState.intensity});
     sendJson({t:"stopwatch", ring: stopwatchState.color});
+  }
+
+  function sendSleepConfig(){
+    const start = parseTime(sleepState.start);
+    const end = parseTime(sleepState.end);
+    const dim = Math.min(20, Math.max(0, sleepState.dim));
+    sendJson({
+      t:"sleep",
+      on: sleepState.enabled === "on" ? 1 : 0,
+      sh: start.h,
+      sm: start.m,
+      eh: end.h,
+      em: end.m,
+      dim,
+    });
+  }
+
+  async function fetchSleepConfig(){
+    try {
+      const res = await fetch("/api/sleep");
+      if (!res.ok) return;
+      const cfg = await res.json();
+      sleepState.enabled = cfg.enabled ? "on" : "off";
+      sleepState.start = formatTime(cfg.startHour, cfg.startMinute);
+      sleepState.end = formatTime(cfg.endHour, cfg.endMinute);
+      sleepState.dim = Math.min(20, Math.max(0, parseInt(cfg.dim,10) || 0));
+      syncSleepUi();
+    } catch (err) {}
   }
 
   displayMode.addEventListener('change', () => {
@@ -970,6 +1053,24 @@ a{color:var(--accent)}
   stopwatchColor.addEventListener('input', () => {
     stopwatchState.color = hexToRgb(stopwatchColor.value);
     sendJson({t:"stopwatch", ring: stopwatchState.color});
+  });
+
+  sleepEnabled.addEventListener('change', () => {
+    sleepState.enabled = sleepEnabled.value;
+    sendSleepConfig();
+  });
+  sleepStart.addEventListener('change', () => {
+    sleepState.start = sleepStart.value;
+    sendSleepConfig();
+  });
+  sleepEnd.addEventListener('change', () => {
+    sleepState.end = sleepEnd.value;
+    sendSleepConfig();
+  });
+  sleepDim.addEventListener('input', () => {
+    sleepState.dim = parseInt(sleepDim.value,10);
+    sleepDimVal.textContent = `${sleepState.dim}%`;
+    sendSleepConfig();
   });
 
   // ===== Pixel painting with Brush =====
@@ -2185,10 +2286,10 @@ static bool animReadNextFrameAndRender(uint16_t &delayMsOut) {
 // Sleep schedule
 // =====================
 static bool is_sleep_time(const struct tm& timeinfo) {
-  if (!SLEEP_ENABLED) return false;
+  if (!sleepEnabled) return false;
   const int nowMinutes = timeinfo.tm_hour * 60 + timeinfo.tm_min;
-  const int startMinutes = SLEEP_START_HOUR * 60 + SLEEP_START_MINUTE;
-  const int endMinutes = SLEEP_END_HOUR * 60 + SLEEP_END_MINUTE;
+  const int startMinutes = sleepStartHour * 60 + sleepStartMinute;
+  const int endMinutes = sleepEndHour * 60 + sleepEndMinute;
   if (startMinutes == endMinutes) return false;
   if (startMinutes < endMinutes) {
     return nowMinutes >= startMinutes && nowMinutes < endMinutes;
@@ -2198,9 +2299,50 @@ static bool is_sleep_time(const struct tm& timeinfo) {
 
 static uint8_t sleep_dim_percent() {
   if (!sleepActive) return 100;
-  uint8_t percent = SLEEP_DIM_PERCENT;
+  uint8_t percent = sleepDimPercent;
   if (percent > 20) percent = 20;
   return percent;
+}
+
+static void normalize_sleep_config() {
+  if (sleepStartHour > 23) sleepStartHour = 23;
+  if (sleepEndHour > 23) sleepEndHour = 23;
+  if (sleepStartMinute > 59) sleepStartMinute = 59;
+  if (sleepEndMinute > 59) sleepEndMinute = 59;
+  if (sleepDimPercent > 20) sleepDimPercent = 20;
+}
+
+static void load_sleep_config() {
+  normalize_sleep_config();
+  if (!LittleFS.exists(SLEEP_CFG_PATH)) return;
+  File cfg = LittleFS.open(SLEEP_CFG_PATH, "r");
+  if (!cfg) return;
+  StaticJsonDocument<256> doc;
+  DeserializationError err = deserializeJson(doc, cfg);
+  cfg.close();
+  if (err) return;
+  sleepEnabled = doc["enabled"] | sleepEnabled;
+  sleepStartHour = doc["startHour"] | sleepStartHour;
+  sleepStartMinute = doc["startMinute"] | sleepStartMinute;
+  sleepEndHour = doc["endHour"] | sleepEndHour;
+  sleepEndMinute = doc["endMinute"] | sleepEndMinute;
+  sleepDimPercent = doc["dim"] | sleepDimPercent;
+  normalize_sleep_config();
+}
+
+static void save_sleep_config() {
+  normalize_sleep_config();
+  StaticJsonDocument<256> doc;
+  doc["enabled"] = sleepEnabled;
+  doc["startHour"] = sleepStartHour;
+  doc["startMinute"] = sleepStartMinute;
+  doc["endHour"] = sleepEndHour;
+  doc["endMinute"] = sleepEndMinute;
+  doc["dim"] = sleepDimPercent;
+  File cfg = LittleFS.open(SLEEP_CFG_PATH, "w");
+  if (!cfg) return;
+  serializeJson(doc, cfg);
+  cfg.close();
 }
 
 static void apply_panel_brightness() {
@@ -2221,7 +2363,7 @@ static void apply_panel_brightness() {
 }
 
 static void update_sleep_state() {
-  if (!SLEEP_ENABLED) {
+  if (!sleepEnabled) {
     if (sleepActive) {
       sleepActive = false;
       apply_panel_brightness();
@@ -2366,6 +2508,17 @@ void onWsEvent(AsyncWebSocket*, AsyncWebSocketClient*, AwsEventType type, void *
         }
       }
     }
+  } else if (!strcmp(t,"sleep")) {
+    if (doc["on"].is<int>()) sleepEnabled = doc["on"].as<int>() == 1;
+    if (doc["sh"].is<int>()) sleepStartHour = (uint8_t)doc["sh"].as<int>();
+    if (doc["sm"].is<int>()) sleepStartMinute = (uint8_t)doc["sm"].as<int>();
+    if (doc["eh"].is<int>()) sleepEndHour = (uint8_t)doc["eh"].as<int>();
+    if (doc["em"].is<int>()) sleepEndMinute = (uint8_t)doc["em"].as<int>();
+    if (doc["dim"].is<int>()) sleepDimPercent = (uint8_t)doc["dim"].as<int>();
+    normalize_sleep_config();
+    save_sleep_config();
+    sleepNextCheckMs = 0;
+    update_sleep_state();
   } else if (!strcmp(t,"bright")) {
     int value = doc["v"] | 5;
     if (value < 5) value = 5;
@@ -2410,6 +2563,19 @@ void setup_server() {
   server.on("/api/reinit", HTTP_GET, [](AsyncWebServerRequest *req){
     reinit_display_now();
     req->send(200, "text/plain", "reinit ok");
+  });
+
+  server.on("/api/sleep", HTTP_GET, [](AsyncWebServerRequest *req){
+    StaticJsonDocument<256> doc;
+    doc["enabled"] = sleepEnabled;
+    doc["startHour"] = sleepStartHour;
+    doc["startMinute"] = sleepStartMinute;
+    doc["endHour"] = sleepEndHour;
+    doc["endMinute"] = sleepEndMinute;
+    doc["dim"] = sleepDimPercent;
+    String payload;
+    serializeJson(doc, payload);
+    req->send(200, "application/json", payload);
   });
 
   server.on("/uploadAnim", HTTP_POST,
@@ -2459,6 +2625,7 @@ void setup() {
   delay(300);
 
   LittleFS.begin(true);
+  load_sleep_config();
 
   init_display_with_pins(basePins);
 

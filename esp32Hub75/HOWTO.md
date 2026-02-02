@@ -104,16 +104,16 @@ Zeitbezug erfolgt über NTP (`pool.ntp.org`) und TZ‑Info im Sketch. Wetterdate
 Der Sketch enthält einen Zeitplan, der das Display innerhalb eines Zeitfensters automatisch dunkel schaltet (z. B. nachts). Die Umschaltung erfolgt auf Basis der NTP‑Zeit und greift dadurch auch nach einem Neustart, sobald die Uhrzeit synchron ist. Konfiguration in `main.sketch`:
 
 ```cpp
-static const bool SLEEP_ENABLED = true;
-static const uint8_t SLEEP_START_HOUR = 23;
-static const uint8_t SLEEP_START_MINUTE = 0;
-static const uint8_t SLEEP_END_HOUR = 6;
-static const uint8_t SLEEP_END_MINUTE = 0;
-static const uint8_t SLEEP_DIM_PERCENT = 10;
+static bool sleepEnabled = true;
+static uint8_t sleepStartHour = 23;
+static uint8_t sleepStartMinute = 0;
+static uint8_t sleepEndHour = 6;
+static uint8_t sleepEndMinute = 0;
+static uint8_t sleepDimPercent = 10;
 ```
 【F:esp32Hub75/main.sketch†L19-L36】【F:esp32Hub75/main.sketch†L836-L886】
 
-`SLEEP_DIM_PERCENT` steuert die Helligkeit im Schlafmodus zwischen 0–20 % (0 % = aus).【F:esp32Hub75/main.sketch†L19-L36】【F:esp32Hub75/main.sketch†L2198-L2224】
+Die Web‑UI ist die primäre Konfiguration und speichert die Schlafzeit in LittleFS, sodass sie nach Stromausfall erhalten bleibt. `sleepDimPercent` steuert die Helligkeit im Schlafmodus zwischen 0–20 % (0 % = aus).【F:esp32Hub75/main.sketch†L19-L36】【F:esp32Hub75/main.sketch†L2198-L2268】【F:esp32Hub75/main.sketch†L2490-L2535】
 
 ## Implementierungscheck (Sketch-Abgleich)
 

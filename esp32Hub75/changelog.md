@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-02-02 07:42:36 +0000
+- Schlafzeit über Web‑UI konfigurierbar gemacht und in LittleFS persistent gespeichert (auch nach Stromausfall). Quelle: `main.sketch`.
+- Schlafzeit‑API ergänzt (`/api/sleep`) und UI‑Felder für Start/Ende/Dimmung ergänzt. Quelle: `main.sketch`.
+- Dokumentation auf UI‑Primärkonfiguration und Persistenz aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-02-02 07:10:59 +0000
 - Schlafzeit-Dimmung ergänzt: Schlafmodus erlaubt 0–20 % Helligkeit, inkl. Skalierung der Panel-Helligkeit im Sleep-Window. Quelle: `main.sketch`.
 - Dokumentation für `SLEEP_DIM_PERCENT` ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.

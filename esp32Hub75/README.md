@@ -122,16 +122,16 @@ Für deutsche Winterzeit/Sommerzeit ist `TZ_INFO` auf `CET/CEST` gesetzt. Bei an
 ### Display‑Schlafzeit (Zeitplan)
 
 ```cpp
-static const bool SLEEP_ENABLED = true;
-static const uint8_t SLEEP_START_HOUR = 23;
-static const uint8_t SLEEP_START_MINUTE = 0;
-static const uint8_t SLEEP_END_HOUR = 6;
-static const uint8_t SLEEP_END_MINUTE = 0;
-static const uint8_t SLEEP_DIM_PERCENT = 10;
+static bool sleepEnabled = true;
+static uint8_t sleepStartHour = 23;
+static uint8_t sleepStartMinute = 0;
+static uint8_t sleepEndHour = 6;
+static uint8_t sleepEndMinute = 0;
+static uint8_t sleepDimPercent = 10;
 ```
 【F:esp32Hub75/main.sketch†L19-L36】
 
-Der Zeitplan nutzt die NTP‑Uhr: Das Panel wird im Schlafzeitfenster dunkelgeschaltet und schaltet sich nach Ende automatisch wieder ein, auch nach einem Neustart. Mit `SLEEP_DIM_PERCENT` kannst du die Helligkeit im Schlafmodus zwischen 0–20 % einstellen (0 % = aus).【F:esp32Hub75/main.sketch†L19-L36】【F:esp32Hub75/main.sketch†L2198-L2224】【F:esp32Hub75/main.sketch†L2455-L2463】
+Der Zeitplan nutzt die NTP‑Uhr: Das Panel wird im Schlafzeitfenster dunkelgeschaltet und schaltet sich nach Ende automatisch wieder ein, auch nach einem Neustart. Die Web‑UI ist die primäre Konfiguration und speichert die Werte in LittleFS (auch nach Stromausfall). Mit `sleepDimPercent` kannst du die Helligkeit im Schlafmodus zwischen 0–20 % einstellen (0 % = aus).【F:esp32Hub75/main.sketch†L19-L36】【F:esp32Hub75/main.sketch†L2198-L2268】【F:esp32Hub75/main.sketch†L2490-L2535】
 
 ### Panel‑Parameter
 
