@@ -112,10 +112,26 @@ static const char* WIFI_SSID = "DEIN_SSID";
 static const char* WIFI_PASS = "DEIN_PASS";
 static const char* MDNS_NAME = "hub75";
 static const char* NTP_SERVER = "pool.ntp.org";
-static const char* TZ_INFO = "UTC0";
+static const char* TZ_INFO = "CET-1CEST,M3.5.0/02,M10.5.0/03";
 static const char* WEATHER_URL = "https://api.open-meteo.com/v1/forecast?latitude=50.3569&longitude=7.5888&current_weather=true";
 ```
 【F:esp32Hub75/main.sketch†L19-L25】
+
+Für deutsche Winterzeit/Sommerzeit ist `TZ_INFO` auf `CET/CEST` gesetzt. Bei anderem Standort die Zeitzone entsprechend anpassen.【F:esp32Hub75/main.sketch†L19-L29】
+
+### Display‑Schlafzeit (Zeitplan)
+
+```cpp
+static const bool SLEEP_ENABLED = true;
+static const uint8_t SLEEP_START_HOUR = 23;
+static const uint8_t SLEEP_START_MINUTE = 0;
+static const uint8_t SLEEP_END_HOUR = 6;
+static const uint8_t SLEEP_END_MINUTE = 0;
+static const uint8_t SLEEP_DIM_PERCENT = 10;
+```
+【F:esp32Hub75/main.sketch†L19-L36】
+
+Der Zeitplan nutzt die NTP‑Uhr: Das Panel wird im Schlafzeitfenster dunkelgeschaltet und schaltet sich nach Ende automatisch wieder ein, auch nach einem Neustart. Mit `SLEEP_DIM_PERCENT` kannst du die Helligkeit im Schlafmodus zwischen 0–20 % einstellen (0 % = aus).【F:esp32Hub75/main.sketch†L19-L36】【F:esp32Hub75/main.sketch†L2198-L2224】【F:esp32Hub75/main.sketch†L2455-L2463】
 
 ### Panel‑Parameter
 

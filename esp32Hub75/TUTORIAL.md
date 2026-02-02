@@ -104,6 +104,24 @@ Der Bereich **Uhr / Stopuhr (NTP)** steuert die Zeitdarstellung:
 
 Die Zeitsynchronisation nutzt `pool.ntp.org` und die TZ‑Info aus der User‑Config (`TZ_INFO`). Wetterdaten kommen von `WEATHER_URL` (Open‑Meteo, Standort Koblenz).【F:esp32Hub75/main.sketch†L16-L25】【F:esp32Hub75/main.sketch†L1499-L1542】【F:esp32Hub75/main.sketch†L1924-L1927】
 
+Für Winterzeit/Sommerzeit in Deutschland ist `TZ_INFO` auf `CET/CEST` gesetzt. Bei anderem Standort die Zeitzone anpassen.【F:esp32Hub75/main.sketch†L19-L25】
+
+### 7.3) Display‑Schlafzeit konfigurieren
+
+Das Panel kann automatisch innerhalb eines Zeitfensters abgeschaltet werden (z. B. nachts). Der Zeitplan basiert auf der NTP‑Zeit und greift auch nach einem Neustart:
+
+```cpp
+static const bool SLEEP_ENABLED = true;
+static const uint8_t SLEEP_START_HOUR = 23;
+static const uint8_t SLEEP_START_MINUTE = 0;
+static const uint8_t SLEEP_END_HOUR = 6;
+static const uint8_t SLEEP_END_MINUTE = 0;
+static const uint8_t SLEEP_DIM_PERCENT = 10;
+```
+【F:esp32Hub75/main.sketch†L19-L36】【F:esp32Hub75/main.sketch†L836-L886】
+
+`SLEEP_DIM_PERCENT` definiert die Schlaf‑Helligkeit zwischen 0–20 % (0 % = aus).【F:esp32Hub75/main.sketch†L19-L36】【F:esp32Hub75/main.sketch†L2198-L2224】
+
 ## 8) Bild senden
 
 1. PNG/JPG/WebP auswählen.

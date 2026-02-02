@@ -99,6 +99,22 @@ Die UI enthält einen Bereich **Uhr / Stopuhr (NTP)**:
 
 Zeitbezug erfolgt über NTP (`pool.ntp.org`) und TZ‑Info im Sketch. Wetterdaten kommen von `WEATHER_URL` (Open‑Meteo, Standort Koblenz).【F:esp32Hub75/main.sketch†L16-L25】【F:esp32Hub75/main.sketch†L1499-L1542】【F:esp32Hub75/main.sketch†L1924-L1927】
 
+### Display‑Schlafzeit nutzen
+
+Der Sketch enthält einen Zeitplan, der das Display innerhalb eines Zeitfensters automatisch dunkel schaltet (z. B. nachts). Die Umschaltung erfolgt auf Basis der NTP‑Zeit und greift dadurch auch nach einem Neustart, sobald die Uhrzeit synchron ist. Konfiguration in `main.sketch`:
+
+```cpp
+static const bool SLEEP_ENABLED = true;
+static const uint8_t SLEEP_START_HOUR = 23;
+static const uint8_t SLEEP_START_MINUTE = 0;
+static const uint8_t SLEEP_END_HOUR = 6;
+static const uint8_t SLEEP_END_MINUTE = 0;
+static const uint8_t SLEEP_DIM_PERCENT = 10;
+```
+【F:esp32Hub75/main.sketch†L19-L36】【F:esp32Hub75/main.sketch†L836-L886】
+
+`SLEEP_DIM_PERCENT` steuert die Helligkeit im Schlafmodus zwischen 0–20 % (0 % = aus).【F:esp32Hub75/main.sketch†L19-L36】【F:esp32Hub75/main.sketch†L2198-L2224】
+
 ## Implementierungscheck (Sketch-Abgleich)
 
 Die How‑To‑Rezepte entsprechen den implementierten Endpoints, WebSocket‑Formaten und der Animation‑Pipeline im Sketch.【F:esp32Hub75/main.sketch†L62-L739】【F:esp32Hub75/main.sketch†L827-L862】

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-02-02 07:10:59 +0000
+- Schlafzeit-Dimmung ergänzt: Schlafmodus erlaubt 0–20 % Helligkeit, inkl. Skalierung der Panel-Helligkeit im Sleep-Window. Quelle: `main.sketch`.
+- Dokumentation für `SLEEP_DIM_PERCENT` ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-02-01 14:29:01 +0000
+- Zeitzonen-Definition auf CET/CEST umgestellt, damit die NTP-Uhr Winterzeit/Sommerzeit korrekt abbildet. Quelle: `main.sketch`.
+- Schlafzeit-Logik ergänzt: zeitgesteuertes Abschalten des Panels mit NTP-Prüfung, wirkt auch nach Neustart. Quelle: `main.sketch`.
+- Dokumentation zur Zeitzone und Schlafzeit ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-22 10:25:00 +0000
 - Pixelart Save/Load stabilisiert: versioniertes LocalStorage‑Format, validierte Dimensionen und klarere Fehlermeldungen. Quelle: `main.sketch`.
 - Buttons explizit als `type="button"` markiert, um Save/Load‑Clicks zuverlässig ohne Seiteneffekte auszuführen. Quelle: `main.sketch`.

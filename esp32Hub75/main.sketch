@@ -20,8 +20,14 @@ static const char* WIFI_SSID = "DEIN_SSID";
 static const char* WIFI_PASS = "DEIN_PASS";
 static const char* MDNS_NAME = "hub75"; // http://hub75.local
 static const char* NTP_SERVER = "pool.ntp.org";
-static const char* TZ_INFO = "UTC0";
+static const char* TZ_INFO = "CET-1CEST,M3.5.0/02,M10.5.0/03";
 static const char* WEATHER_URL = "https://api.open-meteo.com/v1/forecast?latitude=50.3569&longitude=7.5888&current_weather=true";
+static const bool SLEEP_ENABLED = true;
+static const uint8_t SLEEP_START_HOUR = 23;
+static const uint8_t SLEEP_START_MINUTE = 0;
+static const uint8_t SLEEP_END_HOUR = 6;
+static const uint8_t SLEEP_END_MINUTE = 0;
+static const uint8_t SLEEP_DIM_PERCENT = 10;
 
 // =====================
 // PANEL CONFIG
@@ -53,6 +59,8 @@ static const HubPins basePins{};
 MatrixPanel_I2S_DMA* dma_display = nullptr;
 static uint16_t fb[PANEL_RES_X * PANEL_RES_Y];
 static uint8_t panelBrightness = 5;
+static bool sleepActive = false;
+static uint32_t sleepNextCheckMs = 0;
 
 // =====================
 // Clock / Stopwatch
@@ -79,6 +87,9 @@ static uint32_t weatherNextMs = 0;
 static float weatherTempC = 0.0f;
 static int16_t weatherCode = -1;
 static bool weatherValid = false;
+
+static void apply_panel_brightness();
+static void update_sleep_state();
 
 // =====================
 // WEB
@@ -2112,7 +2123,7 @@ static void init_display_with_pins(const HubPins& p) {
   if(dma_display){ delete dma_display; dma_display=nullptr; delay(30); }
   dma_display = new MatrixPanel_I2S_DMA(cfg);
   dma_display->begin();
-  dma_display->setBrightness8(panelBrightness);
+  apply_panel_brightness();
   dma_display->clearScreen();
   memset(fb,0,sizeof(fb));
 }
@@ -2168,6 +2179,68 @@ static bool animReadNextFrameAndRender(uint16_t &delayMsOut) {
   draw_full_frame();
   delayMsOut = delayMs < 20 ? 20 : delayMs;
   return true;
+}
+
+// =====================
+// Sleep schedule
+// =====================
+static bool is_sleep_time(const struct tm& timeinfo) {
+  if (!SLEEP_ENABLED) return false;
+  const int nowMinutes = timeinfo.tm_hour * 60 + timeinfo.tm_min;
+  const int startMinutes = SLEEP_START_HOUR * 60 + SLEEP_START_MINUTE;
+  const int endMinutes = SLEEP_END_HOUR * 60 + SLEEP_END_MINUTE;
+  if (startMinutes == endMinutes) return false;
+  if (startMinutes < endMinutes) {
+    return nowMinutes >= startMinutes && nowMinutes < endMinutes;
+  }
+  return nowMinutes >= startMinutes || nowMinutes < endMinutes;
+}
+
+static uint8_t sleep_dim_percent() {
+  if (!sleepActive) return 100;
+  uint8_t percent = SLEEP_DIM_PERCENT;
+  if (percent > 20) percent = 20;
+  return percent;
+}
+
+static void apply_panel_brightness() {
+  if (!dma_display) return;
+  if (!sleepActive) {
+    dma_display->setBrightness8(panelBrightness);
+    return;
+  }
+  uint8_t percent = sleep_dim_percent();
+  if (percent == 0) {
+    dma_display->setBrightness8(0);
+    return;
+  }
+  uint16_t scaled = (uint16_t)panelBrightness * percent / 100;
+  if (scaled < 1) scaled = 1;
+  if (scaled > 255) scaled = 255;
+  dma_display->setBrightness8((uint8_t)scaled);
+}
+
+static void update_sleep_state() {
+  if (!SLEEP_ENABLED) {
+    if (sleepActive) {
+      sleepActive = false;
+      apply_panel_brightness();
+    }
+    return;
+  }
+  uint32_t now = millis();
+  if (sleepNextCheckMs != 0 && (int32_t)(now - sleepNextCheckMs) < 0) return;
+  sleepNextCheckMs = now + 30000;
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) return;
+  bool shouldSleep = is_sleep_time(timeinfo);
+  if (shouldSleep == sleepActive) return;
+  sleepActive = shouldSleep;
+  apply_panel_brightness();
+  clockNextMs = 0;
+  stopwatchNextMs = 0;
+  animNextMs = 0;
+  effectNextMs = 0;
 }
 
 // =====================
@@ -2298,7 +2371,7 @@ void onWsEvent(AsyncWebSocket*, AsyncWebSocketClient*, AwsEventType type, void *
     if (value < 5) value = 5;
     if (value > 255) value = 255;
     panelBrightness = (uint8_t)value;
-    if (dma_display) dma_display->setBrightness8(panelBrightness);
+    apply_panel_brightness();
   }
 }
 
@@ -2401,6 +2474,11 @@ void setup() {
 
 void loop() {
   ws.cleanupClients();
+  update_sleep_state();
+  if (sleepActive && sleep_dim_percent() == 0) {
+    delay(50);
+    return;
+  }
 
   if (displayMode == MODE_CLOCK) {
     uint32_t now = millis();
