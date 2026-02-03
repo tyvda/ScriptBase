@@ -39,9 +39,9 @@ Einzelpixel kannst du via JSON‑Nachricht auf `/ws` senden:
 
 `c` ist RGB888 (`0xRRGGBB`).【F:esp32Hub75/main.sketch†L712-L726】
 
-## Pixelart lokal speichern/laden (Browser)
+## Pixelart speichern/laden (Browser)
 
-Die Buttons **Save** und **Load** speichern die aktuelle Pixelart lokal im Browser (LocalStorage) in einem versionierten Format mit Größenprüfung und laden sie wieder, ohne Server‑Kontakt. Nach dem Laden kannst du mit „Redraw Panel“ erneut ans Panel senden.【F:esp32Hub75/main.sketch†L1066-L1113】
+Die Buttons **Save** und **Load** speichern die aktuelle Pixelart lokal im Browser (LocalStorage) in einem versionierten Format mit Größenprüfung und laden sie wieder. Nach dem Laden kannst du mit „Redraw Panel“ erneut ans Panel senden.【F:esp32Hub75/main.sketch†L1066-L1161】
 
 ## Pixelart erneut auf Panel zeichnen
 
@@ -98,6 +98,22 @@ Die UI enthält einen Bereich **Uhr / Stopuhr (NTP)**:
 6. **LED‑Kette**: Farbe per Farbwähler einstellen; die Kette läuft in einer Minute einmal um den Panel‑Rand (Start oben links → oben rechts → unten rechts → unten links). Bei exakt einer Minute erscheint ein kompletter Rahmen.【F:esp32Hub75/main.sketch†L252-L340】【F:esp32Hub75/main.sketch†L1462-L1566】
 
 Zeitbezug erfolgt über NTP (`pool.ntp.org`) und TZ‑Info im Sketch. Wetterdaten kommen von `WEATHER_URL` (Open‑Meteo, Standort Koblenz).【F:esp32Hub75/main.sketch†L16-L25】【F:esp32Hub75/main.sketch†L1499-L1542】【F:esp32Hub75/main.sketch†L1924-L1927】
+
+### Display‑Schlafzeit nutzen
+
+Der Sketch enthält einen Zeitplan, der das Display innerhalb eines Zeitfensters automatisch dunkel schaltet (z. B. nachts). Die Umschaltung erfolgt auf Basis der NTP‑Zeit und greift dadurch auch nach einem Neustart, sobald die Uhrzeit synchron ist. Konfiguration in `main.sketch`:
+
+```cpp
+static bool sleepEnabled = true;
+static uint8_t sleepStartHour = 23;
+static uint8_t sleepStartMinute = 0;
+static uint8_t sleepEndHour = 6;
+static uint8_t sleepEndMinute = 0;
+static uint8_t sleepDimPercent = 10;
+```
+【F:esp32Hub75/main.sketch†L19-L36】【F:esp32Hub75/main.sketch†L836-L886】
+
+Die Web‑UI ist die primäre Konfiguration und speichert die Schlafzeit in LittleFS, sodass sie nach Stromausfall erhalten bleibt. `sleepDimPercent` steuert die Helligkeit im Schlafmodus zwischen 0–20 % (0 % = aus); die Uhr läuft weiter, auch wenn das Panel dunkel ist.【F:esp32Hub75/main.sketch†L19-L36】【F:esp32Hub75/main.sketch†L2198-L2268】【F:esp32Hub75/main.sketch†L2638-L2690】
 
 ## Implementierungscheck (Sketch-Abgleich)
 

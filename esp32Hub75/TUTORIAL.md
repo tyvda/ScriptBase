@@ -85,7 +85,7 @@ Falls der WebSocket‑Status in der UI auf „connecting…“ stehen bleibt, Br
 - Die Farbpalette setzt die aktive Zeichenfarbe; das Canvas ist intern 64×32 und wird nur optisch skaliert.【F:esp32Hub75/main.sketch†L120-L356】
 - `Reinit` initialisiert das Display neu und löscht die Canvas/Panel‑Daten (Pixelart startet sauber neu).【F:esp32Hub75/main.sketch†L368-L377】【F:esp32Hub75/main.sketch†L820-L825】
 - Der Button „Redraw Panel“ packt die aktuelle Pixelart als Single‑Frame‑`anim.bin` und lässt den ESP32 sie lokal wie ein GIF rendern (keine `px`‑Flut, keine Unterbrechung durch UI‑Aktionen).【F:esp32Hub75/main.sketch†L69-L799】
-- **Save/Load** speichert die Pixelart lokal im Browser (LocalStorage) als versioniertes Format mit Größenprüfung und lädt sie wieder in das Canvas.【F:esp32Hub75/main.sketch†L1066-L1113】
+- **Save/Load** speichert die Pixelart lokal im Browser (LocalStorage) als versioniertes Format mit Größenprüfung und lädt sie wieder in das Canvas.【F:esp32Hub75/main.sketch†L1066-L1161】
 
 ## 7.1) Helligkeit einstellen
 
@@ -103,6 +103,24 @@ Der Bereich **Uhr / Stopuhr (NTP)** steuert die Zeitdarstellung:
 - **LED‑Kette**: Farbe einstellen – die Kette umrundet den Rand in einer Minute (Start oben links → oben rechts → unten rechts → unten links). Bei exakt einer Minute erscheint ein kompletter Rahmen.【F:esp32Hub75/main.sketch†L252-L340】【F:esp32Hub75/main.sketch†L1363-L1408】
 
 Die Zeitsynchronisation nutzt `pool.ntp.org` und die TZ‑Info aus der User‑Config (`TZ_INFO`). Wetterdaten kommen von `WEATHER_URL` (Open‑Meteo, Standort Koblenz).【F:esp32Hub75/main.sketch†L16-L25】【F:esp32Hub75/main.sketch†L1499-L1542】【F:esp32Hub75/main.sketch†L1924-L1927】
+
+Für Winterzeit/Sommerzeit in Deutschland ist `TZ_INFO` auf `CET/CEST` gesetzt. Bei anderem Standort die Zeitzone anpassen.【F:esp32Hub75/main.sketch†L19-L25】
+
+### 7.3) Display‑Schlafzeit konfigurieren
+
+Das Panel kann automatisch innerhalb eines Zeitfensters abgeschaltet werden (z. B. nachts). Der Zeitplan basiert auf der NTP‑Zeit und greift auch nach einem Neustart:
+
+```cpp
+static bool sleepEnabled = true;
+static uint8_t sleepStartHour = 23;
+static uint8_t sleepStartMinute = 0;
+static uint8_t sleepEndHour = 6;
+static uint8_t sleepEndMinute = 0;
+static uint8_t sleepDimPercent = 10;
+```
+【F:esp32Hub75/main.sketch†L19-L36】【F:esp32Hub75/main.sketch†L836-L886】
+
+Die Web‑UI ist die primäre Konfiguration und speichert die Schlafzeit in LittleFS, sodass sie nach Stromausfall erhalten bleibt. `sleepDimPercent` definiert die Schlaf‑Helligkeit zwischen 0–20 % (0 % = aus); die Uhr läuft weiter, auch wenn das Panel dunkel ist.【F:esp32Hub75/main.sketch†L19-L36】【F:esp32Hub75/main.sketch†L2198-L2268】【F:esp32Hub75/main.sketch†L2638-L2690】
 
 ## 8) Bild senden
 

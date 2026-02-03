@@ -1,5 +1,47 @@
 # Changelog
 
+## 2026-02-02 13:53:03 +0000
+- Pixelart-Speicherung auf Browser-LocalStorage zurückgesetzt, um Web-UI-Hänger zu vermeiden. Quelle: `main.sketch`.
+- Dokumentation für lokales Pixelart-Save/Load aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-02-02 13:17:29 +0000
+- Schlafmodus blockiert den Loop nicht mehr, damit Uhr und Webserver weiterlaufen. Quelle: `main.sketch`.
+- Dokumentation zur laufenden Uhr im Schlafmodus ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-02-02 12:32:47 +0000
+- Pixelart-Upload mit Größenlimit früher validiert, um fehlerhafte Uploads schneller zu stoppen. Quelle: `main.sketch`.
+- Dokumentation zur Größenbegrenzung ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-02-02 10:13:51 +0000
+- Pixelart-Upload speichert jetzt streaming direkt nach LittleFS und antwortet erst nach Abschluss, um Web-UI-Ladeprobleme zu vermeiden. Quelle: `main.sketch`.
+- Dokumentation auf Streaming-Upload angepasst. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-02-02 09:50:48 +0000
+- Pixelart-Upload-Handler auf serverseitige Antwort nach Upload-Ende umgestellt, um UI-Load-Probleme zu beheben. Quelle: `main.sketch`.
+- Dokumentation zum Upload-Verhalten ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-02-02 08:02:59 +0000
+- Pixelart-Upload-Handler korrigiert (AsyncWebServer ohne `responseSent`), damit der Sketch wieder kompiliert. Quelle: `main.sketch`.
+
+## 2026-02-02 07:51:01 +0000
+- Pixelart‑Speicher persistent auf dem ESP32 ergänzt (LittleFS) inklusive `/api/pixelart` zum Speichern/Laden. Quelle: `main.sketch`.
+- UI‑Save/Load erweitert: speichert nun Browser + ESP32, lädt bevorzugt vom ESP32. Quelle: `main.sketch`.
+- Dokumentation für persistentes Pixelart‑Speichern aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-02-02 07:42:36 +0000
+- Schlafzeit über Web‑UI konfigurierbar gemacht und in LittleFS persistent gespeichert (auch nach Stromausfall). Quelle: `main.sketch`.
+- Schlafzeit‑API ergänzt (`/api/sleep`) und UI‑Felder für Start/Ende/Dimmung ergänzt. Quelle: `main.sketch`.
+- Dokumentation auf UI‑Primärkonfiguration und Persistenz aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-02-02 07:10:59 +0000
+- Schlafzeit-Dimmung ergänzt: Schlafmodus erlaubt 0–20 % Helligkeit, inkl. Skalierung der Panel-Helligkeit im Sleep-Window. Quelle: `main.sketch`.
+- Dokumentation für `SLEEP_DIM_PERCENT` ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-02-01 14:29:01 +0000
+- Zeitzonen-Definition auf CET/CEST umgestellt, damit die NTP-Uhr Winterzeit/Sommerzeit korrekt abbildet. Quelle: `main.sketch`.
+- Schlafzeit-Logik ergänzt: zeitgesteuertes Abschalten des Panels mit NTP-Prüfung, wirkt auch nach Neustart. Quelle: `main.sketch`.
+- Dokumentation zur Zeitzone und Schlafzeit ergänzt. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-01-22 10:25:00 +0000
 - Pixelart Save/Load stabilisiert: versioniertes LocalStorage‑Format, validierte Dimensionen und klarere Fehlermeldungen. Quelle: `main.sketch`.
 - Buttons explizit als `type="button"` markiert, um Save/Load‑Clicks zuverlässig ohne Seiteneffekte auszuführen. Quelle: `main.sketch`.

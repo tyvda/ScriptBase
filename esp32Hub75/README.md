@@ -112,10 +112,26 @@ static const char* WIFI_SSID = "DEIN_SSID";
 static const char* WIFI_PASS = "DEIN_PASS";
 static const char* MDNS_NAME = "hub75";
 static const char* NTP_SERVER = "pool.ntp.org";
-static const char* TZ_INFO = "UTC0";
+static const char* TZ_INFO = "CET-1CEST,M3.5.0/02,M10.5.0/03";
 static const char* WEATHER_URL = "https://api.open-meteo.com/v1/forecast?latitude=50.3569&longitude=7.5888&current_weather=true";
 ```
 【F:esp32Hub75/main.sketch†L19-L25】
+
+Für deutsche Winterzeit/Sommerzeit ist `TZ_INFO` auf `CET/CEST` gesetzt. Bei anderem Standort die Zeitzone entsprechend anpassen.【F:esp32Hub75/main.sketch†L19-L29】
+
+### Display‑Schlafzeit (Zeitplan)
+
+```cpp
+static bool sleepEnabled = true;
+static uint8_t sleepStartHour = 23;
+static uint8_t sleepStartMinute = 0;
+static uint8_t sleepEndHour = 6;
+static uint8_t sleepEndMinute = 0;
+static uint8_t sleepDimPercent = 10;
+```
+【F:esp32Hub75/main.sketch†L19-L36】
+
+Der Zeitplan nutzt die NTP‑Uhr: Das Panel wird im Schlafzeitfenster dunkelgeschaltet und schaltet sich nach Ende automatisch wieder ein, auch nach einem Neustart. Die Web‑UI ist die primäre Konfiguration und speichert die Werte in LittleFS (auch nach Stromausfall). Mit `sleepDimPercent` kannst du die Helligkeit im Schlafmodus zwischen 0–20 % einstellen (0 % = aus); die Uhr läuft weiter, auch wenn das Panel dunkel ist.【F:esp32Hub75/main.sketch†L19-L36】【F:esp32Hub75/main.sketch†L2198-L2268】【F:esp32Hub75/main.sketch†L2638-L2690】
 
 ### Panel‑Parameter
 
@@ -193,7 +209,7 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 - **Wetter (Koblenz)**: Im Uhr‑Modus optional Temperatur mit 16×16‑Icon (links unten) und Temperatur rechts unten anzeigen, Uhr bleibt in der oberen Hälfte.【F:esp32Hub75/main.sketch†L252-L340】【F:esp32Hub75/main.sketch†L1302-L1458】
 - **Bild‑Mapping**: Bild‑Upload folgt derselben Canvas‑Mapping‑Pipeline wie GIFs (Image → Canvas → 64×32) und wird anschließend wie ein GIF‑Frame als `anim.bin` gepackt, hochgeladen und lokal vom ESP32 gerendert. 【F:esp32Hub75/main.sketch†L535-L799】
 - **Panel‑Redraw**: Button „Redraw Panel“ packt die aktuelle Pixelart als Single‑Frame‑`anim.bin` und lässt den ESP32 das Bild lokal anzeigen (wie bei GIFs), wodurch Unterbrechungen durch UI‑Jobs vermieden werden. 【F:esp32Hub75/main.sketch†L69-L799】
-- **Pixelart Save/Load**: Lokales Speichern/Laden im Browser (LocalStorage) mit versioniertem Format und Größenprüfung, ohne Server‑Roundtrip. 【F:esp32Hub75/main.sketch†L1066-L1113】
+- **Pixelart Save/Load**: Speichert in Browser‑LocalStorage als versioniertes Format mit Größenprüfung; Laden erfolgt lokal aus dem Browser‑Speicher. 【F:esp32Hub75/main.sketch†L1066-L1161】
 - **WLED‑ähnliche Effekte**: Eigener UI‑Bereich mit Start/Stop, Speed/Intensity sowie Effekt‑Parametern (Matrix, Blink, Colorfading, Rainbow, Kaminfeuer, Twinkle, Scanner, Waves).【F:esp32Hub75/main.sketch†L58-L1684】
 
 ## Netzwerk‑API (HTTP + WebSocket)
