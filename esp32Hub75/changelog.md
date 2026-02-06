@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-02-06 13:41:09 +0000
+- UI auf Tabs (Uhr, Stopuhr, Pixelart, Animationen) umgestellt und Frame‑Navigation im Pixelart‑Tab ergänzt. Quelle: `main.sketch`.
+- Pixelart‑Frames/Medien‑Workflow angepasst: Bild lädt direkt in Canvas, GIF setzt das erste Frame und erlaubt Frame‑Export. Quelle: `main.sketch`.
+- Dokumentation für Tab‑UI und Frame‑Navigation aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-02-06 13:02:05 +0000
 - GIF‑Frames‑Export als Pixelart‑JSON ergänzt (UI‑Button + JSON‑Payload). Quelle: `main.sketch`.
 - Dokumentation und Tasks für GIF‑Frame‑Export aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`, `tasks.md`.

@@ -11,6 +11,7 @@ Kein Cloud‑Zwang, kein WLED, kein externer Server.
 ## Features
 
 - Web‑UI mit Pixel‑Editor (Brush, Clear/Fill, Reinit).【F:esp32Hub75/main.sketch†L67-L377】
+- Tab‑UI für Uhr, Stopuhr, Pixelart und Animationen.【F:esp32Hub75/main.sketch†L419-L736】
 - Pixelart JSON‑Export/Import im Browser (versioniertes Format, validierte Größe).【F:esp32Hub75/main.sketch†L1324-L1536】
 - Presets für Pixelart und Animationen in LittleFS (speichern/laden über Web‑UI).【F:esp32Hub75/main.sketch†L408-L520】
 - Animation‑Builder für Pixelart‑Frames (Frame‑Liste → anim.bin).【F:esp32Hub75/main.sketch†L520-L1561】
@@ -215,6 +216,7 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 - **Panel‑Redraw**: Button „Redraw Panel“ packt die aktuelle Pixelart als Single‑Frame‑`anim.bin` und lässt den ESP32 das Bild lokal anzeigen (wie bei GIFs), wodurch Unterbrechungen durch UI‑Jobs vermieden werden. 【F:esp32Hub75/main.sketch†L69-L799】
 - **Pixelart Save/Load**: Speichert in Browser‑LocalStorage als versioniertes Format mit Größenprüfung; Laden erfolgt lokal aus dem Browser‑Speicher. 【F:esp32Hub75/main.sketch†L1066-L1161】
 - **Pixelart JSON‑Export/Import**: Exportiert ein JSON‑File (versioniert, 64×32) und importiert es zurück ins Canvas inkl. Validierung. 【F:esp32Hub75/main.sketch†L1324-L1536】
+- **Frame‑Navigation**: Next Frame und + Frame erlauben Sequenzen aus Pixelart oder GIF‑Frames. 【F:esp32Hub75/main.sketch†L452-L692】
 - **Presets (LittleFS)**: Pixelart‑JSON und anim.bin‑Animationen können als Preset gespeichert und geladen werden. 【F:esp32Hub75/main.sketch†L408-L520】
 - **Animation‑Builder**: Frame‑Liste aus Pixelart aufbauen, Delay/Loop setzen und als anim.bin senden. 【F:esp32Hub75/main.sketch†L520-L1561】
 - **GIF‑Frames Export**: GIF‑Frames als JSON (Pixelart‑Arrays + Delay) herunterladen. 【F:esp32Hub75/main.sketch†L1824-L1884】

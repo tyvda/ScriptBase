@@ -75,6 +75,8 @@ Die UI wird vom ESP32 ausgeliefert.【F:esp32Hub75/main.sketch†L815-L818】
 
 Falls der WebSocket‑Status in der UI auf „connecting…“ stehen bleibt, Browser‑Konsole prüfen und ggf. Cache leeren oder die aktuelle Firmware erneut flashen.【F:esp32Hub75/main.sketch†L242-L536】
 
+Die UI ist in Tabs strukturiert: **Uhr**, **Stopuhr**, **Pixelart**, **Animationen**. Der aktive Tab setzt den Display‑Modus automatisch passend.【F:esp32Hub75/main.sketch†L419-L736】【F:esp32Hub75/main.sketch†L1086-L1132】
+
 ## 7) Pixel‑Zeichnen
 
 - Linksklick malt mit Farbe.
@@ -89,6 +91,7 @@ Falls der WebSocket‑Status in der UI auf „connecting…“ stehen bleibt, Br
 - **Export JSON** lädt die Pixelart als JSON herunter, **Import JSON** lädt validierte JSONs zurück in das Canvas.【F:esp32Hub75/main.sketch†L1324-L1536】
 - **Presets (LittleFS)**: Pixelart/Animationen können im Gerät gespeichert und später geladen werden (Preset‑Name vergeben).【F:esp32Hub75/main.sketch†L408-L520】
 - **Animation‑Builder**: Frames aus der Pixelart sammeln, Delay/Loop setzen und als anim.bin senden.【F:esp32Hub75/main.sketch†L520-L1561】
+- **Frames**: Next Frame springt weiter, + Frame ergänzt zusätzliche Frames für Sequenzen.【F:esp32Hub75/main.sketch†L452-L692】
 
 ## 7.1) Helligkeit einstellen
 
@@ -139,7 +142,7 @@ Die Web‑UI ist die primäre Konfiguration und speichert die Schlafzeit in Litt
 3. `Play` startet die Animation, `Stop` stoppt sie.
 4. Optional: `Export Frames` lädt die GIF‑Frames als Pixelart‑JSON.
 
-Die GIF‑Dekodierung nutzt `gifuct-js` via CDN.【F:esp32Hub75/main.sketch†L222-L612】
+Das erste Frame wird in die Canvas geladen, sodass du es direkt als Pixelart‑Frame weiterverwenden kannst. Die GIF‑Dekodierung nutzt `gifuct-js` via CDN.【F:esp32Hub75/main.sketch†L222-L612】
 
 ## 10) WLED‑ähnliche Effekte starten
 

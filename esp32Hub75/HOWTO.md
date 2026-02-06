@@ -8,6 +8,10 @@ Der ESP32 stellt lokal eine Web‑UI, Upload‑Workflows für Bilder/GIFs sowie 
 
 Hinweis: Die Web‑UI ist im hellen Teenage‑Engineering‑Look mit Kartenlayout und Mono‑Typografie gestaltet; die Farbpalette und das feine Canvas‑Grid trennen die Pixel klar, die Zeichenfläche ist intern 64×32 und wird nur optisch skaliert.【F:esp32Hub75/main.sketch†L92-L412】
 
+## Tabs wechseln
+
+Die UI ist in Tabs aufgeteilt: **Uhr**, **Stopuhr**, **Pixelart** und **Animationen**. Beim Wechsel des Tabs wird der passende Display‑Modus gesetzt (z. B. Uhr‑Modus im Uhr‑Tab).【F:esp32Hub75/main.sketch†L419-L736】【F:esp32Hub75/main.sketch†L1086-L1132】
+
 ## Panel neu initialisieren (Reinit)
 
 Die Web‑UI löst `/api/reinit` aus und initialisiert das Panel neu. Anschließend wird die UI‑Canvas geleert und das Panel per `clear` zurückgesetzt, damit Pixelart wieder sauber funktioniert.【F:esp32Hub75/main.sketch†L368-L377】【F:esp32Hub75/main.sketch†L820-L825】
@@ -50,6 +54,14 @@ Die Buttons **Save** und **Load** speichern die aktuelle Pixelart lokal im Brows
 
 Das JSON‑Format ist versioniert und wird vor dem Import validiert.【F:esp32Hub75/main.sketch†L1324-L1536】
 
+## Frames im Pixelart‑Tab
+
+- **Next Frame** zeigt das nächste Frame an.
+- **+ Frame** ergänzt weitere Frames (z. B. für neue Animations‑Schritte).
+- Ohne GIF wird der aktuelle Frame beim Wechsel kopiert, damit du sofort weiterzeichnen kannst.
+
+Das ist die Basis für Pixelart‑Sequenzen im Editor.【F:esp32Hub75/main.sketch†L452-L692】【F:esp32Hub75/main.sketch†L1133-L1199】
+
 ## Presets in LittleFS (Pixelart + Animation)
 
 1. Preset‑Namen vergeben (z. B. `logo-1`).
@@ -90,6 +102,8 @@ Die Web‑UI erstellt `anim.bin` direkt im Browser aus GIFs (Upload aktuell auf 
 - speichert RLE‑Frames.
 
 Details zur Implementierung sind im Sketch dokumentiert.【F:esp32Hub75/main.sketch†L504-L612】
+
+Beim GIF‑Prepare wird das erste Frame in die Canvas geladen, sodass es direkt als Pixelart‑Frame weiterbearbeitet werden kann.【F:esp32Hub75/main.sketch†L1841-L1894】
 
 ## GIF‑Frames als Pixelart‑JSON exportieren
 

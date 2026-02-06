@@ -357,6 +357,31 @@ select{
 }
 input[type="range"]{width:230px}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}
+.tabs{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:16px;
+}
+.tab-btn{
+  background:#f8f5f0;
+  color:var(--ink);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:8px 14px;
+  cursor:pointer;
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:0.08em;
+  font-size:11px;
+}
+.tab-btn.active{
+  background:var(--ink);
+  color:#fdfbf6;
+  border-color:var(--ink);
+}
+.tab-content{display:none}
+.tab-content.active{display:block}
 label{
   font-family:var(--mono);
   font-size:11px;
@@ -417,130 +442,182 @@ a{color:var(--accent)}
   </div>
 
   <div class="panel">
-    <div class="section-title">Pixelart‑Editor</div>
-    <div class="row">
-      <label>Color</label>
-      <input id="col" type="color" value="#ffcc00">
-      <div id="palette" class="row" style="margin:0"></div>
-      <label>Brush</label>
-      <select id="brush">
-        <option value="1" selected>1×1</option>
-        <option value="2">2×2</option>
-        <option value="3">3×3</option>
-        <option value="4">4×4</option>
-      </select>
-      <button id="clear" type="button">Clear</button>
-      <button id="fill" type="button">Fill</button>
-      <button id="reinit" type="button">Reinit</button>
-      <button id="redrawPanel" type="button">Redraw Panel</button>
-      <button id="savePixelart" type="button">Save</button>
-      <button id="loadPixelart" type="button">Load</button>
-      <button id="exportPixelart" type="button">Export JSON</button>
-      <label class="btn">
-        Import JSON
-        <input id="importPixelart" type="file" accept="application/json">
-      </label>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="clock">Uhr</button>
+      <button class="tab-btn" data-tab="stopwatch">Stopuhr</button>
+      <button class="tab-btn" data-tab="pixelart">Pixelart</button>
+      <button class="tab-btn" data-tab="animations">Animationen</button>
     </div>
 
-    <small>
-      Pixelart: Click/Drag · Right-Click = Erase (black).<br/>
-      Brush malt ein Quadrat um den Cursor (zentriert).<br/>
-      Beim Zeichnen/Frames senden wird Animation automatisch gestoppt.
-    </small>
-
-    <hr>
-
-    <div>
-      <div class="section-header">
-        <div class="section-title">Presets (LittleFS)</div>
-        <span class="badge">Pixelart + Animation</span>
-      </div>
+    <div class="tab-content active" data-tab="pixelart">
+      <div class="section-title">Pixelart‑Editor</div>
       <div class="row">
-        <label for="presetName">Preset‑Name</label>
-        <input id="presetName" type="text" placeholder="z. B. logo-1">
-        <button id="presetSavePixel" type="button">Pixelart sichern</button>
-        <button id="presetLoadPixel" type="button">Pixelart laden</button>
-      </div>
-      <div class="row">
-        <button id="presetSaveAnim" type="button">Animation sichern</button>
-        <button id="presetLoadAnim" type="button">Animation laden</button>
-      </div>
-      <small>
-        Presets liegen als JSON (Pixelart) bzw. anim.bin (Animation) im LittleFS. Laden überschreibt den aktuellen Inhalt.
-      </small>
-    </div>
-
-    <hr>
-
-    <div>
-      <div class="section-header">
-        <div class="section-title">Animation‑Builder (Pixelart)</div>
-        <span class="badge">Frame‑Sequenz</span>
-      </div>
-      <div class="row">
-        <label for="builderDelay">Frame‑Delay</label>
-        <input id="builderDelay" type="range" min="20" max="1000" value="120">
-        <span class="val" id="builderDelayVal">120ms</span>
-        <label for="builderLoop">Loop</label>
-        <select id="builderLoop">
-          <option value="on" selected>An</option>
-          <option value="off">Aus</option>
+        <label>Color</label>
+        <input id="col" type="color" value="#ffcc00">
+        <div id="palette" class="row" style="margin:0"></div>
+        <label>Brush</label>
+        <select id="brush">
+          <option value="1" selected>1×1</option>
+          <option value="2">2×2</option>
+          <option value="3">3×3</option>
+          <option value="4">4×4</option>
         </select>
-      </div>
-      <div class="row">
-        <button id="builderAddFrame" type="button">Frame hinzufügen</button>
-        <button id="builderClearFrames" type="button">Liste löschen</button>
-        <button id="builderUploadAnim" type="button">Anim bauen & senden</button>
-      </div>
-      <div class="panel-meta" id="builderStatus">Frames: 0</div>
-    </div>
-
-    <hr>
-
-    <div>
-      <div class="section-header">
-        <div class="section-title">Bild / GIF Tuning</div>
-        <span class="badge">Bilder + GIF</span>
-      </div>
-
-      <div class="row">
-        <label>Gamma</label>
-        <input id="gamma" type="range" min="50" max="260" value="120">
-        <span class="val" id="gammaVal">1.20</span>
-
-        <label>Boost</label>
-        <input id="boost" type="range" min="50" max="200" value="110">
-        <span class="val" id="boostVal">1.10</span>
-      </div>
-
-      <div class="row">
-        <label>Brightness</label>
-        <input id="brightness" type="range" min="5" max="255" value="5">
-        <span class="val" id="brightnessVal">5</span>
+        <button id="clear" type="button">Clear</button>
+        <button id="fill" type="button">Fill</button>
+        <button id="reinit" type="button">Reinit</button>
+        <button id="redrawPanel" type="button">Redraw Panel</button>
+        <button id="savePixelart" type="button">Save</button>
+        <button id="loadPixelart" type="button">Load</button>
+        <button id="exportPixelart" type="button">Export JSON</button>
+        <label class="btn">
+          Import JSON
+          <input id="importPixelart" type="file" accept="application/json">
+        </label>
       </div>
 
       <small>
-        Gamma (≈0.5–2.6) korrigiert die Helligkeitskurve, Boost ist ein linearer Gain.
-        Alles per LUT (schnell).
+        Pixelart: Click/Drag · Right-Click = Erase (black).<br/>
+        Brush malt ein Quadrat um den Cursor (zentriert).<br/>
+        Beim Zeichnen/Frames senden wird Animation automatisch gestoppt.
       </small>
+
+      <hr>
+
+      <div>
+        <div class="section-header">
+          <div class="section-title">Frames</div>
+          <span class="badge" id="frameIndicator">Frame 1 / 1</span>
+        </div>
+        <div class="row">
+          <button id="nextFrame" type="button">Next Frame</button>
+          <button id="addFrame" type="button">+ Frame</button>
+        </div>
+        <small>
+          GIF lädt den ersten Frame in die Canvas. Next Frame springt weiter; ohne GIF wird der aktuelle Frame kopiert.
+        </small>
+      </div>
+
+      <hr>
+
+      <div>
+        <div class="section-header">
+          <div class="section-title">Presets (LittleFS)</div>
+          <span class="badge">Pixelart + Animation</span>
+        </div>
+        <div class="row">
+          <label for="presetName">Preset‑Name</label>
+          <input id="presetName" type="text" placeholder="z. B. logo-1">
+          <button id="presetSavePixel" type="button">Pixelart sichern</button>
+          <button id="presetLoadPixel" type="button">Pixelart laden</button>
+        </div>
+        <div class="row">
+          <button id="presetSaveAnim" type="button">Animation sichern</button>
+          <button id="presetLoadAnim" type="button">Animation laden</button>
+        </div>
+        <small>
+          Presets liegen als JSON (Pixelart) bzw. anim.bin (Animation) im LittleFS. Laden überschreibt den aktuellen Inhalt.
+        </small>
+      </div>
+
+      <hr>
+
+      <div>
+        <div class="section-header">
+          <div class="section-title">Bild / GIF Tuning</div>
+          <span class="badge">Bilder + GIF</span>
+        </div>
+
+        <div class="row">
+          <label>Gamma</label>
+          <input id="gamma" type="range" min="50" max="260" value="120">
+          <span class="val" id="gammaVal">1.20</span>
+
+          <label>Boost</label>
+          <input id="boost" type="range" min="50" max="200" value="110">
+          <span class="val" id="boostVal">1.10</span>
+        </div>
+
+        <div class="row">
+          <label>Brightness</label>
+          <input id="brightness" type="range" min="5" max="255" value="5">
+          <span class="val" id="brightnessVal">5</span>
+        </div>
+
+        <small>
+          Gamma (≈0.5–2.6) korrigiert die Helligkeitskurve, Boost ist ein linearer Gain.
+          Alles per LUT (schnell).
+        </small>
+      </div>
+
+      <hr>
+
+      <div>
+        <div class="section-title">Bild (PNG/JPG/WebP) → 64×32</div>
+        <input id="imgFile" type="file" accept="image/*">
+        <div class="row">
+          <label for="srcAspectImg">Quelle</label>
+          <select id="srcAspectImg">
+            <option value="auto" selected>Auto</option>
+            <option value="4:3">4:3</option>
+            <option value="16:9">16:9</option>
+          </select>
+
+          <label for="scaleModeImg">Mapping</label>
+          <select id="scaleModeImg">
+            <option value="cover" selected>Cover (Crop)</option>
+            <option value="contain">Contain (Letterbox)</option>
+          </select>
+        </div>
+        <div class="row">
+          <button id="previewImg" type="button">Preview</button>
+          <button id="sendImg" type="button">Send to Panel</button>
+        </div>
+        <small>Preview zeichnet ins Canvas. "Send" packt als Single-Frame anim.bin und rendert lokal am ESP32.</small>
+        <div id="imgInfo" style="margin-top:8px"></div>
+      </div>
+
+      <hr>
+
+      <div>
+        <div class="section-title">GIF‑Upload (Browser‑Decode)</div>
+        <input id="gifFile" type="file" accept="image/gif">
+
+        <div class="row">
+          <label for="srcAspectGif">Quelle</label>
+          <select id="srcAspectGif">
+            <option value="auto" selected>Auto</option>
+            <option value="4:3">4:3</option>
+            <option value="16:9">16:9</option>
+          </select>
+
+          <label for="scaleModeGif">Mapping</label>
+          <select id="scaleModeGif">
+            <option value="cover" selected>Cover (Crop)</option>
+            <option value="contain">Contain (Letterbox)</option>
+          </select>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <button id="prepGif" type="button">Prepare & Upload</button>
+          <button id="playGif" type="button">Play</button>
+          <button id="stopGif" type="button">Stop</button>
+          <button id="exportGifFrames" type="button">Export Frames</button>
+        </div>
+
+        <progress id="p" value="0" max="100"></progress>
+        <small>GIF nutzt <b>gifuct-js</b> vom Internet (CDN).</small>
+        <div id="info"></div>
+        <div id="err"></div>
+      </div>
     </div>
 
-    <hr>
-
-    <div>
+    <div class="tab-content" data-tab="clock">
       <div class="section-header">
-        <div class="section-title">Uhr / Stopuhr (NTP)</div>
-        <span class="badge">Display‑Modus</span>
+        <div class="section-title">Uhr (NTP)</div>
+        <span class="badge">Uhr</span>
       </div>
 
       <div class="row">
-        <label for="displayMode">Modus</label>
-        <select id="displayMode">
-          <option value="ui">Canvas & Media</option>
-          <option value="clock" selected>Uhr</option>
-          <option value="stopwatch">Stopuhr</option>
-        </select>
-
         <label for="clockFormat">Uhrzeit</label>
         <select id="clockFormat">
           <option value="hhmmss" selected>HH:MM:SS</option>
@@ -564,15 +641,6 @@ a{color:var(--accent)}
       </div>
 
       <div class="row">
-        <button id="stopwatchStart" type="button">Start</button>
-        <button id="stopwatchStop" type="button">Stop</button>
-        <button id="stopwatchReset" type="button">Reset</button>
-
-        <label for="stopwatchColor">Kette</label>
-        <input id="stopwatchColor" type="color" value="#00ff00">
-      </div>
-
-      <div class="row">
         <label for="sleepEnabled">Schlafzeit</label>
         <select id="sleepEnabled">
           <option value="on" selected>An</option>
@@ -593,145 +661,129 @@ a{color:var(--accent)}
       </div>
 
       <small>
-        Uhr holt die Zeit per NTP. Optional Wetterdaten für Koblenz im Uhr‑Modus. Stopuhr zeigt HH:MM:SS und lässt eine LED‑Kette pro Minute umlaufen.
+        Uhr holt die Zeit per NTP. Optional Wetterdaten für Koblenz im Uhr‑Modus.
         Schlafzeit wird in LittleFS gespeichert und bleibt nach Stromausfall erhalten.
       </small>
     </div>
 
-    <hr>
-
-    <div>
-      <div class="section-title">Bild (PNG/JPG/WebP) → 64×32</div>
-      <input id="imgFile" type="file" accept="image/*">
-      <div class="row">
-        <label for="srcAspectImg">Quelle</label>
-        <select id="srcAspectImg">
-          <option value="auto" selected>Auto</option>
-          <option value="4:3">4:3</option>
-          <option value="16:9">16:9</option>
-        </select>
-
-        <label for="scaleModeImg">Mapping</label>
-        <select id="scaleModeImg">
-          <option value="cover" selected>Cover (Crop)</option>
-          <option value="contain">Contain (Letterbox)</option>
-        </select>
-      </div>
-      <div class="row">
-        <button id="previewImg" type="button">Preview</button>
-        <button id="sendImg" type="button">Send to Panel</button>
-      </div>
-      <small>Preview zeichnet ins Canvas. "Send" packt als Single-Frame anim.bin und rendert lokal am ESP32.</small>
-      <div id="imgInfo" style="margin-top:8px"></div>
-    </div>
-
-    <hr>
-
-    <div>
-      <div class="section-title">GIF‑Upload (Browser‑Decode)</div>
-      <input id="gifFile" type="file" accept="image/gif">
-
-      <div class="row">
-        <label for="srcAspectGif">Quelle</label>
-        <select id="srcAspectGif">
-          <option value="auto" selected>Auto</option>
-          <option value="4:3">4:3</option>
-          <option value="16:9">16:9</option>
-        </select>
-
-        <label for="scaleModeGif">Mapping</label>
-        <select id="scaleModeGif">
-          <option value="cover" selected>Cover (Crop)</option>
-          <option value="contain">Contain (Letterbox)</option>
-        </select>
-      </div>
-
-      <div class="row" style="margin-top:10px">
-        <button id="prepGif" type="button">Prepare & Upload</button>
-        <button id="playGif" type="button">Play</button>
-        <button id="stopGif" type="button">Stop</button>
-        <button id="exportGifFrames" type="button">Export Frames</button>
-      </div>
-
-      <progress id="p" value="0" max="100"></progress>
-      <small>GIF nutzt <b>gifuct-js</b> vom Internet (CDN).</small>
-      <div id="info"></div>
-      <div id="err"></div>
-    </div>
-
-    <hr>
-
-    <div>
-      <div class="section-title">WLED‑ähnliche Animationen</div>
-      <div class="row">
-        <label for="fxMode">Effekt</label>
-        <select id="fxMode">
-          <option value="matrix" selected>Matrix Kino‑Film</option>
-          <option value="blink">Blink</option>
-          <option value="colorfade">Colorfading</option>
-          <option value="rainbow">Rainbow</option>
-          <option value="fire">Kaminfeuer</option>
-          <option value="twinkle">Twinkle</option>
-          <option value="scanner">Scanner</option>
-          <option value="waves">Waves</option>
-        </select>
-        <button id="fxStart" type="button">Start</button>
-        <button id="fxStop" type="button">Stop</button>
+    <div class="tab-content" data-tab="stopwatch">
+      <div class="section-header">
+        <div class="section-title">Stopuhr</div>
+        <span class="badge">Stopuhr</span>
       </div>
 
       <div class="row">
-        <label>Speed</label>
-        <input id="fxSpeed" type="range" min="20" max="300" value="80">
-        <span class="val" id="fxSpeedVal">80</span>
+        <button id="stopwatchStart" type="button">Start</button>
+        <button id="stopwatchStop" type="button">Stop</button>
+        <button id="stopwatchReset" type="button">Reset</button>
 
-        <label>Intensity</label>
-        <input id="fxIntensity" type="range" min="20" max="255" value="180">
-        <span class="val" id="fxIntensityVal">180</span>
-      </div>
-
-      <div class="row">
-        <label>Density</label>
-        <input id="fxDensity" type="range" min="10" max="255" value="120">
-        <span class="val" id="fxDensityVal">120</span>
-
-        <label>Trail</label>
-        <input id="fxTrail" type="range" min="10" max="255" value="180">
-        <span class="val" id="fxTrailVal">180</span>
-      </div>
-
-      <div class="row">
-        <label>Duty</label>
-        <input id="fxDuty" type="range" min="10" max="255" value="160">
-        <span class="val" id="fxDutyVal">160</span>
-
-        <label>Direction</label>
-        <select id="fxDirection">
-          <option value="1" selected>→</option>
-          <option value="-1">←</option>
-        </select>
-      </div>
-
-      <div class="row">
-        <label>Cooling</label>
-        <input id="fxCooling" type="range" min="10" max="255" value="120">
-        <span class="val" id="fxCoolingVal">120</span>
-
-        <label>Sparks</label>
-        <input id="fxSparks" type="range" min="10" max="255" value="120">
-        <span class="val" id="fxSparksVal">120</span>
-      </div>
-
-      <div class="row">
-        <label>Color 1</label>
-        <input id="fxColor1" type="color" value="#00ff00">
-
-        <label>Color 2</label>
-        <input id="fxColor2" type="color" value="#ff0000">
+        <label for="stopwatchColor">Kette</label>
+        <input id="stopwatchColor" type="color" value="#00ff00">
       </div>
 
       <small>
-        Effekte laufen lokal auf dem ESP32. Start/Stop und Parameter werden via WebSocket gesteuert.
+        Stopuhr zeigt HH:MM:SS und lässt eine LED‑Kette pro Minute umlaufen.
       </small>
+    </div>
+
+    <div class="tab-content" data-tab="animations">
+      <div>
+        <div class="section-header">
+          <div class="section-title">Animation‑Builder (Pixelart)</div>
+          <span class="badge">Frame‑Sequenz</span>
+        </div>
+        <div class="row">
+          <label for="builderDelay">Frame‑Delay</label>
+          <input id="builderDelay" type="range" min="20" max="1000" value="120">
+          <span class="val" id="builderDelayVal">120ms</span>
+          <label for="builderLoop">Loop</label>
+          <select id="builderLoop">
+            <option value="on" selected>An</option>
+            <option value="off">Aus</option>
+          </select>
+        </div>
+        <div class="row">
+          <button id="builderAddFrame" type="button">Frame hinzufügen</button>
+          <button id="builderClearFrames" type="button">Liste löschen</button>
+          <button id="builderUploadAnim" type="button">Anim bauen & senden</button>
+        </div>
+        <div class="panel-meta" id="builderStatus">Frames: 0</div>
+      </div>
+
+      <hr>
+
+      <div>
+        <div class="section-title">WLED‑ähnliche Animationen</div>
+        <div class="row">
+          <label for="fxMode">Effekt</label>
+          <select id="fxMode">
+            <option value="matrix" selected>Matrix Kino‑Film</option>
+            <option value="blink">Blink</option>
+            <option value="colorfade">Colorfading</option>
+            <option value="rainbow">Rainbow</option>
+            <option value="fire">Kaminfeuer</option>
+            <option value="twinkle">Twinkle</option>
+            <option value="scanner">Scanner</option>
+            <option value="waves">Waves</option>
+          </select>
+          <button id="fxStart" type="button">Start</button>
+          <button id="fxStop" type="button">Stop</button>
+        </div>
+
+        <div class="row">
+          <label>Speed</label>
+          <input id="fxSpeed" type="range" min="20" max="300" value="80">
+          <span class="val" id="fxSpeedVal">80</span>
+
+          <label>Intensity</label>
+          <input id="fxIntensity" type="range" min="20" max="255" value="180">
+          <span class="val" id="fxIntensityVal">180</span>
+        </div>
+
+        <div class="row">
+          <label>Density</label>
+          <input id="fxDensity" type="range" min="10" max="255" value="120">
+          <span class="val" id="fxDensityVal">120</span>
+
+          <label>Trail</label>
+          <input id="fxTrail" type="range" min="10" max="255" value="180">
+          <span class="val" id="fxTrailVal">180</span>
+        </div>
+
+        <div class="row">
+          <label>Duty</label>
+          <input id="fxDuty" type="range" min="10" max="255" value="160">
+          <span class="val" id="fxDutyVal">160</span>
+
+          <label>Direction</label>
+          <select id="fxDirection">
+            <option value="1" selected>→</option>
+            <option value="-1">←</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <label>Cooling</label>
+          <input id="fxCooling" type="range" min="10" max="255" value="120">
+          <span class="val" id="fxCoolingVal">120</span>
+
+          <label>Sparks</label>
+          <input id="fxSparks" type="range" min="10" max="255" value="120">
+          <span class="val" id="fxSparksVal">120</span>
+        </div>
+
+        <div class="row">
+          <label>Color 1</label>
+          <input id="fxColor1" type="color" value="#00ff00">
+
+          <label>Color 2</label>
+          <input id="fxColor2" type="color" value="#ff0000">
+        </div>
+
+        <small>
+          Effekte laufen lokal auf dem ESP32. Start/Stop und Parameter werden via WebSocket gesteuert.
+        </small>
+      </div>
     </div>
   </div>
 </div>
@@ -768,7 +820,6 @@ a{color:var(--accent)}
   const boostVal=document.getElementById('boostVal');
   const brightnessEl=document.getElementById('brightness');
   const brightnessVal=document.getElementById('brightnessVal');
-  const displayMode=document.getElementById('displayMode');
   const clockFormat=document.getElementById('clockFormat');
   const weatherToggle=document.getElementById('weatherToggle');
   const clockColor=document.getElementById('clockColor');
@@ -804,6 +855,11 @@ a{color:var(--accent)}
   const builderUploadAnim=document.getElementById('builderUploadAnim');
   const builderStatus=document.getElementById('builderStatus');
   const exportGifFramesBtn=document.getElementById('exportGifFrames');
+  const tabButtons=document.querySelectorAll('.tab-btn');
+  const tabContents=document.querySelectorAll('.tab-content');
+  const nextFrameBtn=document.getElementById('nextFrame');
+  const addFrameBtn=document.getElementById('addFrame');
+  const frameIndicator=document.getElementById('frameIndicator');
   const fxMode=document.getElementById('fxMode');
   const fxStart=document.getElementById('fxStart');
   const fxStop=document.getElementById('fxStop');
@@ -890,6 +946,8 @@ a{color:var(--accent)}
   // Preview buffer RGB888 0xRRGGBB
   const pix=new Uint32Array(W*H);
   const PIXELART_STORAGE_KEY = "hub75.pixelart.v1";
+  let frameList = [Array.from(pix)];
+  let currentFrameIndex = 0;
   function redraw(){
     for(let y=0;y<H;y++){
       for(let x=0;x<W;x++){
@@ -1084,7 +1142,13 @@ a{color:var(--accent)}
   syncSleepUi();
 
   function syncDisplayState(){
-    sendJson({t:"mode", mode: displayMode.value});
+    if(currentTab === "clock"){
+      sendJson({t:"mode", mode:"clock"});
+    }else if(currentTab === "stopwatch"){
+      sendJson({t:"mode", mode:"stopwatch"});
+    }else{
+      sendJson({t:"mode", mode:"ui"});
+    }
     sendJson({t:"clockfmt", fmt: clockState.format});
     sendJson({t:"weather", on: clockState.weather === "on" ? 1 : 0});
     sendJson({t:"clock", c: clockState.color, i: clockState.intensity});
@@ -1119,8 +1183,47 @@ a{color:var(--accent)}
     } catch (err) {}
   }
 
-  displayMode.addEventListener('change', () => {
-    sendJson({t:"mode", mode: displayMode.value});
+  let currentTab = "clock";
+  function setTab(tabId){
+    currentTab = tabId;
+    tabButtons.forEach(btn=> btn.classList.toggle('active', btn.dataset.tab === tabId));
+    tabContents.forEach(panel=> panel.classList.toggle('active', panel.dataset.tab === tabId));
+    syncDisplayState();
+  }
+  tabButtons.forEach(btn=>{
+    btn.addEventListener('click', ()=> setTab(btn.dataset.tab));
+  });
+  setTab("clock");
+
+  function ensureFrameList(){
+    if(!frameList.length){
+      frameList = [Array.from(pix)];
+      currentFrameIndex = 0;
+    }
+    updateFrameIndicator();
+  }
+
+  nextFrameBtn.addEventListener('click', ()=>{
+    ensureFrameList();
+    storeCurrentFrame();
+    if(!lastGifFrames && currentFrameIndex === frameList.length - 1){
+      frameList.push(Array.from(pix));
+    }
+    if(frameList.length === 0) return;
+    currentFrameIndex = (currentFrameIndex + 1) % frameList.length;
+    applyPixelartArray(frameList[currentFrameIndex]);
+    updateFrameIndicator();
+  });
+
+  addFrameBtn.addEventListener('click', ()=>{
+    ensureFrameList();
+    storeCurrentFrame();
+    const snapshot = Array.from(pix);
+    frameList.push(snapshot);
+    if(lastGifFrames){
+      lastGifFrames.push({delayMs: 120, pixels: snapshot});
+    }
+    updateFrameIndicator();
   });
 
   clockFormat.addEventListener('change', () => {
@@ -1238,6 +1341,7 @@ a{color:var(--accent)}
     drawing=false;
     erase=false;
     canvas.releasePointerCapture(e.pointerId);
+    storeCurrentFrame();
   });
   canvas.addEventListener('pointercancel', ()=>{ drawing=false; erase=false; });
   canvas.addEventListener('pointermove', e=>{ if(drawing) paint(e); });
@@ -1266,12 +1370,14 @@ a{color:var(--accent)}
 
   document.getElementById('clear').onclick=()=>{
     pix.fill(0); redraw();
+    storeCurrentFrame();
     enqueuePanelWork(async()=>{ sendJson({t:"clear"}); });
   };
 
   document.getElementById('fill').onclick=()=>{
     const c=hexToRgb(colInput.value);
     pix.fill(c); redraw();
+    storeCurrentFrame();
     enqueuePanelWork(async()=>{ sendJson({t:"fill", c}); });
   };
 
@@ -1279,6 +1385,7 @@ a{color:var(--accent)}
     await fetch('/api/reinit');
     pix.fill(0);
     redraw();
+    storeCurrentFrame();
     enqueuePanelWork(async()=>{ sendJson({t:"clear"}); });
   };
 
@@ -1319,6 +1426,7 @@ a{color:var(--accent)}
     }
     for(let i=0;i<W*H;i++){ pix[i] = data[i] >>> 0; }
     redraw();
+    resetFramesFromCurrent();
     return data;
   }
 
@@ -1344,6 +1452,38 @@ a{color:var(--accent)}
     for(let i=0;i<W*H;i++){ pix[i] = data[i] >>> 0; }
     redraw();
     return true;
+  }
+
+  function updateFrameIndicator(){
+    if(!frameIndicator) return;
+    frameIndicator.textContent = `Frame ${currentFrameIndex + 1} / ${frameList.length}`;
+  }
+
+  function storeCurrentFrame(){
+    if(!frameList.length) return;
+    const snapshot = Array.from(pix);
+    frameList[currentFrameIndex] = snapshot;
+    if(lastGifFrames && lastGifFrames[currentFrameIndex]){
+      lastGifFrames[currentFrameIndex].pixels = snapshot;
+    }
+    updateFrameIndicator();
+  }
+
+  function resetFramesFromCurrent(){
+    frameList = [Array.from(pix)];
+    currentFrameIndex = 0;
+    lastGifFrames = null;
+    updateFrameIndicator();
+  }
+
+  function setFramesFromGif(gifFrames){
+    frameList = gifFrames.map((frame)=> frame.pixels);
+    currentFrameIndex = 0;
+    lastGifFrames = gifFrames;
+    if(frameList.length){
+      applyPixelartArray(frameList[0]);
+    }
+    updateFrameIndicator();
   }
 
   function rgbaToPixelartArray(rgba){
@@ -1680,6 +1820,7 @@ a{color:var(--accent)}
     imgEl.onload = () => {
       imgInfo.textContent = `Loaded: ${f.name} (${imgEl.width}×${imgEl.height})`;
       lastImageFrame = null;
+      buildImageFrame();
     };
     imgEl.src = imgObjUrl;
   });
@@ -1697,6 +1838,7 @@ a{color:var(--accent)}
       pix[i] = col;
     }
     redraw();
+    resetFramesFromCurrent();
     if(shouldSend){
       enqueuePanelWork(()=>sendAnimFromPix(imgInfo));
     }
@@ -1883,6 +2025,7 @@ a{color:var(--accent)}
         prog.value=Math.round(5 + ((i+1)/frameCount)*85);
       }
 
+      setFramesFromGif(gifFrames);
       const bin = buildAnimBinFromFrames(chunks, true);
       lastAnimBin = bin;
       lastGifFrames = gifFrames;
@@ -1924,6 +2067,7 @@ a{color:var(--accent)}
   scaleModeImg.addEventListener('change', invalidateCaches);
 
   pix.fill(0); redraw();
+  resetFramesFromCurrent();
 })();
 </script>
 </body></html>
