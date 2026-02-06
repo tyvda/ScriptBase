@@ -49,6 +49,7 @@ Diese Aufgabenliste beschreibt detailliert die Umsetzung der geplanten Roadmap�
 - **Pixelart‑Preset**: JSON im LittleFS speichern/laden (API + UI).
 - **Animations‑Preset**: anim.bin speichern/laden (GIF/Builder/Pixelart).
 - **Status**: umgesetzt in `main.sketch` inkl. Preset‑UI und API‑Endpoints.
+- **Preset‑Listen/Import/Download**: Auswahl, JSON‑Import und Download ergänzt. Status: umgesetzt in `main.sketch`.
 
 ## C) WLED‑ähnliche Animationen
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-02-06 14:44:55 +0000
+- Tab‑UI erweitert: Frame‑Animation im Pixelart‑Tab, Prev/Next/+ Frame und Anim‑Start/Stop. Quelle: `main.sketch`.
+- Preset‑Workflow ergänzt: Listen aus LittleFS, JSON‑Download/Import und Preset‑Auswahl. Quelle: `main.sketch`.
+- Dokumentation und Tasks für neue Pixelart‑/Preset‑Flows aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`, `tasks.md`.
+
 ## 2026-02-06 13:41:09 +0000
 - UI auf Tabs (Uhr, Stopuhr, Pixelart, Animationen) umgestellt und Frame‑Navigation im Pixelart‑Tab ergänzt. Quelle: `main.sketch`.
 - Pixelart‑Frames/Medien‑Workflow angepasst: Bild lädt direkt in Canvas, GIF setzt das erste Frame und erlaubt Frame‑Export. Quelle: `main.sketch`.

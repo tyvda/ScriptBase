@@ -62,6 +62,14 @@ Das JSON‑Format ist versioniert und wird vor dem Import validiert.【F:esp32Hu
 
 Das ist die Basis für Pixelart‑Sequenzen im Editor.【F:esp32Hub75/main.sketch†L452-L692】【F:esp32Hub75/main.sketch†L1133-L1199】
 
+## Frame‑Animation starten
+
+1. Frames im Pixelart‑Tab vorbereiten.
+2. **Animation starten** baut `anim.bin` aus den Frames und startet die Wiedergabe.
+3. **Animation stoppen** beendet die Wiedergabe.
+
+Der Ablauf nutzt die Frame‑Liste aus dem Pixelart‑Tab.【F:esp32Hub75/main.sketch†L486-L611】【F:esp32Hub75/main.sketch†L1696-L1744】
+
 ## Presets in LittleFS (Pixelart + Animation)
 
 1. Preset‑Namen vergeben (z. B. `logo-1`).
@@ -71,6 +79,14 @@ Das ist die Basis für Pixelart‑Sequenzen im Editor.【F:esp32Hub75/main.sketc
 5. **Animation laden** lädt das Preset und startet die Wiedergabe.
 
 Die Presets werden serverseitig über `/api/preset/pixelart` und `/api/preset/anim` gespeichert bzw. geladen.【F:esp32Hub75/main.sketch†L408-L520】【F:esp32Hub75/main.sketch†L2718-L2850】
+
+### Presets auswählen & JSON downloaden
+
+- **Preset‑Listen** zeigen die Inhalte aus LittleFS.
+- **Download JSON** lädt das ausgewählte Pixelart‑Preset als Datei.
+- **JSON → Preset** importiert eine JSON‑Datei in LittleFS.
+
+So kannst du Presets extern sichern oder wieder einspielen.【F:esp32Hub75/main.sketch†L502-L520】【F:esp32Hub75/main.sketch†L1683-L1764】
 
 ## Animation‑Builder (Pixelart‑Frames)
 

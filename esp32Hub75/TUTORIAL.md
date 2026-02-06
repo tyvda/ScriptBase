@@ -90,8 +90,10 @@ Die UI ist in Tabs strukturiert: **Uhr**, **Stopuhr**, **Pixelart**, **Animation
 - **Save/Load** speichert die Pixelart lokal im Browser (LocalStorage) als versioniertes Format mit Größenprüfung und lädt sie wieder in das Canvas.【F:esp32Hub75/main.sketch†L1066-L1161】
 - **Export JSON** lädt die Pixelart als JSON herunter, **Import JSON** lädt validierte JSONs zurück in das Canvas.【F:esp32Hub75/main.sketch†L1324-L1536】
 - **Presets (LittleFS)**: Pixelart/Animationen können im Gerät gespeichert und später geladen werden (Preset‑Name vergeben).【F:esp32Hub75/main.sketch†L408-L520】
+- **Preset‑Listen**: Gespeicherte Presets lassen sich auswählen und laden; JSON kann heruntergeladen oder importiert werden.【F:esp32Hub75/main.sketch†L502-L520】
 - **Animation‑Builder**: Frames aus der Pixelart sammeln, Delay/Loop setzen und als anim.bin senden.【F:esp32Hub75/main.sketch†L520-L1561】
 - **Frames**: Next Frame springt weiter, + Frame ergänzt zusätzliche Frames für Sequenzen.【F:esp32Hub75/main.sketch†L452-L692】
+- **Animation starten**: Im Pixelart‑Tab wird aus Frames eine anim.bin gebaut und abgespielt.【F:esp32Hub75/main.sketch†L486-L611】
 
 ## 7.1) Helligkeit einstellen
 

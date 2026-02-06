@@ -489,11 +489,38 @@ a{color:var(--accent)}
           <span class="badge" id="frameIndicator">Frame 1 / 1</span>
         </div>
         <div class="row">
+          <button id="prevFrame" type="button">Prev Frame</button>
           <button id="nextFrame" type="button">Next Frame</button>
           <button id="addFrame" type="button">+ Frame</button>
         </div>
         <small>
-          GIF lädt den ersten Frame in die Canvas. Next Frame springt weiter; ohne GIF wird der aktuelle Frame kopiert.
+          GIF lädt den ersten Frame in die Canvas. Next/Prev springt weiter; ohne GIF wird der aktuelle Frame kopiert.
+        </small>
+      </div>
+
+      <hr>
+
+      <div>
+        <div class="section-header">
+          <div class="section-title">Animation aus Frames</div>
+          <span class="badge">Pixelart‑Sequenz</span>
+        </div>
+        <div class="row">
+          <label for="builderDelay">Frame‑Delay</label>
+          <input id="builderDelay" type="range" min="20" max="1000" value="120">
+          <span class="val" id="builderDelayVal">120ms</span>
+          <label for="builderLoop">Loop</label>
+          <select id="builderLoop">
+            <option value="on" selected>An</option>
+            <option value="off">Aus</option>
+          </select>
+        </div>
+        <div class="row">
+          <button id="playFrames" type="button">Animation starten</button>
+          <button id="stopFrames" type="button">Animation stoppen</button>
+        </div>
+        <small>
+          Erst Frames definieren, dann Animation starten. Du kannst die Frames danach weiter bearbeiten.
         </small>
       </div>
 
@@ -509,10 +536,28 @@ a{color:var(--accent)}
           <input id="presetName" type="text" placeholder="z. B. logo-1">
           <button id="presetSavePixel" type="button">Pixelart sichern</button>
           <button id="presetLoadPixel" type="button">Pixelart laden</button>
+          <button id="presetDownloadPixel" type="button">Download JSON</button>
+        </div>
+        <div class="row">
+          <label for="presetPixelList">Pixelart‑Preset</label>
+          <select id="presetPixelList"></select>
+          <button id="presetLoadPixelList" type="button">Laden</button>
         </div>
         <div class="row">
           <button id="presetSaveAnim" type="button">Animation sichern</button>
           <button id="presetLoadAnim" type="button">Animation laden</button>
+        </div>
+        <div class="row">
+          <label for="presetAnimList">Animation‑Preset</label>
+          <select id="presetAnimList"></select>
+          <button id="presetLoadAnimList" type="button">Laden</button>
+        </div>
+        <div class="row">
+          <label class="btn">
+            JSON → Preset
+            <input id="presetImportFile" type="file" accept="application/json">
+          </label>
+          <button id="presetRefresh" type="button">Presets aktualisieren</button>
         </div>
         <small>
           Presets liegen als JSON (Pixelart) bzw. anim.bin (Animation) im LittleFS. Laden überschreibt den aktuellen Inhalt.
@@ -688,31 +733,6 @@ a{color:var(--accent)}
 
     <div class="tab-content" data-tab="animations">
       <div>
-        <div class="section-header">
-          <div class="section-title">Animation‑Builder (Pixelart)</div>
-          <span class="badge">Frame‑Sequenz</span>
-        </div>
-        <div class="row">
-          <label for="builderDelay">Frame‑Delay</label>
-          <input id="builderDelay" type="range" min="20" max="1000" value="120">
-          <span class="val" id="builderDelayVal">120ms</span>
-          <label for="builderLoop">Loop</label>
-          <select id="builderLoop">
-            <option value="on" selected>An</option>
-            <option value="off">Aus</option>
-          </select>
-        </div>
-        <div class="row">
-          <button id="builderAddFrame" type="button">Frame hinzufügen</button>
-          <button id="builderClearFrames" type="button">Liste löschen</button>
-          <button id="builderUploadAnim" type="button">Anim bauen & senden</button>
-        </div>
-        <div class="panel-meta" id="builderStatus">Frames: 0</div>
-      </div>
-
-      <hr>
-
-      <div>
         <div class="section-title">WLED‑ähnliche Animationen</div>
         <div class="row">
           <label for="fxMode">Effekt</label>
@@ -845,18 +865,24 @@ a{color:var(--accent)}
   const presetNameInput=document.getElementById('presetName');
   const presetSavePixelBtn=document.getElementById('presetSavePixel');
   const presetLoadPixelBtn=document.getElementById('presetLoadPixel');
+  const presetDownloadPixelBtn=document.getElementById('presetDownloadPixel');
+  const presetPixelList=document.getElementById('presetPixelList');
+  const presetLoadPixelListBtn=document.getElementById('presetLoadPixelList');
   const presetSaveAnimBtn=document.getElementById('presetSaveAnim');
   const presetLoadAnimBtn=document.getElementById('presetLoadAnim');
+  const presetAnimList=document.getElementById('presetAnimList');
+  const presetLoadAnimListBtn=document.getElementById('presetLoadAnimList');
+  const presetImportFile=document.getElementById('presetImportFile');
+  const presetRefreshBtn=document.getElementById('presetRefresh');
   const builderDelay=document.getElementById('builderDelay');
   const builderDelayVal=document.getElementById('builderDelayVal');
   const builderLoop=document.getElementById('builderLoop');
-  const builderAddFrame=document.getElementById('builderAddFrame');
-  const builderClearFrames=document.getElementById('builderClearFrames');
-  const builderUploadAnim=document.getElementById('builderUploadAnim');
-  const builderStatus=document.getElementById('builderStatus');
+  const playFramesBtn=document.getElementById('playFrames');
+  const stopFramesBtn=document.getElementById('stopFrames');
   const exportGifFramesBtn=document.getElementById('exportGifFrames');
   const tabButtons=document.querySelectorAll('.tab-btn');
   const tabContents=document.querySelectorAll('.tab-content');
+  const prevFrameBtn=document.getElementById('prevFrame');
   const nextFrameBtn=document.getElementById('nextFrame');
   const addFrameBtn=document.getElementById('addFrame');
   const frameIndicator=document.getElementById('frameIndicator');
@@ -1211,7 +1237,16 @@ a{color:var(--accent)}
     }
     if(frameList.length === 0) return;
     currentFrameIndex = (currentFrameIndex + 1) % frameList.length;
-    applyPixelartArray(frameList[currentFrameIndex]);
+    applyPixelartArray(frameList[currentFrameIndex], true);
+    updateFrameIndicator();
+  });
+
+  prevFrameBtn.addEventListener('click', ()=>{
+    ensureFrameList();
+    storeCurrentFrame();
+    if(frameList.length === 0) return;
+    currentFrameIndex = (currentFrameIndex - 1 + frameList.length) % frameList.length;
+    applyPixelartArray(frameList[currentFrameIndex], true);
     updateFrameIndicator();
   });
 
@@ -1447,10 +1482,13 @@ a{color:var(--accent)}
     return null;
   }
 
-  function applyPixelartArray(data){
+  function applyPixelartArray(data, keepFrames=false){
     if(!Array.isArray(data) || data.length !== W*H) return false;
     for(let i=0;i<W*H;i++){ pix[i] = data[i] >>> 0; }
     redraw();
+    if(!keepFrames){
+      resetFramesFromCurrent();
+    }
     return true;
   }
 
@@ -1481,7 +1519,7 @@ a{color:var(--accent)}
     currentFrameIndex = 0;
     lastGifFrames = gifFrames;
     if(frameList.length){
-      applyPixelartArray(frameList[0]);
+      applyPixelartArray(frameList[0], true);
     }
     updateFrameIndicator();
   }
@@ -1606,6 +1644,7 @@ a{color:var(--accent)}
       body: JSON.stringify(payload),
     });
     if(!res.ok) throw new Error(await res.text());
+    downloadJson(payload, `pixelart-preset-${name}.json`);
     infoEl.textContent = `Preset gespeichert: ${name}`;
   }
 
@@ -1619,6 +1658,16 @@ a{color:var(--accent)}
     if(!data) throw new Error("Preset JSON ungültig.");
     applyPixelartArray(data);
     infoEl.textContent = `Preset geladen: ${name}`;
+  }
+
+  async function downloadPixelartPreset(){
+    const name = sanitizePresetName(presetNameInput.value);
+    if(!name) return alert("Preset-Name fehlt.");
+    const res = await fetch(`/api/preset/pixelart?name=${encodeURIComponent(name)}`);
+    if(!res.ok) throw new Error(await res.text());
+    const parsed = await res.json();
+    downloadJson(parsed, `pixelart-preset-${name}.json`);
+    infoEl.textContent = `Preset heruntergeladen: ${name}`;
   }
 
   async function uploadAnimPreset(bin, name){
@@ -1660,6 +1709,9 @@ a{color:var(--accent)}
   presetLoadPixelBtn.onclick=()=> loadPixelartPreset().catch(err=>{
     errEl.textContent = "Preset-Fehler: " + (err?.message || String(err));
   });
+  presetDownloadPixelBtn.onclick=()=> downloadPixelartPreset().catch(err=>{
+    errEl.textContent = "Preset-Fehler: " + (err?.message || String(err));
+  });
   presetSaveAnimBtn.onclick=()=> saveAnimPreset().catch(err=>{
     errEl.textContent = "Preset-Fehler: " + (err?.message || String(err));
   });
@@ -1667,11 +1719,69 @@ a{color:var(--accent)}
     errEl.textContent = "Preset-Fehler: " + (err?.message || String(err));
   });
 
-  const builderFrames = [];
-  function updateBuilderStatus(){
-    builderStatus.textContent = `Frames: ${builderFrames.length}`;
+  async function fetchPresetList(){
+    const res = await fetch("/api/presets");
+    if(!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    const pixelList = Array.isArray(data.pixelart) ? data.pixelart : [];
+    const animList = Array.isArray(data.anim) ? data.anim : [];
+    presetPixelList.innerHTML = pixelList.map(name=> `<option value="${name}">${name}</option>`).join("");
+    presetAnimList.innerHTML = animList.map(name=> `<option value="${name}">${name}</option>`).join("");
   }
-  updateBuilderStatus();
+
+  presetRefreshBtn.onclick=()=> fetchPresetList().catch(err=>{
+    errEl.textContent = "Preset-Fehler: " + (err?.message || String(err));
+  });
+
+  presetLoadPixelListBtn.onclick=()=>{
+    const name = presetPixelList.value || "";
+    presetNameInput.value = name;
+    loadPixelartPreset().catch(err=>{
+      errEl.textContent = "Preset-Fehler: " + (err?.message || String(err));
+    });
+  };
+
+  presetLoadAnimListBtn.onclick=()=>{
+    const name = presetAnimList.value || "";
+    presetNameInput.value = name;
+    loadAnimPreset().catch(err=>{
+      errEl.textContent = "Preset-Fehler: " + (err?.message || String(err));
+    });
+  };
+
+  presetImportFile.addEventListener('change', async ()=>{
+    const f = presetImportFile.files?.[0];
+    if(!f) return;
+    try{
+      const name = sanitizePresetName(presetNameInput.value);
+      if(!name) throw new Error("Preset-Name fehlt.");
+      const raw = await f.text();
+      const parsed = JSON.parse(raw);
+      const data = normalizePixelartJson(parsed);
+      if(!data) throw new Error("Preset JSON ungültig.");
+      applyPixelartArray(data);
+      const payload = {
+        version: 1,
+        width: W,
+        height: H,
+        pixels: data,
+        savedAt: new Date().toISOString(),
+      };
+      const res = await fetch(`/api/preset/pixelart?name=${encodeURIComponent(name)}`,{
+        method:"POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(payload),
+      });
+      if(!res.ok) throw new Error(await res.text());
+      await fetchPresetList();
+      infoEl.textContent = `Preset importiert: ${name}`;
+    }catch(err){
+      errEl.textContent = "Preset-Fehler: " + (err?.message || String(err));
+    }finally{
+      presetImportFile.value = "";
+    }
+  });
+
   builderDelayVal.textContent = `${builderDelay.value}ms`;
   builderDelay.addEventListener('input', ()=>{
     builderDelayVal.textContent = `${builderDelay.value}ms`;
@@ -1687,34 +1797,26 @@ a{color:var(--accent)}
     return rgb565;
   }
 
-  builderAddFrame.onclick=()=>{
-    const delay = Number(builderDelay.value) || 120;
-    builderFrames.push({
-      delay,
-      pix: Array.from(pix),
-    });
-    updateBuilderStatus();
-    infoEl.textContent = `Frame hinzugefügt (${builderFrames.length}).`;
-  };
-
-  builderClearFrames.onclick=()=>{
-    builderFrames.length = 0;
-    updateBuilderStatus();
-    infoEl.textContent = "Frame-Liste geleert.";
-  };
-
-  builderUploadAnim.onclick=async()=>{
-    if(!builderFrames.length) return alert("Keine Frames im Builder.");
-    const records = builderFrames.map((frame)=>{
-      const rgb565 = pixArrayToRgb565(frame.pix);
-      return frameRGB565ToRecord(rgb565, frame.delay);
+  playFramesBtn.onclick=async()=>{
+    ensureFrameList();
+    storeCurrentFrame();
+    if(!frameList.length) return alert("Keine Frames verfügbar.");
+    const records = frameList.map((frame, idx)=>{
+      const rgb565 = pixArrayToRgb565(frame);
+      const delay = lastGifFrames && lastGifFrames[idx] ? lastGifFrames[idx].delayMs : (Number(builderDelay.value) || 120);
+      return frameRGB565ToRecord(rgb565, delay);
     });
     const loopFlag = builderLoop.value === "on";
     const bin = buildAnimBinFromFrames(records, loopFlag);
     lastAnimBin = bin;
     await uploadAnimBin(bin);
     await fetch('/api/anim/play');
-    infoEl.textContent = "Builder-Animation gesendet.";
+    infoEl.textContent = "Frame-Animation gestartet.";
+  };
+
+  stopFramesBtn.onclick=async()=>{
+    await fetch('/api/anim/stop');
+    infoEl.textContent = "Frame-Animation gestoppt.";
   };
 
   // ===== Aspect/Scale mapping =====
@@ -2068,6 +2170,7 @@ a{color:var(--accent)}
 
   pix.fill(0); redraw();
   resetFramesFromCurrent();
+  fetchPresetList().catch(()=>{});
 })();
 </script>
 </body></html>
@@ -3150,6 +3253,30 @@ void setup_server() {
 
   server.on("/api/pixelart", HTTP_POST, [](AsyncWebServerRequest *req){
     req->send(200, "text/plain", "pixelart stored");
+  });
+
+  server.on("/api/presets", HTTP_GET, [](AsyncWebServerRequest *req){
+    StaticJsonDocument<768> doc;
+    JsonArray pix = doc["pixelart"].to<JsonArray>();
+    JsonArray anim = doc["anim"].to<JsonArray>();
+    File root = LittleFS.open("/");
+    File file = root.openNextFile();
+    const size_t pixPrefixLen = strlen(PRESET_PIXELART_PREFIX);
+    const size_t animPrefixLen = strlen(PRESET_ANIM_PREFIX);
+    while (file) {
+      String name = file.name();
+      if (name.startsWith(PRESET_PIXELART_PREFIX) && name.endsWith(".json")) {
+        String base = name.substring(pixPrefixLen, name.length() - 5);
+        if (base.length()) pix.add(base);
+      } else if (name.startsWith(PRESET_ANIM_PREFIX) && name.endsWith(".bin")) {
+        String base = name.substring(animPrefixLen, name.length() - 4);
+        if (base.length()) anim.add(base);
+      }
+      file = root.openNextFile();
+    }
+    String payload;
+    serializeJson(doc, payload);
+    req->send(200, "application/json", payload);
   });
 
   server.on("/api/preset/pixelart", HTTP_GET, [](AsyncWebServerRequest *req){

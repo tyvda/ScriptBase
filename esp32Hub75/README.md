@@ -217,7 +217,9 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 - **Pixelart Save/Load**: Speichert in Browser‑LocalStorage als versioniertes Format mit Größenprüfung; Laden erfolgt lokal aus dem Browser‑Speicher. 【F:esp32Hub75/main.sketch†L1066-L1161】
 - **Pixelart JSON‑Export/Import**: Exportiert ein JSON‑File (versioniert, 64×32) und importiert es zurück ins Canvas inkl. Validierung. 【F:esp32Hub75/main.sketch†L1324-L1536】
 - **Frame‑Navigation**: Next Frame und + Frame erlauben Sequenzen aus Pixelart oder GIF‑Frames. 【F:esp32Hub75/main.sketch†L452-L692】
+- **Frame‑Animation starten**: Aus den Frames wird anim.bin gebaut und direkt abgespielt. 【F:esp32Hub75/main.sketch†L486-L611】
 - **Presets (LittleFS)**: Pixelart‑JSON und anim.bin‑Animationen können als Preset gespeichert und geladen werden. 【F:esp32Hub75/main.sketch†L408-L520】
+- **Preset‑Auswahl**: Gespeicherte Presets lassen sich über Listen auswählen und laden. 【F:esp32Hub75/main.sketch†L502-L520】
 - **Animation‑Builder**: Frame‑Liste aus Pixelart aufbauen, Delay/Loop setzen und als anim.bin senden. 【F:esp32Hub75/main.sketch†L520-L1561】
 - **GIF‑Frames Export**: GIF‑Frames als JSON (Pixelart‑Arrays + Delay) herunterladen. 【F:esp32Hub75/main.sketch†L1824-L1884】
 - **WLED‑ähnliche Effekte**: Eigener UI‑Bereich mit Start/Stop, Speed/Intensity sowie Effekt‑Parametern (Matrix, Blink, Colorfading, Rainbow, Kaminfeuer, Twinkle, Scanner, Waves).【F:esp32Hub75/main.sketch†L58-L1684】
@@ -231,6 +233,7 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 - `POST /uploadAnim` → `anim.bin` Upload nach LittleFS.【F:esp32Hub75/main.sketch†L827-L839】
 - `GET /api/anim/play` → Animation starten (aus `anim.bin`).【F:esp32Hub75/main.sketch†L841-L848】
 - `GET /api/anim/stop` → Animation stoppen.【F:esp32Hub75/main.sketch†L850-L854】
+- `GET /api/presets` → Liste der Presets (Pixelart/Animationen).【F:esp32Hub75/main.sketch†L2950-L2990】
 - `GET /api/preset/pixelart?name=<id>` → Pixelart‑Preset laden (JSON).【F:esp32Hub75/main.sketch†L2718-L2790】
 - `POST /api/preset/pixelart?name=<id>` → Pixelart‑Preset speichern (JSON).【F:esp32Hub75/main.sketch†L2718-L2790】
 - `GET /api/preset/anim?name=<id>` → Animations‑Preset laden (anim.bin → aktiv).【F:esp32Hub75/main.sketch†L2792-L2850】
