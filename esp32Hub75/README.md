@@ -11,6 +11,10 @@ Kein Cloud‑Zwang, kein WLED, kein externer Server.
 ## Features
 
 - Web‑UI mit Pixel‑Editor (Brush, Clear/Fill, Reinit).【F:esp32Hub75/main.sketch†L67-L377】
+- Pixelart JSON‑Export/Import im Browser (versioniertes Format, validierte Größe).【F:esp32Hub75/main.sketch†L1324-L1536】
+- Presets für Pixelart und Animationen in LittleFS (speichern/laden über Web‑UI).【F:esp32Hub75/main.sketch†L408-L520】
+- Animation‑Builder für Pixelart‑Frames (Frame‑Liste → anim.bin).【F:esp32Hub75/main.sketch†L520-L1561】
+- GIF‑Frames als Pixelart‑JSON exportieren (Frame‑Liste mit Delay).【F:esp32Hub75/main.sketch†L1824-L1884】
 - Bild‑Upload (PNG/JPG/WebP) mit Aspect‑Mapping (Auto/4:3/16:9) und Cover/Contain‑Scaling.【F:esp32Hub75/main.sketch†L142-L454】
 - GIF‑Upload inkl. browserseitiger Dekodierung und RLE‑Kompression für schnelle Wiedergabe am ESP32 (Upload aktuell auf max. 50 Frames limitiert).【F:esp32Hub75/main.sketch†L222-L612】
 - WebSocket‑Streaming von Full‑Frames (RGB565) und Einzelpixel‑Updates (JSON).【F:esp32Hub75/main.sketch†L318-L760】
@@ -63,8 +67,8 @@ Die Feature‑Implementierungen sind im Sketch sichtbar (Web‑UI, Gamma/Boost, 
 
 ### Nice‑to‑Have (Optional)
 
-- Presets.
-- Animationen aus Pixelart.
+- Preset‑Management (Listen/Umbenennen/Löschen).
+- Animation‑Sequenzen (Animation‑Builder, erweitert um Timeline).
 - Multi‑Panel Support.
 
 ## Systemarchitektur
@@ -210,6 +214,10 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 - **Bild‑Mapping**: Bild‑Upload folgt derselben Canvas‑Mapping‑Pipeline wie GIFs (Image → Canvas → 64×32) und wird anschließend wie ein GIF‑Frame als `anim.bin` gepackt, hochgeladen und lokal vom ESP32 gerendert. 【F:esp32Hub75/main.sketch†L535-L799】
 - **Panel‑Redraw**: Button „Redraw Panel“ packt die aktuelle Pixelart als Single‑Frame‑`anim.bin` und lässt den ESP32 das Bild lokal anzeigen (wie bei GIFs), wodurch Unterbrechungen durch UI‑Jobs vermieden werden. 【F:esp32Hub75/main.sketch†L69-L799】
 - **Pixelart Save/Load**: Speichert in Browser‑LocalStorage als versioniertes Format mit Größenprüfung; Laden erfolgt lokal aus dem Browser‑Speicher. 【F:esp32Hub75/main.sketch†L1066-L1161】
+- **Pixelart JSON‑Export/Import**: Exportiert ein JSON‑File (versioniert, 64×32) und importiert es zurück ins Canvas inkl. Validierung. 【F:esp32Hub75/main.sketch†L1324-L1536】
+- **Presets (LittleFS)**: Pixelart‑JSON und anim.bin‑Animationen können als Preset gespeichert und geladen werden. 【F:esp32Hub75/main.sketch†L408-L520】
+- **Animation‑Builder**: Frame‑Liste aus Pixelart aufbauen, Delay/Loop setzen und als anim.bin senden. 【F:esp32Hub75/main.sketch†L520-L1561】
+- **GIF‑Frames Export**: GIF‑Frames als JSON (Pixelart‑Arrays + Delay) herunterladen. 【F:esp32Hub75/main.sketch†L1824-L1884】
 - **WLED‑ähnliche Effekte**: Eigener UI‑Bereich mit Start/Stop, Speed/Intensity sowie Effekt‑Parametern (Matrix, Blink, Colorfading, Rainbow, Kaminfeuer, Twinkle, Scanner, Waves).【F:esp32Hub75/main.sketch†L58-L1684】
 
 ## Netzwerk‑API (HTTP + WebSocket)
@@ -221,6 +229,10 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 - `POST /uploadAnim` → `anim.bin` Upload nach LittleFS.【F:esp32Hub75/main.sketch†L827-L839】
 - `GET /api/anim/play` → Animation starten (aus `anim.bin`).【F:esp32Hub75/main.sketch†L841-L848】
 - `GET /api/anim/stop` → Animation stoppen.【F:esp32Hub75/main.sketch†L850-L854】
+- `GET /api/preset/pixelart?name=<id>` → Pixelart‑Preset laden (JSON).【F:esp32Hub75/main.sketch†L2718-L2790】
+- `POST /api/preset/pixelart?name=<id>` → Pixelart‑Preset speichern (JSON).【F:esp32Hub75/main.sketch†L2718-L2790】
+- `GET /api/preset/anim?name=<id>` → Animations‑Preset laden (anim.bin → aktiv).【F:esp32Hub75/main.sketch†L2792-L2850】
+- `POST /api/preset/anim?name=<id>` → Animations‑Preset speichern (anim.bin).【F:esp32Hub75/main.sketch†L2792-L2850】
 - `GET /ping` → Healthcheck (`pong`).【F:esp32Hub75/main.sketch†L856-L858】
 
 ### WebSocket `/ws`
@@ -295,17 +307,16 @@ Die Bewertung basiert auf der Architektur (FrameBuffer + RLE + WebSocket).【F:e
 ## Erweiterungsmöglichkeiten
 
 - Mehrere Panels (Chain > 1).
-- Presets speichern.
-- Animation Builder im UI.
+- Preset‑Verwaltung (Listen/Umbenennen/Löschen in der UI).
 - MQTT / REST API.
 - OTA Update später wieder ergänzen.
 
 ## Zukünftige Features (Roadmap)
 
-### Pixelart‑Editor: Load/Save auf Client
+### Preset‑Management in der UI
 
-- **Export**: Pixelart als JSON vom Browser herunterladen (Datei auf dem Client speichern).
-- **Import**: JSON vom Client laden und als Pixelart ins Canvas + Panel übertragen.
+- Preset‑Liste anzeigen, umbenennen und löschen.
+- Optional: Vorschaubilder pro Preset.
 
 ### Animationen im Stil von WLED
 
@@ -325,18 +336,17 @@ Status: umgesetzt (Effekt‑Engine + UI‑Steuerung im Sketch).【F:esp32Hub75/m
 
 Basierend auf den dokumentierten Einschränkungen und Optional‑Features ergeben sich folgende nächste Schritte:
 
-1. **Presets für Pixelart/Bilder**: Speichern/Laden in LittleFS integrieren (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L777-L805】
-2. **Animation‑Builder im UI**: Pixelart‑Frames erfassen und als Animation exportieren (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L90-L377】
-3. **Umsetzungs‑Task Animationen**: Effekt‑Engine + Effekte inkl. UI‑Parametersteuerung (umgesetzt in `main.sketch`, siehe `tasks.md`, Abschnitt B0).
+1. **Preset‑Verwaltung**: Preset‑Liste, Umbenennen/Löschen, optional Vorschau.
+2. **Multi‑Panel Support**: Chain > 1 inkl. Layout/Mapping.
+3. **MQTT/REST API**: Externe Steuerung für Automationen/Installationen.
 
 ## Aufgaben zur Umsetzung (Roadmap‑Features)
 
-### Pixelart‑Editor: Load/Save auf Client
+### Preset‑Management in der UI
 
-1. **JSON‑Schema definieren**: 64×32 Pixel als Array (RGB888), Metadaten (Version, Breite/Höhe). Quelle: `README.md` (Roadmap), `main.sketch` (Framebuffer‑Format).
-2. **Export‑Button in UI**: Aktuelle Pixelart aus `pix[]` in JSON serialisieren und als Datei herunterladen. Quelle: `main.sketch` (UI/JS).
-3. **Import‑Flow in UI**: JSON vom Client laden, validieren (Größe/Version), Pixel ins Canvas schreiben und per `px`/`fill` ans Panel übertragen. Quelle: `main.sketch` (WebSocket `px`).
-4. **Fehlerhandling**: UI‑Meldungen bei ungültigem JSON/Format; optional Vorschau vor Senden. Quellen: `main.sketch` (UI/JS), `README.md`.
+1. **Preset‑Liste**: Verfügbare Presets aus LittleFS anzeigen.
+2. **Löschen/Umbenennen**: Presets verwalten (UI‑Flow, Bestätigungen).
+3. **Preview**: Optional Thumbnail aus erster Frame‑Zeile generieren.
 
 ### WLED‑ähnliche Animationen
 

@@ -12,6 +12,7 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <math.h>
+#include <ctype.h>
 
 // =====================
 // USER CONFIG
@@ -64,6 +65,8 @@ static uint32_t sleepNextCheckMs = 0;
 static const char* SLEEP_CFG_PATH = "/sleep.json";
 static const char* PIXELART_PATH = "/pixelart.json";
 static const size_t PIXELART_MAX_BYTES = 200000;
+static const char* PRESET_PIXELART_PREFIX = "/preset_pixelart_";
+static const char* PRESET_ANIM_PREFIX = "/preset_anim_";
 
 // =====================
 // Clock / Stopwatch
@@ -129,6 +132,19 @@ struct PixelartUpload {
   bool tooLarge = false;
   bool failed = false;
 };
+
+struct PresetUploadState {
+  File file;
+  size_t size = 0;
+  bool tooLarge = false;
+  bool failed = false;
+  String path;
+};
+
+static PresetUploadState presetPixelartUpload;
+static File presetAnimUpload;
+static bool presetAnimFailed = false;
+static String presetAnimPath;
 
 static File animFile;
 static AnimHeader animHdr{};
@@ -303,6 +319,22 @@ button{
   font-size:11px;
 }
 button:hover{background:var(--accent);border-color:var(--accent)}
+.btn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 14px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:#f8f5f0;
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:0.08em;
+  font-size:11px;
+  cursor:pointer;
+}
+.btn:hover{border-color:var(--accent)}
+.btn input{display:none}
 input[type="color"]{
   width:44px;
   height:44px;
@@ -403,6 +435,11 @@ a{color:var(--accent)}
       <button id="redrawPanel" type="button">Redraw Panel</button>
       <button id="savePixelart" type="button">Save</button>
       <button id="loadPixelart" type="button">Load</button>
+      <button id="exportPixelart" type="button">Export JSON</button>
+      <label class="btn">
+        Import JSON
+        <input id="importPixelart" type="file" accept="application/json">
+      </label>
     </div>
 
     <small>
@@ -410,6 +447,53 @@ a{color:var(--accent)}
       Brush malt ein Quadrat um den Cursor (zentriert).<br/>
       Beim Zeichnen/Frames senden wird Animation automatisch gestoppt.
     </small>
+
+    <hr>
+
+    <div>
+      <div class="section-header">
+        <div class="section-title">Presets (LittleFS)</div>
+        <span class="badge">Pixelart + Animation</span>
+      </div>
+      <div class="row">
+        <label for="presetName">Preset‑Name</label>
+        <input id="presetName" type="text" placeholder="z. B. logo-1">
+        <button id="presetSavePixel" type="button">Pixelart sichern</button>
+        <button id="presetLoadPixel" type="button">Pixelart laden</button>
+      </div>
+      <div class="row">
+        <button id="presetSaveAnim" type="button">Animation sichern</button>
+        <button id="presetLoadAnim" type="button">Animation laden</button>
+      </div>
+      <small>
+        Presets liegen als JSON (Pixelart) bzw. anim.bin (Animation) im LittleFS. Laden überschreibt den aktuellen Inhalt.
+      </small>
+    </div>
+
+    <hr>
+
+    <div>
+      <div class="section-header">
+        <div class="section-title">Animation‑Builder (Pixelart)</div>
+        <span class="badge">Frame‑Sequenz</span>
+      </div>
+      <div class="row">
+        <label for="builderDelay">Frame‑Delay</label>
+        <input id="builderDelay" type="range" min="20" max="1000" value="120">
+        <span class="val" id="builderDelayVal">120ms</span>
+        <label for="builderLoop">Loop</label>
+        <select id="builderLoop">
+          <option value="on" selected>An</option>
+          <option value="off">Aus</option>
+        </select>
+      </div>
+      <div class="row">
+        <button id="builderAddFrame" type="button">Frame hinzufügen</button>
+        <button id="builderClearFrames" type="button">Liste löschen</button>
+        <button id="builderUploadAnim" type="button">Anim bauen & senden</button>
+      </div>
+      <div class="panel-meta" id="builderStatus">Frames: 0</div>
+    </div>
 
     <hr>
 
@@ -566,6 +650,7 @@ a{color:var(--accent)}
         <button id="prepGif" type="button">Prepare & Upload</button>
         <button id="playGif" type="button">Play</button>
         <button id="stopGif" type="button">Stop</button>
+        <button id="exportGifFrames" type="button">Export Frames</button>
       </div>
 
       <progress id="p" value="0" max="100"></progress>
@@ -704,6 +789,21 @@ a{color:var(--accent)}
   const colInput=document.getElementById('col');
   const savePixelartBtn=document.getElementById('savePixelart');
   const loadPixelartBtn=document.getElementById('loadPixelart');
+  const exportPixelartBtn=document.getElementById('exportPixelart');
+  const importPixelartInput=document.getElementById('importPixelart');
+  const presetNameInput=document.getElementById('presetName');
+  const presetSavePixelBtn=document.getElementById('presetSavePixel');
+  const presetLoadPixelBtn=document.getElementById('presetLoadPixel');
+  const presetSaveAnimBtn=document.getElementById('presetSaveAnim');
+  const presetLoadAnimBtn=document.getElementById('presetLoadAnim');
+  const builderDelay=document.getElementById('builderDelay');
+  const builderDelayVal=document.getElementById('builderDelayVal');
+  const builderLoop=document.getElementById('builderLoop');
+  const builderAddFrame=document.getElementById('builderAddFrame');
+  const builderClearFrames=document.getElementById('builderClearFrames');
+  const builderUploadAnim=document.getElementById('builderUploadAnim');
+  const builderStatus=document.getElementById('builderStatus');
+  const exportGifFramesBtn=document.getElementById('exportGifFrames');
   const fxMode=document.getElementById('fxMode');
   const fxStart=document.getElementById('fxStart');
   const fxStop=document.getElementById('fxStop');
@@ -1222,6 +1322,43 @@ a{color:var(--accent)}
     return data;
   }
 
+  function normalizePixelartJson(parsed){
+    if(!parsed || typeof parsed !== "object") return null;
+    if(Array.isArray(parsed)){
+      if(parsed.length !== W*H) return null;
+      return parsed.map((v)=> v>>>0);
+    }
+    if(Array.isArray(parsed.data) && parsed.w === W && parsed.h === H){
+      if(parsed.data.length !== W*H) return null;
+      return parsed.data.map((v)=> v>>>0);
+    }
+    if(Array.isArray(parsed.pixels) && parsed.width === W && parsed.height === H){
+      if(parsed.pixels.length !== W*H) return null;
+      return parsed.pixels.map((v)=> v>>>0);
+    }
+    return null;
+  }
+
+  function applyPixelartArray(data){
+    if(!Array.isArray(data) || data.length !== W*H) return false;
+    for(let i=0;i<W*H;i++){ pix[i] = data[i] >>> 0; }
+    redraw();
+    return true;
+  }
+
+  function rgbaToPixelartArray(rgba){
+    const out = new Array(W*H);
+    for(let i=0;i<W*H;i++){
+      const k=i*4;
+      const a = rgba[k+3];
+      const r = applyLUT(a ? rgba[k] : 0);
+      const g = applyLUT(a ? rgba[k+1] : 0);
+      const b = applyLUT(a ? rgba[k+2] : 0);
+      out[i] = (r<<16)|(g<<8)|b;
+    }
+    return out;
+  }
+
   async function savePixelart(){
     try{
       const payload = {
@@ -1264,6 +1401,181 @@ a{color:var(--accent)}
 
   savePixelartBtn.onclick=()=> savePixelart();
   loadPixelartBtn.onclick=()=> loadPixelart();
+
+  function buildExportPayload(){
+    return {
+      version: 1,
+      width: W,
+      height: H,
+      pixels: Array.from(pix),
+      savedAt: new Date().toISOString(),
+    };
+  }
+
+  function downloadJson(payload, filename){
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  exportPixelartBtn.onclick=()=>{
+    const ts = new Date();
+    const pad = (n)=> String(n).padStart(2,'0');
+    const stamp = `${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}-${pad(ts.getHours())}${pad(ts.getMinutes())}${pad(ts.getSeconds())}`;
+    downloadJson(buildExportPayload(), `pixelart-64x32-${stamp}.json`);
+    infoEl.textContent = "Pixelart exportiert (JSON).";
+  };
+
+  importPixelartInput.addEventListener('change', async ()=>{
+    const f = importPixelartInput.files?.[0];
+    if(!f) return;
+    try{
+      const raw = await f.text();
+      const parsed = JSON.parse(raw);
+      const data = normalizePixelartJson(parsed);
+      if(!data){
+        errEl.textContent = "Import fehlgeschlagen: falsches JSON-Format.";
+        return;
+      }
+      applyPixelartArray(data);
+      infoEl.textContent = `Pixelart importiert: ${f.name}`;
+      errEl.textContent = "";
+    }catch(err){
+      errEl.textContent = "Import fehlgeschlagen: " + (err?.message || String(err));
+    }finally{
+      importPixelartInput.value = "";
+    }
+  });
+
+  function sanitizePresetName(name){
+    if(!name) return "";
+    return name.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "-").replace(/-+/g,"-").slice(0,32);
+  }
+
+  async function savePixelartPreset(){
+    const name = sanitizePresetName(presetNameInput.value);
+    if(!name) return alert("Preset-Name fehlt.");
+    const payload = buildExportPayload();
+    const res = await fetch(`/api/preset/pixelart?name=${encodeURIComponent(name)}`,{
+      method:"POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(payload),
+    });
+    if(!res.ok) throw new Error(await res.text());
+    infoEl.textContent = `Preset gespeichert: ${name}`;
+  }
+
+  async function loadPixelartPreset(){
+    const name = sanitizePresetName(presetNameInput.value);
+    if(!name) return alert("Preset-Name fehlt.");
+    const res = await fetch(`/api/preset/pixelart?name=${encodeURIComponent(name)}`);
+    if(!res.ok) throw new Error(await res.text());
+    const parsed = await res.json();
+    const data = normalizePixelartJson(parsed);
+    if(!data) throw new Error("Preset JSON ungültig.");
+    applyPixelartArray(data);
+    infoEl.textContent = `Preset geladen: ${name}`;
+  }
+
+  async function uploadAnimPreset(bin, name){
+    const fd=new FormData();
+    fd.append('anim', new Blob([bin],{type:'application/octet-stream'}), 'anim.bin');
+    const res=await fetch(`/api/preset/anim?name=${encodeURIComponent(name)}`,{method:'POST', body: fd});
+    if(!res.ok) throw new Error(await res.text());
+    return res.text();
+  }
+
+  async function saveAnimPreset(){
+    const name = sanitizePresetName(presetNameInput.value);
+    if(!name) return alert("Preset-Name fehlt.");
+    let bin = lastAnimBin;
+    if(!bin){
+      if(lastImageFrame && lastImageFrame.data){
+        const record = frameRGBAtoRecord(lastImageFrame.data, 120);
+        bin = buildAnimBinFromFrames([record], false);
+      }else{
+        bin = buildAnimBinFromPix(pix, 120, false);
+      }
+    }
+    await uploadAnimPreset(bin, name);
+    infoEl.textContent = `Animation-Preset gespeichert: ${name}`;
+  }
+
+  async function loadAnimPreset(){
+    const name = sanitizePresetName(presetNameInput.value);
+    if(!name) return alert("Preset-Name fehlt.");
+    const res = await fetch(`/api/preset/anim?name=${encodeURIComponent(name)}`);
+    if(!res.ok) throw new Error(await res.text());
+    await fetch('/api/anim/play');
+    infoEl.textContent = `Animation-Preset geladen: ${name}`;
+  }
+
+  presetSavePixelBtn.onclick=()=> savePixelartPreset().catch(err=>{
+    errEl.textContent = "Preset-Fehler: " + (err?.message || String(err));
+  });
+  presetLoadPixelBtn.onclick=()=> loadPixelartPreset().catch(err=>{
+    errEl.textContent = "Preset-Fehler: " + (err?.message || String(err));
+  });
+  presetSaveAnimBtn.onclick=()=> saveAnimPreset().catch(err=>{
+    errEl.textContent = "Preset-Fehler: " + (err?.message || String(err));
+  });
+  presetLoadAnimBtn.onclick=()=> loadAnimPreset().catch(err=>{
+    errEl.textContent = "Preset-Fehler: " + (err?.message || String(err));
+  });
+
+  const builderFrames = [];
+  function updateBuilderStatus(){
+    builderStatus.textContent = `Frames: ${builderFrames.length}`;
+  }
+  updateBuilderStatus();
+  builderDelayVal.textContent = `${builderDelay.value}ms`;
+  builderDelay.addEventListener('input', ()=>{
+    builderDelayVal.textContent = `${builderDelay.value}ms`;
+  });
+
+  function pixArrayToRgb565(pixBuf){
+    const rgb565=new Uint16Array(W*H);
+    for(let i=0;i<W*H;i++){
+      const col = pixBuf[i];
+      const r=(col>>16)&255, g=(col>>8)&255, b=col&255;
+      rgb565[i]=rgb888To565(r,g,b);
+    }
+    return rgb565;
+  }
+
+  builderAddFrame.onclick=()=>{
+    const delay = Number(builderDelay.value) || 120;
+    builderFrames.push({
+      delay,
+      pix: Array.from(pix),
+    });
+    updateBuilderStatus();
+    infoEl.textContent = `Frame hinzugefügt (${builderFrames.length}).`;
+  };
+
+  builderClearFrames.onclick=()=>{
+    builderFrames.length = 0;
+    updateBuilderStatus();
+    infoEl.textContent = "Frame-Liste geleert.";
+  };
+
+  builderUploadAnim.onclick=async()=>{
+    if(!builderFrames.length) return alert("Keine Frames im Builder.");
+    const records = builderFrames.map((frame)=>{
+      const rgb565 = pixArrayToRgb565(frame.pix);
+      return frameRGB565ToRecord(rgb565, frame.delay);
+    });
+    const loopFlag = builderLoop.value === "on";
+    const bin = buildAnimBinFromFrames(records, loopFlag);
+    lastAnimBin = bin;
+    await uploadAnimBin(bin);
+    await fetch('/api/anim/play');
+    infoEl.textContent = "Builder-Animation gesendet.";
+  };
 
   // ===== Aspect/Scale mapping =====
   function desiredAspectValue(sel) {
@@ -1481,6 +1793,9 @@ a{color:var(--accent)}
     return buildAnimBinFromFrames([record], loopFlag);
   }
 
+  let lastAnimBin = null;
+  let lastGifFrames = null;
+
   async function uploadAnimBin(bin){
     const fd=new FormData();
     fd.append('anim', new Blob([bin],{type:'application/octet-stream'}), 'anim.bin');
@@ -1491,6 +1806,7 @@ a{color:var(--accent)}
 
   async function sendAnimFromPix(statusTarget){
     const bin = buildAnimBinFromPix(pix, 100, false);
+    lastAnimBin = bin;
     const resp = await uploadAnimBin(bin);
     if(statusTarget) statusTarget.textContent = resp || "anim uploaded";
     await fetch('/api/anim/play');
@@ -1514,6 +1830,7 @@ a{color:var(--accent)}
     const f=document.getElementById('gifFile').files?.[0];
     if(!f) return;
     gifBuf=await f.arrayBuffer();
+    lastGifFrames = null;
     infoEl.textContent=`Selected: ${f.name} (${Math.round(f.size/1024)} KB)`;
     errEl.textContent="";
   });
@@ -1541,6 +1858,7 @@ a{color:var(--accent)}
       prog.value=5;
 
       const chunks=[];
+      const gifFrames = [];
 
       for(let i=0;i<frameCount;i++){
         const fr=frames[i];
@@ -1554,6 +1872,10 @@ a{color:var(--accent)}
 
         const mappedData = mapImageTo64x32(tmp, tmp.width, tmp.height, srcAspectGif, scaleModeGif);
         const rgba64 = mappedData.data;
+        gifFrames.push({
+          delayMs,
+          pixels: rgbaToPixelartArray(rgba64),
+        });
 
         if(i===frameCount-1){ buildFramePayload(mappedData); }
 
@@ -1562,6 +1884,8 @@ a{color:var(--accent)}
       }
 
       const bin = buildAnimBinFromFrames(chunks, true);
+      lastAnimBin = bin;
+      lastGifFrames = gifFrames;
 
       infoEl.innerHTML+=`<br/>Prepared size: <b>${Math.round(bin.length/1024)} KB</b> — uploading…`;
       const resp=await uploadAnimBin(bin);
@@ -1571,6 +1895,25 @@ a{color:var(--accent)}
       errEl.textContent = (e && e.message) ? e.message : String(e);
       prog.value=0;
     }
+  };
+
+  exportGifFramesBtn.onclick=()=>{
+    if(!lastGifFrames || !lastGifFrames.length){
+      return alert("Keine GIF-Frames verfügbar. Bitte zuerst ein GIF vorbereiten.");
+    }
+    const payload = {
+      version: 1,
+      width: W,
+      height: H,
+      source: "gif",
+      createdAt: new Date().toISOString(),
+      frames: lastGifFrames,
+    };
+    const ts = new Date();
+    const pad = (n)=> String(n).padStart(2,'0');
+    const stamp = `${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}-${pad(ts.getHours())}${pad(ts.getMinutes())}${pad(ts.getSeconds())}`;
+    downloadJson(payload, `gif-frames-64x32-${stamp}.json`);
+    infoEl.textContent = "GIF-Frames exportiert (JSON).";
   };
 
   // invalidate cached image frame when tuning changes
@@ -2323,6 +2666,53 @@ static bool animReadNextFrameAndRender(uint16_t &delayMsOut) {
   return true;
 }
 
+static bool is_preset_char(char c) {
+  return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-' || c == '_';
+}
+
+static String sanitize_preset_name(const String& input) {
+  String out;
+  out.reserve(32);
+  for (size_t i = 0; i < input.length(); i++) {
+    char c = (char)tolower((unsigned char)input[i]);
+    if (c == ' ') c = '-';
+    if (is_preset_char(c)) {
+      out += c;
+      if (out.length() >= 32) break;
+    }
+  }
+  return out;
+}
+
+static String preset_pixelart_path(const String& name) {
+  return String(PRESET_PIXELART_PREFIX) + name + ".json";
+}
+
+static String preset_anim_path(const String& name) {
+  return String(PRESET_ANIM_PREFIX) + name + ".bin";
+}
+
+static bool copy_file(const String& src, const String& dst) {
+  if (!LittleFS.exists(src)) return false;
+  File in = LittleFS.open(src, "r");
+  if (!in) return false;
+  File out = LittleFS.open(dst, "w");
+  if (!out) { in.close(); return false; }
+  uint8_t buf[512];
+  while (in.available()) {
+    size_t n = in.read(buf, sizeof(buf));
+    if (n == 0) break;
+    if (out.write(buf, n) != n) {
+      in.close();
+      out.close();
+      return false;
+    }
+  }
+  in.close();
+  out.close();
+  return true;
+}
+
 // =====================
 // Sleep schedule
 // =====================
@@ -2617,6 +3007,95 @@ void setup_server() {
   server.on("/api/pixelart", HTTP_POST, [](AsyncWebServerRequest *req){
     req->send(200, "text/plain", "pixelart stored");
   });
+
+  server.on("/api/preset/pixelart", HTTP_GET, [](AsyncWebServerRequest *req){
+    if (!req->hasParam("name")) { req->send(400, "text/plain", "missing name"); return; }
+    String name = sanitize_preset_name(req->getParam("name")->value());
+    if (name.length() == 0) { req->send(400, "text/plain", "invalid name"); return; }
+    String path = preset_pixelart_path(name);
+    if (!LittleFS.exists(path)) { req->send(404, "text/plain", "preset not found"); return; }
+    req->send(LittleFS, path, "application/json");
+  });
+
+  server.on("/api/preset/pixelart", HTTP_POST,
+    [](AsyncWebServerRequest *req){
+      if (presetPixelartUpload.failed) {
+        req->send(400, "text/plain", "preset failed");
+      } else if (presetPixelartUpload.tooLarge) {
+        req->send(413, "text/plain", "preset too large");
+      } else {
+        req->send(200, "text/plain", "preset stored");
+      }
+    },
+    nullptr,
+    [](AsyncWebServerRequest *req, uint8_t *data, size_t len, size_t index, size_t total){
+      if (index == 0) {
+        if (presetPixelartUpload.file) presetPixelartUpload.file.close();
+        presetPixelartUpload = PresetUploadState{};
+        if (!req->hasParam("name")) { presetPixelartUpload.failed = true; return; }
+        String name = sanitize_preset_name(req->getParam("name")->value());
+        if (name.length() == 0) { presetPixelartUpload.failed = true; return; }
+        presetPixelartUpload.path = preset_pixelart_path(name);
+        presetPixelartUpload.file = LittleFS.open(presetPixelartUpload.path, "w");
+        if (!presetPixelartUpload.file) { presetPixelartUpload.failed = true; return; }
+      }
+      if (presetPixelartUpload.failed) return;
+      if (presetPixelartUpload.size + len > PIXELART_MAX_BYTES) {
+        presetPixelartUpload.tooLarge = true;
+        presetPixelartUpload.failed = true;
+      } else {
+        if (presetPixelartUpload.file) {
+          presetPixelartUpload.file.write(data, len);
+          presetPixelartUpload.size += len;
+        }
+      }
+      if ((index + len) == total && presetPixelartUpload.file) {
+        presetPixelartUpload.file.close();
+        if (presetPixelartUpload.tooLarge) {
+          LittleFS.remove(presetPixelartUpload.path);
+        }
+      }
+    }
+  );
+
+  server.on("/api/preset/anim", HTTP_GET, [](AsyncWebServerRequest *req){
+    if (!req->hasParam("name")) { req->send(400, "text/plain", "missing name"); return; }
+    String name = sanitize_preset_name(req->getParam("name")->value());
+    if (name.length() == 0) { req->send(400, "text/plain", "invalid name"); return; }
+    String src = preset_anim_path(name);
+    if (!LittleFS.exists(src)) { req->send(404, "text/plain", "preset not found"); return; }
+    effectStop();
+    animPlaying = false;
+    if (animFile) animFile.close();
+    if (!copy_file(src, ANIM_PATH)) { req->send(500, "text/plain", "preset copy failed"); return; }
+    req->send(200, "text/plain", "preset loaded");
+  });
+
+  server.on("/api/preset/anim", HTTP_POST,
+    [](AsyncWebServerRequest *req){
+      if (presetAnimFailed) {
+        req->send(400, "text/plain", "preset failed");
+      } else {
+        req->send(200, "text/plain", "preset stored");
+      }
+    },
+    [](AsyncWebServerRequest *req, String, size_t index, uint8_t *data, size_t len, bool final){
+      if (index == 0) {
+        if (presetAnimUpload) presetAnimUpload.close();
+        presetAnimFailed = false;
+        presetAnimPath = "";
+        if (!req->hasParam("name")) { presetAnimFailed = true; return; }
+        String name = sanitize_preset_name(req->getParam("name")->value());
+        if (name.length() == 0) { presetAnimFailed = true; return; }
+        presetAnimPath = preset_anim_path(name);
+        presetAnimUpload = LittleFS.open(presetAnimPath, "w");
+        if (!presetAnimUpload) { presetAnimFailed = true; return; }
+      }
+      if (presetAnimFailed) return;
+      if (presetAnimUpload) presetAnimUpload.write(data, len);
+      if (final && presetAnimUpload) presetAnimUpload.close();
+    }
+  );
 
   server.on("/api/sleep", HTTP_GET, [](AsyncWebServerRequest *req){
     StaticJsonDocument<256> doc;

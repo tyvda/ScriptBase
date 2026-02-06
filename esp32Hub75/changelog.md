@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-02-06 13:02:05 +0000
+- GIF‑Frames‑Export als Pixelart‑JSON ergänzt (UI‑Button + JSON‑Payload). Quelle: `main.sketch`.
+- Dokumentation und Tasks für GIF‑Frame‑Export aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`, `tasks.md`.
+
+## 2026-02-06 10:39:10 +0000
+- Animations‑Presets ergänzen: Speicherung nutzt jetzt anim.bin aus GIF/Builder/Pixelart, UI‑Texte präzisiert. Quelle: `main.sketch`.
+- Dokumentation auf Animations‑Presets aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`, `tasks.md`.
+
+## 2026-02-06 10:18:49 +0000
+- Pixelart JSON‑Export/Import ergänzt (validiertes Schema, Export‑Download, Import‑Workflow). Quelle: `main.sketch`.
+- Presets für Pixelart und Bilder in LittleFS ergänzt (API + Web‑UI). Quelle: `main.sketch`.
+- Animation‑Builder für Pixelart‑Frames ergänzt (Frame‑Liste, Delay/Loop, anim.bin Upload). Quelle: `main.sketch`.
+- Dokumentation für JSON‑Workflow, Presets und Animation‑Builder aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`, `tasks.md`.
+
 ## 2026-02-02 13:53:03 +0000
 - Pixelart-Speicherung auf Browser-LocalStorage zurückgesetzt, um Web-UI-Hänger zu vermeiden. Quelle: `main.sketch`.
 - Dokumentation für lokales Pixelart-Save/Load aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.

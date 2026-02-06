@@ -43,6 +43,31 @@ Einzelpixel kannst du via JSON‑Nachricht auf `/ws` senden:
 
 Die Buttons **Save** und **Load** speichern die aktuelle Pixelart lokal im Browser (LocalStorage) in einem versionierten Format mit Größenprüfung und laden sie wieder. Nach dem Laden kannst du mit „Redraw Panel“ erneut ans Panel senden.【F:esp32Hub75/main.sketch†L1066-L1161】
 
+## Pixelart JSON exportieren/importieren
+
+- **Export JSON** lädt eine Datei mit `version`, `width`, `height`, `pixels` herunter.
+- **Import JSON** prüft das Schema (64×32, Array‑Länge) und übernimmt die Pixel ins Canvas.
+
+Das JSON‑Format ist versioniert und wird vor dem Import validiert.【F:esp32Hub75/main.sketch†L1324-L1536】
+
+## Presets in LittleFS (Pixelart + Animation)
+
+1. Preset‑Namen vergeben (z. B. `logo-1`).
+2. **Pixelart sichern** speichert das aktuelle Canvas als JSON in LittleFS.
+3. **Pixelart laden** holt das Preset zurück ins Canvas.
+4. **Animation sichern** speichert die letzte anim.bin (GIF/Builder/Pixelart) als Preset.
+5. **Animation laden** lädt das Preset und startet die Wiedergabe.
+
+Die Presets werden serverseitig über `/api/preset/pixelart` und `/api/preset/anim` gespeichert bzw. geladen.【F:esp32Hub75/main.sketch†L408-L520】【F:esp32Hub75/main.sketch†L2718-L2850】
+
+## Animation‑Builder (Pixelart‑Frames)
+
+- **Frame hinzufügen** sammelt die aktuelle Pixelart als Frame.
+- **Frame‑Delay** definiert die Verzögerung pro Frame (20–1000 ms).
+- **Anim bauen & senden** erzeugt eine anim.bin und spielt sie direkt ab.
+
+So kannst du kurze Pixelart‑Sequenzen ohne externes Tool erstellen.【F:esp32Hub75/main.sketch†L520-L1561】
+
 ## Pixelart erneut auf Panel zeichnen
 
 Bei Bedarf kann die aktuelle Pixelart‑Canvas erneut ans Panel gesendet werden: Der Button „Redraw Panel“ packt die Pixelart als Single‑Frame‑`anim.bin` und lässt den ESP32 sie lokal wie ein GIF rendern (keine `px`‑Flut, keine Unterbrechung durch UI‑Jobs).【F:esp32Hub75/main.sketch†L69-L799】
@@ -65,6 +90,14 @@ Die Web‑UI erstellt `anim.bin` direkt im Browser aus GIFs (Upload aktuell auf 
 - speichert RLE‑Frames.
 
 Details zur Implementierung sind im Sketch dokumentiert.【F:esp32Hub75/main.sketch†L504-L612】
+
+## GIF‑Frames als Pixelart‑JSON exportieren
+
+1. GIF auswählen.
+2. **Prepare & Upload** ausführen (Frames werden dekodiert und gemappt).
+3. **Export Frames** speichert ein JSON mit `frames` (Pixelart‑Arrays + `delayMs`).
+
+So lassen sich einzelne Frames später als Pixelart weiterverwenden oder archivieren.【F:esp32Hub75/main.sketch†L1824-L1884】
 
 ## WLED‑ähnliche Effekte starten
 
@@ -123,8 +156,12 @@ Die How‑To‑Rezepte entsprechen den implementierten Endpoints, WebSocket‑Fo
 
 ### Pixelart‑Editor: Load/Save auf Client
 
-- **Export**: Pixelart als JSON vom Browser herunterladen (Datei auf dem Client speichern).
-- **Import**: JSON vom Client laden und als Pixelart ins Canvas + Panel übertragen.
+Feature ist umgesetzt (JSON‑Export/Import im Browser).
+
+### Preset‑Management in der UI
+
+- Preset‑Liste anzeigen, umbenennen und löschen.
+- Optional: Preview pro Preset.
 
 ### Animationen im Stil von WLED
 
@@ -140,18 +177,25 @@ Status: umgesetzt (UI + Effekt‑Engine im Sketch).【F:esp32Hub75/main.sketch�
 
 ## Taskliste (Nächste notwendige Aufgaben)
 
-1. **Presets speichern/laden** per LittleFS (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L777-L805】
-2. **Animation‑Builder im UI** für Pixelart‑Sequenzen (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L90-L377】
-3. **Umsetzungs‑Task Animationen**: Effekt‑Engine + Effekte inkl. UI‑Parametersteuerung (umgesetzt in `main.sketch`, siehe `tasks.md`, Abschnitt B0).
+1. **Preset‑Verwaltung**: Preset‑Liste, Umbenennen/Löschen, optional Vorschau.
+2. **Multi‑Panel Support**: Chain > 1 inkl. Layout/Mapping.
+3. **MQTT/REST API**: Externe Steuerung für Automationen/Installationen.
 
 ## Aufgaben zur Umsetzung (Roadmap‑Features)
 
-### Pixelart‑Editor: Load/Save auf Client
+### Pixelart JSON Export/Import
 
-1. **JSON‑Schema definieren**: 64×32 Pixel als Array (RGB888), Metadaten (Version, Breite/Höhe).
-2. **Export‑Button in UI**: Pixelart aus `pix[]` in JSON serialisieren und als Datei herunterladen.
-3. **Import‑Flow in UI**: JSON laden, validieren, Pixel ins Canvas schreiben und per `px` ans Panel senden.
-4. **Fehlerhandling**: UI‑Meldungen für ungültige Dateien + optional Preview.
+- **Status**: umgesetzt (Export/Import im Browser).
+
+### Preset‑Management in der UI
+
+1. **Preset‑Liste**: Verfügbare Presets aus LittleFS anzeigen.
+2. **Löschen/Umbenennen**: Presets verwalten (UI‑Flow, Bestätigungen).
+3. **Preview**: Optional Thumbnail aus erster Frame‑Zeile generieren.
+
+### Animation‑Builder (Pixelart)
+
+- **Status**: umgesetzt (Frame‑Liste → anim.bin).
 
 ### WLED‑ähnliche Animationen
 

@@ -86,6 +86,9 @@ Falls der WebSocket‑Status in der UI auf „connecting…“ stehen bleibt, Br
 - `Reinit` initialisiert das Display neu und löscht die Canvas/Panel‑Daten (Pixelart startet sauber neu).【F:esp32Hub75/main.sketch†L368-L377】【F:esp32Hub75/main.sketch†L820-L825】
 - Der Button „Redraw Panel“ packt die aktuelle Pixelart als Single‑Frame‑`anim.bin` und lässt den ESP32 sie lokal wie ein GIF rendern (keine `px`‑Flut, keine Unterbrechung durch UI‑Aktionen).【F:esp32Hub75/main.sketch†L69-L799】
 - **Save/Load** speichert die Pixelart lokal im Browser (LocalStorage) als versioniertes Format mit Größenprüfung und lädt sie wieder in das Canvas.【F:esp32Hub75/main.sketch†L1066-L1161】
+- **Export JSON** lädt die Pixelart als JSON herunter, **Import JSON** lädt validierte JSONs zurück in das Canvas.【F:esp32Hub75/main.sketch†L1324-L1536】
+- **Presets (LittleFS)**: Pixelart/Animationen können im Gerät gespeichert und später geladen werden (Preset‑Name vergeben).【F:esp32Hub75/main.sketch†L408-L520】
+- **Animation‑Builder**: Frames aus der Pixelart sammeln, Delay/Loop setzen und als anim.bin senden.【F:esp32Hub75/main.sketch†L520-L1561】
 
 ## 7.1) Helligkeit einstellen
 
@@ -134,6 +137,7 @@ Die Web‑UI ist die primäre Konfiguration und speichert die Schlafzeit in Litt
 1. GIF auswählen.
 2. `Prepare & Upload` erstellt `anim.bin` im Browser und lädt es hoch (max. 50 Frames).
 3. `Play` startet die Animation, `Stop` stoppt sie.
+4. Optional: `Export Frames` lädt die GIF‑Frames als Pixelart‑JSON.
 
 Die GIF‑Dekodierung nutzt `gifuct-js` via CDN.【F:esp32Hub75/main.sketch†L222-L612】
 
@@ -149,8 +153,12 @@ Die im Tutorial beschriebenen Funktionen (HUB75‑Betrieb, Pixelart, Bild‑Uplo
 
 ### Pixelart‑Editor: Load/Save auf Client
 
-- **Export**: Pixelart als JSON vom Browser herunterladen (Datei auf dem Client speichern).
-- **Import**: JSON vom Client laden und als Pixelart ins Canvas + Panel übertragen.
+Feature ist umgesetzt (JSON‑Export/Import im Browser).
+
+### Preset‑Management in der UI
+
+- Preset‑Liste anzeigen, umbenennen und löschen.
+- Optional: Preview pro Preset.
 
 ### Animationen im Stil von WLED
 
@@ -166,18 +174,25 @@ Status: umgesetzt (Effekt‑Engine + UI‑Steuerung im Sketch).【F:esp32Hub75/m
 
 ## Taskliste (Nächste notwendige Aufgaben)
 
-1. **Presets für Inhalte** in LittleFS ablegen (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L777-L805】
-2. **Animation‑Builder** für Pixelart‑Sequenzen implementieren (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L90-L377】
-3. **Umsetzungs‑Task Animationen**: Effekt‑Engine + Effekte inkl. UI‑Parametersteuerung (umgesetzt in `main.sketch`, siehe `tasks.md`, Abschnitt B0).
+1. **Preset‑Verwaltung**: Preset‑Liste, Umbenennen/Löschen, optional Vorschau.
+2. **Multi‑Panel Support**: Chain > 1 inkl. Layout/Mapping.
+3. **MQTT/REST API**: Externe Steuerung für Automationen/Installationen.
 
 ## Aufgaben zur Umsetzung (Roadmap‑Features)
 
-### Pixelart‑Editor: Load/Save auf Client
+### Pixelart JSON Export/Import
 
-1. **JSON‑Schema definieren**: 64×32 Pixel als Array (RGB888), Metadaten (Version, Breite/Höhe).
-2. **Export‑Button in UI**: Pixelart aus `pix[]` als JSON speichern und herunterladen.
-3. **Import‑Flow in UI**: JSON laden, validieren, Pixel ins Canvas schreiben und per `px` ans Panel senden.
-4. **Fehlerhandling**: UI‑Meldungen + optional Vorschau.
+- **Status**: umgesetzt (Export/Import im Browser).
+
+### Preset‑Management in der UI
+
+1. **Preset‑Liste**: Verfügbare Presets aus LittleFS anzeigen.
+2. **Löschen/Umbenennen**: Presets verwalten (UI‑Flow, Bestätigungen).
+3. **Preview**: Optional Thumbnail aus erster Frame‑Zeile generieren.
+
+### Animation‑Builder (Pixelart)
+
+- **Status**: umgesetzt (Frame‑Liste → anim.bin).
 
 ### WLED‑ähnliche Animationen
 
