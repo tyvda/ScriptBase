@@ -131,10 +131,10 @@ So lassen sich einzelne Frames später als Pixelart weiterverwenden oder archivi
 
 ## WLED‑ähnliche Effekte starten
 
-Die UI bietet einen eigenen Bereich für Effekte (Matrix, Blink, Colorfading, Rainbow, Kaminfeuer, Twinkle, Scanner, Waves). Start/Stop und Parameter werden per WebSocket gesteuert:
+Die UI bietet einen eigenen Bereich für Effekte (Matrix, Kaminfeuer). Andere Effekte sind vorerst deaktiviert. Start/Stop und Parameter werden per WebSocket gesteuert:
 
 ```json
-{"t":"fx","mode":"matrix","run":1,"speed":80,"intensity":180,"density":120,"trail":180,"duty":160,"dir":1,"cooling":120,"sparks":120,"c1":65280,"c2":16711680}
+{"t":"fx","mode":"matrix","run":1,"speed":80,"intensity":180,"density":120,"trail":180,"cooling":120,"sparks":120,"c1":65280}
 ```
 
 `run:0` stoppt den Effekt. Der Effekt‑Modus stoppt GIF‑Animationen automatisch.【F:esp32Hub75/main.sketch†L58-L1149】
@@ -193,17 +193,12 @@ Feature ist umgesetzt (JSON‑Export/Import im Browser).
 - Preset‑Liste anzeigen, umbenennen und löschen.
 - Optional: Preview pro Preset.
 
-### Animationen im Stil von WLED
+### Animationen im Stil von WLED (Matrix + Kaminfeuer aktiv)
 
 - **Matrix Kino‑Film** (Digit‑Regen mit Trails): Parameter z. B. Geschwindigkeit, Dichte, Trail‑Länge, Farbpalette/Grün‑Tint.
-- **Blink**: Parameter z. B. Geschwindigkeit, Duty‑Cycle, Farbpalette, zufällige Startphasen.
-- **Colorfading**: Parameter z. B. Fade‑Speed, Farbpalette, Loop‑Modus.
-- **Rainbow**: Parameter z. B. Geschwindigkeit, Richtung, Sättigung/Intensität.
 - **Kaminfeuer**: Parameter z. B. Flammenhöhe, Glut‑Intensität, Flacker‑Stärke, Farbpalette.
-- **Twinkle**: Parameter z. B. Dichte, Speed, Intensität/Farbe.
-- **Scanner**: Parameter z. B. Speed, Breite/Trail, Richtung, Farbe.
-- **Waves**: Parameter z. B. Speed, Richtung, Intensität.
-Status: umgesetzt (UI + Effekt‑Engine im Sketch).【F:esp32Hub75/main.sketch†L58-L1684】
+Weitere Effekte (Blink, Colorfading, Rainbow, Twinkle, Scanner, Waves) sind aktuell deaktiviert.
+Status: umgesetzt; aktuell sind Matrix und Kaminfeuer aktiv, weitere Effekte sind deaktiviert.【F:esp32Hub75/main.sketch†L58-L1684】
 
 ## Taskliste (Nächste notwendige Aufgaben)
 
@@ -231,9 +226,9 @@ Status: umgesetzt (UI + Effekt‑Engine im Sketch).【F:esp32Hub75/main.sketch�
 
 1. **Effekt‑Engine abstrahieren** (Frame‑Tick, Parameter).
 2. **Matrix Kino‑Film**: Digit‑Regen mit Trails (Speed, Density, Trail‑Length, Palette).
-3. **Blink**: On/Off‑Pattern (Speed, Duty‑Cycle, Palette, Random Seed).
-4. **Colorfading**: Interpolation (Fade‑Speed, Palette, Loop).
-5. **Rainbow**: HSV‑Sweep (Speed, Direction, Saturation/Intensity).
+3. **Blink**: On/Off‑Pattern (Speed, Duty‑Cycle, Palette, Random Seed) – vorerst deaktiviert.
+4. **Colorfading**: Interpolation (Fade‑Speed, Palette, Loop) – vorerst deaktiviert.
+5. **Rainbow**: HSV‑Sweep (Speed, Direction, Saturation/Intensity) – vorerst deaktiviert.
 6. **Kaminfeuer**: Heat‑Map/Convolution (Flame Height, Glow, Flicker, Palette).
 7. **UI‑Parametersteuerung**: Dropdown + Slider, Live‑Update via WebSocket JSON.
 8. **Persistenz optional**: Letzten Effekt/Parameter in LittleFS speichern.

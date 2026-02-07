@@ -148,7 +148,7 @@ Das erste Frame wird in die Canvas geladen, sodass du es direkt als Pixelart‑F
 
 ## 10) WLED‑ähnliche Effekte starten
 
-Im UI‑Bereich „WLED‑ähnliche Animationen“ kannst du Effekte wie Matrix, Blink, Colorfading, Rainbow, Kaminfeuer, Twinkle, Scanner oder Waves starten. Parameter wirken live (Speed, Intensity usw.). Start/Stop und Parameteränderungen werden via WebSocket übertragen.【F:esp32Hub75/main.sketch†L58-L1684】
+Im UI‑Bereich „WLED‑ähnliche Animationen“ kannst du aktuell Matrix und Kaminfeuer starten. Weitere Effekte sind vorerst deaktiviert. Parameter wirken live (Speed, Intensity usw.). Start/Stop und Parameteränderungen werden via WebSocket übertragen.【F:esp32Hub75/main.sketch†L58-L1684】
 
 ## Implementierungscheck (Sketch-Abgleich)
 
@@ -165,17 +165,12 @@ Feature ist umgesetzt (JSON‑Export/Import im Browser).
 - Preset‑Liste anzeigen, umbenennen und löschen.
 - Optional: Preview pro Preset.
 
-### Animationen im Stil von WLED
+### Animationen im Stil von WLED (Matrix + Kaminfeuer aktiv)
 
 - **Matrix Kino‑Film** (Digit‑Regen mit Trails): Parameter z. B. Geschwindigkeit, Dichte, Trail‑Länge, Farbpalette/Grün‑Tint.
-- **Blink**: Parameter z. B. Geschwindigkeit, Duty‑Cycle, Farbpalette, zufällige Startphasen.
-- **Colorfading**: Parameter z. B. Fade‑Speed, Farbpalette, Loop‑Modus.
-- **Rainbow**: Parameter z. B. Geschwindigkeit, Richtung, Sättigung/Intensität.
 - **Kaminfeuer**: Parameter z. B. Flammenhöhe, Glut‑Intensität, Flacker‑Stärke, Farbpalette.
-- **Twinkle**: Parameter z. B. Dichte, Speed, Intensität/Farbe.
-- **Scanner**: Parameter z. B. Speed, Breite/Trail, Richtung, Farbe.
-- **Waves**: Parameter z. B. Speed, Richtung, Intensität.
-Status: umgesetzt (Effekt‑Engine + UI‑Steuerung im Sketch).【F:esp32Hub75/main.sketch†L58-L1684】
+Weitere Effekte (Blink, Colorfading, Rainbow, Twinkle, Scanner, Waves) sind aktuell deaktiviert.
+Status: umgesetzt; aktuell sind Matrix und Kaminfeuer aktiv, weitere Effekte sind deaktiviert.【F:esp32Hub75/main.sketch†L58-L1684】
 
 ## Taskliste (Nächste notwendige Aufgaben)
 
@@ -203,9 +198,9 @@ Status: umgesetzt (Effekt‑Engine + UI‑Steuerung im Sketch).【F:esp32Hub75/m
 
 1. **Effekt‑Engine abstrahieren** (Frame‑Tick, Parameter).
 2. **Matrix Kino‑Film**: Digit‑Regen mit Trails (Speed, Density, Trail‑Length, Palette).
-3. **Blink**: On/Off‑Pattern (Speed, Duty‑Cycle, Palette, Random Seed).
-4. **Colorfading**: Interpolation (Fade‑Speed, Palette, Loop).
-5. **Rainbow**: HSV‑Sweep (Speed, Direction, Saturation/Intensity).
+3. **Blink**: On/Off‑Pattern (Speed, Duty‑Cycle, Palette, Random Seed) – vorerst deaktiviert.
+4. **Colorfading**: Interpolation (Fade‑Speed, Palette, Loop) – vorerst deaktiviert.
+5. **Rainbow**: HSV‑Sweep (Speed, Direction, Saturation/Intensity) – vorerst deaktiviert.
 6. **Kaminfeuer**: Heat‑Map/Convolution (Flame Height, Glow, Flicker, Palette).
 7. **UI‑Parametersteuerung**: Dropdown + Slider, Live‑Update via WebSocket JSON.
 8. **Persistenz optional**: Letzten Effekt/Parameter in LittleFS speichern.

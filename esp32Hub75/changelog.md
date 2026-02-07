@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-02-06 15:45:53 +0000
+- WLED‑ähnliche Animationen auf Matrix und Kaminfeuer reduziert (UI‑Dropdown, WebSocket‑Payload und Effekt‑Logik bereinigt). Quelle: `main.sketch`.
+- Dokumentation und Tasks auf den reduzierten Effekt‑Umfang aktualisiert (nur Matrix + Kaminfeuer aktiv, weitere Effekte deaktiviert). Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`, `tasks.md`.
+
 ## 2026-02-06 14:44:55 +0000
 - Tab‑UI erweitert: Frame‑Animation im Pixelart‑Tab, Prev/Next/+ Frame und Anim‑Start/Stop. Quelle: `main.sketch`.
 - Preset‑Workflow ergänzt: Listen aus LittleFS, JSON‑Download/Import und Preset‑Auswahl. Quelle: `main.sketch`.

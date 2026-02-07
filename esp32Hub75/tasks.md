@@ -5,7 +5,7 @@ Diese Aufgabenliste beschreibt detailliert die Umsetzung der geplanten Roadmap�
 ## Kontext & Ziele
 
 - **Pixelart‑Editor Load/Save**: JSON‑Export/Import direkt auf dem Client (Browser), damit Nutzer ihre Pixelart lokal speichern und wieder laden können.
-- **WLED‑ähnliche Animationen**: Effekt‑Engine + parametrierbare Effekte (Matrix Kino‑Film, Blink, Colorfading, Rainbow, Kaminfeuer).
+- **WLED‑ähnliche Animationen**: Effekt‑Engine + parametrierbare Effekte (Matrix Kino‑Film, Kaminfeuer). Weitere Effekte sind vorerst deaktiviert.
 
 ## A) Pixelart‑Editor: Load/Save auf Client
 
@@ -58,7 +58,7 @@ Diese Aufgabenliste beschreibt detailliert die Umsetzung der geplanten Roadmap�
 - **Ziel**: WLED‑ähnliche Animationen als integrierten Modus im Sketch bereitstellen.
 - **Scope**:
   - Effekt‑Engine (Registry + Tick‑Loop + Parameter‑Schema).
-  - Effekte B2–B6 implementieren.
+  - Effekte B2 + B6 implementieren (Matrix + Kaminfeuer). Andere Effekte vorerst deaktiviert.
   - UI‑Steuerung (Dropdown + Slider) inkl. Live‑Update via WebSocket‑JSON.
 - **Akzeptanzkriterien**:
   - Start/Stop per WebSocket‑JSON möglich.
@@ -80,41 +80,49 @@ Diese Aufgabenliste beschreibt detailliert die Umsetzung der geplanten Roadmap�
 - **Algorithmus**: Digit‑Regen mit Trail‑Decay.
 - **Parameter**: Geschwindigkeit, Dichte, Trail‑Länge, Farbpalette (Grün‑Tint).
 - **Render‑Pfad**: Framebuffer‑Update pro Tick.
+- **Status**: aktiv.
 
 ### C3) Blink
 
 - **Algorithmus**: On/Off‑Zyklus mit optionaler Randomisierung.
 - **Parameter**: Geschwindigkeit, Duty‑Cycle, Farbpalette, Random Seed.
+- **Status**: vorerst deaktiviert.
 
 ### C4) Colorfading
 
 - **Algorithmus**: Interpolation zwischen Farben.
 - **Parameter**: Fade‑Speed, Palette, Loop‑Modus.
+- **Status**: vorerst deaktiviert.
 
 ### C5) Rainbow
 
 - **Algorithmus**: HSV‑Sweep über die Matrix.
 - **Parameter**: Speed, Direction, Saturation/Intensity.
+- **Status**: vorerst deaktiviert.
 
 ### C6) Kaminfeuer
 
 - **Algorithmus**: Heat‑Map mit Diffusion/Convolution.
 - **Parameter**: Flammenhöhe, Glut‑Intensität, Flacker‑Stärke, Palette.
+- **Status**: aktiv.
 
 ### C9) Twinkle (neu)
 
 - **Algorithmus**: Zufällige Sternchen mit Fade‑Out.
 - **Parameter**: Dichte, Geschwindigkeit, Farbe/Intensität.
+- **Status**: vorerst deaktiviert.
 
 ### C10) Scanner (neu)
 
 - **Algorithmus**: Wandernder Balken mit Trail (Cylon‑Effekt).
 - **Parameter**: Geschwindigkeit, Breite/Trail, Farbe, Richtung.
+- **Status**: vorerst deaktiviert.
 
 ### C11) Waves (neu)
 
 - **Algorithmus**: Sinus‑Wellen mit HSV‑Farbverlauf.
 - **Parameter**: Geschwindigkeit, Richtung, Intensität.
+- **Status**: vorerst deaktiviert.
 
 ### C7) UI‑Steuerung
 
