@@ -1,0 +1,446 @@
+#include <WiFi.h>
+#include <WebServer.h>
+#include <ArduinoJson.h>
+#include <ArduinoOTA.h>
+#include <AccelStepper.h>
+#include <ESP32Servo.h>
+
+// ============================================================
+// ESP32 Mechanik-Controller (2x Stepper + 4x Servo)
+// Non-blocking Firmware mit Web-UI + JSON API + OTA
+// ============================================================
+
+// -------------------------
+// WLAN (STA + DHCP)
+// -------------------------
+static const char* WIFI_SSID = "DEIN_SSID";
+static const char* WIFI_PASS = "DEIN_PASS";
+static const char* HOSTNAME  = "esp32-mecha";
+
+constexpr unsigned long WIFI_RECONNECT_INTERVAL_MS = 10000;
+unsigned long lastWifiReconnectAttemptMs = 0;
+
+// -------------------------
+// Pinout (fix laut Lastenheft)
+// -------------------------
+// Stepper 1 (TMC2209 Step/Dir, Standalone)
+constexpr int STEP1_STEP_PIN = 18;
+constexpr int STEP1_DIR_PIN  = 19;
+
+// Stepper 2 (TMC2209 Step/Dir, Standalone)
+constexpr int STEP2_STEP_PIN = 21;
+constexpr int STEP2_DIR_PIN  = 22;
+
+// Servos SG90
+constexpr int SERVO1_PIN = 23;
+constexpr int SERVO2_PIN = 25;
+constexpr int SERVO3_PIN = 26;
+constexpr int SERVO4_PIN = 27;
+
+// -------------------------
+// Stepper setup
+// -------------------------
+AccelStepper stepper1(AccelStepper::DRIVER, STEP1_STEP_PIN, STEP1_DIR_PIN);
+AccelStepper stepper2(AccelStepper::DRIVER, STEP2_STEP_PIN, STEP2_DIR_PIN);
+
+struct StepperConfig {
+  float maxSpeed = 1200.0f;
+  float acceleration = 600.0f;
+};
+
+StepperConfig stepperCfg1;
+StepperConfig stepperCfg2;
+
+// -------------------------
+// Servo setup
+// -------------------------
+Servo servo1;
+Servo servo2;
+Servo servo3;
+Servo servo4;
+
+struct ServoState {
+  Servo* servo = nullptr;
+  int currentDeg = 90;
+  int targetDeg = 90;
+};
+
+ServoState servos[4];
+constexpr unsigned long SERVO_SMOOTH_INTERVAL_MS = 15;
+unsigned long lastServoSmoothMs = 0;
+
+// -------------------------
+// Webserver
+// -------------------------
+WebServer server(80);
+
+const char INDEX_HTML[] PROGMEM = R"HTML(
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ESP32 Mecha UI</title>
+  <style>
+    body{font-family:Arial,sans-serif;background:#111;color:#eee;max-width:960px;margin:24px auto;padding:0 12px}
+    .card{background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:12px;margin-bottom:14px}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    label{font-size:14px}
+    input,button{background:#222;color:#eee;border:1px solid #444;border-radius:6px;padding:6px 8px}
+    button{cursor:pointer}
+    .status{font-size:13px;color:#9f9}
+    .warn{color:#fc9}
+    code{color:#9cf}
+  </style>
+</head>
+<body>
+  <h1>ESP32 Mechanik-Controller</h1>
+  <p class="status" id="st">Bereit</p>
+
+  <div class="card">
+    <h3>Stepper 1</h3>
+    <div class="row">
+      <label>Target <input id="s1t" type="number" value="0"></label>
+      <label>Speed <input id="s1s" type="number" value="1200"></label>
+      <label>Accel <input id="s1a" type="number" value="600"></label>
+      <button onclick="sendStepper(1)">Senden</button>
+      <button onclick="moveRel(1,100)">+100</button>
+      <button onclick="moveRel(1,-100)">-100</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Stepper 2</h3>
+    <div class="row">
+      <label>Target <input id="s2t" type="number" value="0"></label>
+      <label>Speed <input id="s2s" type="number" value="1200"></label>
+      <label>Accel <input id="s2a" type="number" value="600"></label>
+      <button onclick="sendStepper(2)">Senden</button>
+      <button onclick="moveRel(2,100)">+100</button>
+      <button onclick="moveRel(2,-100)">-100</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Servos</h3>
+    <div id="servos"></div>
+  </div>
+
+  <div class="card">
+    <h3>JSON API Beispiel</h3>
+    <p><code>POST /api/control</code> mit JSON Payload.</p>
+  </div>
+
+<script>
+const st = document.getElementById('st');
+const servoWrap = document.getElementById('servos');
+for(let i=1;i<=4;i++){
+  const d=document.createElement('div');
+  d.className='row';
+  d.innerHTML=`<label>Servo ${i} (0..180)
+    <input id="sv${i}" type="range" min="0" max="180" value="90" oninput="servoSend(${i},this.value)">
+    <input id="sv${i}n" type="number" min="0" max="180" value="90" onchange="servoNum(${i},this.value)">
+  </label>`;
+  servoWrap.appendChild(d);
+}
+
+function setStatus(msg, warn=false){ st.textContent=msg; st.className=warn?'status warn':'status'; }
+
+async function post(payload){
+  try{
+    const r=await fetch('/api/control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const t=await r.text();
+    setStatus((r.ok?'OK: ':'Fehler: ')+t,!r.ok);
+  }catch(e){ setStatus('Netzwerkfehler: '+e,true); }
+}
+
+function sendStepper(id){
+  const t=Number(document.getElementById(`s${id}t`).value);
+  const s=Number(document.getElementById(`s${id}s`).value);
+  const a=Number(document.getElementById(`s${id}a`).value);
+  post({stepper:{id,target:t,speed:s,accel:a,mode:'absolute'}});
+}
+
+function moveRel(id,delta){
+  const s=Number(document.getElementById(`s${id}s`).value);
+  const a=Number(document.getElementById(`s${id}a`).value);
+  post({stepper:{id,target:delta,speed:s,accel:a,mode:'relative'}});
+}
+
+function servoSend(id,val){
+  document.getElementById(`sv${id}n`).value = val;
+  post({servo:{id,angle:Number(val)}});
+}
+
+function servoNum(id,val){
+  val=Math.max(0,Math.min(180,Number(val)));
+  document.getElementById(`sv${id}`).value=val;
+  post({servo:{id,angle:val}});
+}
+</script>
+</body>
+</html>
+)HTML";
+
+static int clampAngle(int deg) {
+  if (deg < 0) return 0;
+  if (deg > 180) return 180;
+  return deg;
+}
+
+static void applyStepperConfig(AccelStepper& stp, const StepperConfig& cfg) {
+  stp.setMaxSpeed(cfg.maxSpeed);
+  stp.setAcceleration(cfg.acceleration);
+}
+
+static bool parseStepper(JsonVariantConst stepperNode, String& err) {
+  if (!stepperNode.is<JsonObjectConst>()) {
+    err = "stepper muss ein Objekt sein";
+    return false;
+  }
+
+  const int id = stepperNode["id"] | 0;
+  if (id < 1 || id > 2) {
+    err = "stepper.id muss 1 oder 2 sein";
+    return false;
+  }
+
+  const float speed = stepperNode["speed"] | -1.0f;
+  const float accel = stepperNode["accel"] | -1.0f;
+  const long target = stepperNode["target"] | 0;
+  const String mode = stepperNode["mode"] | "absolute";
+
+  if (speed <= 0 || accel <= 0) {
+    err = "speed und accel muessen > 0 sein";
+    return false;
+  }
+
+  StepperConfig* cfg = (id == 1) ? &stepperCfg1 : &stepperCfg2;
+  AccelStepper* stp = (id == 1) ? &stepper1 : &stepper2;
+
+  cfg->maxSpeed = speed;
+  cfg->acceleration = accel;
+  applyStepperConfig(*stp, *cfg);
+
+  if (mode == "relative") {
+    stp->move(target);
+  } else {
+    stp->moveTo(target);
+  }
+
+  return true;
+}
+
+static bool parseServo(JsonVariantConst servoNode, String& err) {
+  if (!servoNode.is<JsonObjectConst>()) {
+    err = "servo muss ein Objekt sein";
+    return false;
+  }
+
+  const int id = servoNode["id"] | 0;
+  if (id < 1 || id > 4) {
+    err = "servo.id muss 1..4 sein";
+    return false;
+  }
+
+  const int angle = clampAngle(servoNode["angle"] | 90);
+  servos[id - 1].targetDeg = angle;
+  return true;
+}
+
+void handleRoot() {
+  server.send_P(200, "text/html; charset=utf-8", INDEX_HTML);
+}
+
+void handleHealth() {
+  StaticJsonDocument<256> doc;
+  doc["wifiConnected"] = WiFi.status() == WL_CONNECTED;
+  doc["ip"] = WiFi.localIP().toString();
+  doc["stepper1Pos"] = stepper1.currentPosition();
+  doc["stepper2Pos"] = stepper2.currentPosition();
+
+  JsonArray arr = doc.createNestedArray("servos");
+  for (int i = 0; i < 4; ++i) {
+    JsonObject sv = arr.createNestedObject();
+    sv["id"] = i + 1;
+    sv["current"] = servos[i].currentDeg;
+    sv["target"] = servos[i].targetDeg;
+  }
+
+  String out;
+  serializeJson(doc, out);
+  server.send(200, "application/json", out);
+}
+
+void handleControl() {
+  if (!server.hasArg("plain")) {
+    server.send(400, "application/json", "{\"ok\":false,\"error\":\"Body fehlt\"}");
+    return;
+  }
+
+  StaticJsonDocument<512> doc;
+  DeserializationError de = deserializeJson(doc, server.arg("plain"));
+  if (de) {
+    server.send(400, "application/json", "{\"ok\":false,\"error\":\"Ungueltiges JSON\"}");
+    return;
+  }
+
+  String err;
+  bool ok = true;
+
+  if (doc.containsKey("stepper")) {
+    ok &= parseStepper(doc["stepper"], err);
+  }
+
+  if (ok && doc.containsKey("servo")) {
+    ok &= parseServo(doc["servo"], err);
+  }
+
+  if (!ok) {
+    String out = String("{\"ok\":false,\"error\":\"") + err + "\"}";
+    server.send(400, "application/json", out);
+    return;
+  }
+
+  server.send(200, "application/json", "{\"ok\":true}");
+}
+
+void setupWiFi() {
+  WiFi.mode(WIFI_STA);
+  WiFi.setHostname(HOSTNAME);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+
+  Serial.print("[WiFi] Verbinde mit ");
+  Serial.println(WIFI_SSID);
+
+  unsigned long start = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - start < 15000) {
+    delay(250);
+    Serial.print('.');
+  }
+  Serial.println();
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.print("[WiFi] Verbunden, IP: ");
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.println("[WiFi] Erstverbindung fehlgeschlagen, laeuft mit Auto-Reconnect weiter.");
+  }
+}
+
+void setupOTA() {
+  ArduinoOTA.setHostname(HOSTNAME);
+  ArduinoOTA.onStart([]() {
+    Serial.println("[OTA] Start");
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("[OTA] Ende");
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("[OTA] Fehler %u\n", error);
+  });
+  ArduinoOTA.begin();
+  Serial.println("[OTA] Bereit");
+}
+
+void setupWeb() {
+  server.on("/", HTTP_GET, handleRoot);
+  server.on("/api/health", HTTP_GET, handleHealth);
+  server.on("/api/control", HTTP_POST, handleControl);
+  server.begin();
+  Serial.println("[HTTP] Server gestartet");
+}
+
+void setupSteppers() {
+  stepper1.setEnablePin(-1);
+  stepper2.setEnablePin(-1);
+
+  applyStepperConfig(stepper1, stepperCfg1);
+  applyStepperConfig(stepper2, stepperCfg2);
+
+  // Für TMC2209 im Standalone Step/Dir werden Register nicht per UART gesetzt.
+  // StealthChop sollte hardwareseitig konfiguriert sein (MS/CFG Pins am Treiberboard).
+}
+
+void setupServos() {
+  ESP32PWM::allocateTimer(0);
+  ESP32PWM::allocateTimer(1);
+  ESP32PWM::allocateTimer(2);
+  ESP32PWM::allocateTimer(3);
+
+  servo1.setPeriodHertz(50);
+  servo2.setPeriodHertz(50);
+  servo3.setPeriodHertz(50);
+  servo4.setPeriodHertz(50);
+
+  servo1.attach(SERVO1_PIN, 500, 2400);
+  servo2.attach(SERVO2_PIN, 500, 2400);
+  servo3.attach(SERVO3_PIN, 500, 2400);
+  servo4.attach(SERVO4_PIN, 500, 2400);
+
+  servos[0] = { &servo1, 90, 90 };
+  servos[1] = { &servo2, 90, 90 };
+  servos[2] = { &servo3, 90, 90 };
+  servos[3] = { &servo4, 90, 90 };
+
+  for (int i = 0; i < 4; ++i) {
+    servos[i].servo->write(servos[i].currentDeg);
+  }
+}
+
+void updateServoSmoothing() {
+  const unsigned long now = millis();
+  if (now - lastServoSmoothMs < SERVO_SMOOTH_INTERVAL_MS) {
+    return;
+  }
+  lastServoSmoothMs = now;
+
+  for (int i = 0; i < 4; ++i) {
+    if (servos[i].currentDeg < servos[i].targetDeg) {
+      servos[i].currentDeg++;
+      servos[i].servo->write(servos[i].currentDeg);
+    } else if (servos[i].currentDeg > servos[i].targetDeg) {
+      servos[i].currentDeg--;
+      servos[i].servo->write(servos[i].currentDeg);
+    }
+  }
+}
+
+void keepWifiAlive() {
+  if (WiFi.status() == WL_CONNECTED) {
+    return;
+  }
+
+  const unsigned long now = millis();
+  if (now - lastWifiReconnectAttemptMs >= WIFI_RECONNECT_INTERVAL_MS) {
+    lastWifiReconnectAttemptMs = now;
+    Serial.println("[WiFi] Reconnect...");
+    WiFi.disconnect(false, false);
+    WiFi.begin(WIFI_SSID, WIFI_PASS);
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  setupSteppers();
+  setupServos();
+  setupWiFi();
+  setupOTA();
+  setupWeb();
+
+  Serial.println("[System] ESP32 Mechanik-Controller gestartet");
+}
+
+void loop() {
+  // Non-blocking Motorsteuerung
+  stepper1.run();
+  stepper2.run();
+
+  // Servo-Smoothing ohne delay()
+  updateServoSmoothing();
+
+  // Netzwerk / OTA / API responsiv halten
+  keepWifiAlive();
+  ArduinoOTA.handle();
+  server.handleClient();
+}
