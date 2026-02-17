@@ -1,5 +1,33 @@
 # Changelog
 
+## 2026-02-06 15:45:53 +0000
+- WLED‑ähnliche Animationen auf Matrix und Kaminfeuer reduziert (UI‑Dropdown, WebSocket‑Payload und Effekt‑Logik bereinigt). Quelle: `main.sketch`.
+- Dokumentation und Tasks auf den reduzierten Effekt‑Umfang aktualisiert (nur Matrix + Kaminfeuer aktiv, weitere Effekte deaktiviert). Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`, `tasks.md`.
+
+## 2026-02-06 14:44:55 +0000
+- Tab‑UI erweitert: Frame‑Animation im Pixelart‑Tab, Prev/Next/+ Frame und Anim‑Start/Stop. Quelle: `main.sketch`.
+- Preset‑Workflow ergänzt: Listen aus LittleFS, JSON‑Download/Import und Preset‑Auswahl. Quelle: `main.sketch`.
+- Dokumentation und Tasks für neue Pixelart‑/Preset‑Flows aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`, `tasks.md`.
+
+## 2026-02-06 13:41:09 +0000
+- UI auf Tabs (Uhr, Stopuhr, Pixelart, Animationen) umgestellt und Frame‑Navigation im Pixelart‑Tab ergänzt. Quelle: `main.sketch`.
+- Pixelart‑Frames/Medien‑Workflow angepasst: Bild lädt direkt in Canvas, GIF setzt das erste Frame und erlaubt Frame‑Export. Quelle: `main.sketch`.
+- Dokumentation für Tab‑UI und Frame‑Navigation aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-02-06 13:02:05 +0000
+- GIF‑Frames‑Export als Pixelart‑JSON ergänzt (UI‑Button + JSON‑Payload). Quelle: `main.sketch`.
+- Dokumentation und Tasks für GIF‑Frame‑Export aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`, `tasks.md`.
+
+## 2026-02-06 10:39:10 +0000
+- Animations‑Presets ergänzen: Speicherung nutzt jetzt anim.bin aus GIF/Builder/Pixelart, UI‑Texte präzisiert. Quelle: `main.sketch`.
+- Dokumentation auf Animations‑Presets aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`, `tasks.md`.
+
+## 2026-02-06 10:18:49 +0000
+- Pixelart JSON‑Export/Import ergänzt (validiertes Schema, Export‑Download, Import‑Workflow). Quelle: `main.sketch`.
+- Presets für Pixelart und Bilder in LittleFS ergänzt (API + Web‑UI). Quelle: `main.sketch`.
+- Animation‑Builder für Pixelart‑Frames ergänzt (Frame‑Liste, Delay/Loop, anim.bin Upload). Quelle: `main.sketch`.
+- Dokumentation für JSON‑Workflow, Presets und Animation‑Builder aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`, `tasks.md`.
+
 ## 2026-02-02 13:53:03 +0000
 - Pixelart-Speicherung auf Browser-LocalStorage zurückgesetzt, um Web-UI-Hänger zu vermeiden. Quelle: `main.sketch`.
 - Dokumentation für lokales Pixelart-Save/Load aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.

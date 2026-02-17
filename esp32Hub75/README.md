@@ -11,13 +11,18 @@ Kein Cloud‑Zwang, kein WLED, kein externer Server.
 ## Features
 
 - Web‑UI mit Pixel‑Editor (Brush, Clear/Fill, Reinit).【F:esp32Hub75/main.sketch†L67-L377】
+- Tab‑UI für Uhr, Stopuhr, Pixelart und Animationen.【F:esp32Hub75/main.sketch†L419-L736】
+- Pixelart JSON‑Export/Import im Browser (versioniertes Format, validierte Größe).【F:esp32Hub75/main.sketch†L1324-L1536】
+- Presets für Pixelart und Animationen in LittleFS (speichern/laden über Web‑UI).【F:esp32Hub75/main.sketch†L408-L520】
+- Animation‑Builder für Pixelart‑Frames (Frame‑Liste → anim.bin).【F:esp32Hub75/main.sketch†L520-L1561】
+- GIF‑Frames als Pixelart‑JSON exportieren (Frame‑Liste mit Delay).【F:esp32Hub75/main.sketch†L1824-L1884】
 - Bild‑Upload (PNG/JPG/WebP) mit Aspect‑Mapping (Auto/4:3/16:9) und Cover/Contain‑Scaling.【F:esp32Hub75/main.sketch†L142-L454】
 - GIF‑Upload inkl. browserseitiger Dekodierung und RLE‑Kompression für schnelle Wiedergabe am ESP32 (Upload aktuell auf max. 50 Frames limitiert).【F:esp32Hub75/main.sketch†L222-L612】
 - WebSocket‑Streaming von Full‑Frames (RGB565) und Einzelpixel‑Updates (JSON).【F:esp32Hub75/main.sketch†L318-L760】
 - Helligkeitssteuerung im UI (WebSocket, `setBrightness8`).【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
 - NTP‑Uhr (HH:MM oder HH:MM:SS) und Stopuhr (HH:MM:SS) mit einstellbarer LED‑Kettenfarbe für den Panel‑Rand.【F:esp32Hub75/main.sketch†L1279-L1340】
 - Optionales Wetter‑Overlay für Koblenz im Uhr‑Modus (Temperatur + Kurzcode).【F:esp32Hub75/main.sketch†L1302-L1352】【F:esp32Hub75/main.sketch†L1455-L1484】
-- WLED‑ähnliche Animationen (Matrix, Blink, Colorfading, Rainbow, Kaminfeuer, Twinkle, Scanner, Waves) mit UI‑Parametern und WebSocket‑Steuerung.【F:esp32Hub75/main.sketch†L58-L1684】
+- WLED‑ähnliche Animationen (Matrix, Kaminfeuer) mit UI‑Parametern und WebSocket‑Steuerung; weitere Effekte sind aktuell deaktiviert.【F:esp32Hub75/main.sketch†L58-L1684】
 
 ## Implementierungscheck (Sketch-Abgleich)
 
@@ -63,8 +68,8 @@ Die Feature‑Implementierungen sind im Sketch sichtbar (Web‑UI, Gamma/Boost, 
 
 ### Nice‑to‑Have (Optional)
 
-- Presets.
-- Animationen aus Pixelart.
+- Preset‑Management (Listen/Umbenennen/Löschen).
+- Animation‑Sequenzen (Animation‑Builder, erweitert um Timeline).
 - Multi‑Panel Support.
 
 ## Systemarchitektur
@@ -210,7 +215,14 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 - **Bild‑Mapping**: Bild‑Upload folgt derselben Canvas‑Mapping‑Pipeline wie GIFs (Image → Canvas → 64×32) und wird anschließend wie ein GIF‑Frame als `anim.bin` gepackt, hochgeladen und lokal vom ESP32 gerendert. 【F:esp32Hub75/main.sketch†L535-L799】
 - **Panel‑Redraw**: Button „Redraw Panel“ packt die aktuelle Pixelart als Single‑Frame‑`anim.bin` und lässt den ESP32 das Bild lokal anzeigen (wie bei GIFs), wodurch Unterbrechungen durch UI‑Jobs vermieden werden. 【F:esp32Hub75/main.sketch†L69-L799】
 - **Pixelart Save/Load**: Speichert in Browser‑LocalStorage als versioniertes Format mit Größenprüfung; Laden erfolgt lokal aus dem Browser‑Speicher. 【F:esp32Hub75/main.sketch†L1066-L1161】
-- **WLED‑ähnliche Effekte**: Eigener UI‑Bereich mit Start/Stop, Speed/Intensity sowie Effekt‑Parametern (Matrix, Blink, Colorfading, Rainbow, Kaminfeuer, Twinkle, Scanner, Waves).【F:esp32Hub75/main.sketch†L58-L1684】
+- **Pixelart JSON‑Export/Import**: Exportiert ein JSON‑File (versioniert, 64×32) und importiert es zurück ins Canvas inkl. Validierung. 【F:esp32Hub75/main.sketch†L1324-L1536】
+- **Frame‑Navigation**: Next Frame und + Frame erlauben Sequenzen aus Pixelart oder GIF‑Frames. 【F:esp32Hub75/main.sketch†L452-L692】
+- **Frame‑Animation starten**: Aus den Frames wird anim.bin gebaut und direkt abgespielt. 【F:esp32Hub75/main.sketch†L486-L611】
+- **Presets (LittleFS)**: Pixelart‑JSON und anim.bin‑Animationen können als Preset gespeichert und geladen werden. 【F:esp32Hub75/main.sketch†L408-L520】
+- **Preset‑Auswahl**: Gespeicherte Presets lassen sich über Listen auswählen und laden. 【F:esp32Hub75/main.sketch†L502-L520】
+- **Animation‑Builder**: Frame‑Liste aus Pixelart aufbauen, Delay/Loop setzen und als anim.bin senden. 【F:esp32Hub75/main.sketch†L520-L1561】
+- **GIF‑Frames Export**: GIF‑Frames als JSON (Pixelart‑Arrays + Delay) herunterladen. 【F:esp32Hub75/main.sketch†L1824-L1884】
+- **WLED‑ähnliche Effekte**: Eigener UI‑Bereich mit Start/Stop, Speed/Intensity sowie Effekt‑Parametern (Matrix, Kaminfeuer). Andere Effekte sind vorerst deaktiviert.【F:esp32Hub75/main.sketch†L58-L1684】
 
 ## Netzwerk‑API (HTTP + WebSocket)
 
@@ -221,6 +233,11 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 - `POST /uploadAnim` → `anim.bin` Upload nach LittleFS.【F:esp32Hub75/main.sketch†L827-L839】
 - `GET /api/anim/play` → Animation starten (aus `anim.bin`).【F:esp32Hub75/main.sketch†L841-L848】
 - `GET /api/anim/stop` → Animation stoppen.【F:esp32Hub75/main.sketch†L850-L854】
+- `GET /api/presets` → Liste der Presets (Pixelart/Animationen).【F:esp32Hub75/main.sketch†L2950-L2990】
+- `GET /api/preset/pixelart?name=<id>` → Pixelart‑Preset laden (JSON).【F:esp32Hub75/main.sketch†L2718-L2790】
+- `POST /api/preset/pixelart?name=<id>` → Pixelart‑Preset speichern (JSON).【F:esp32Hub75/main.sketch†L2718-L2790】
+- `GET /api/preset/anim?name=<id>` → Animations‑Preset laden (anim.bin → aktiv).【F:esp32Hub75/main.sketch†L2792-L2850】
+- `POST /api/preset/anim?name=<id>` → Animations‑Preset speichern (anim.bin).【F:esp32Hub75/main.sketch†L2792-L2850】
 - `GET /ping` → Healthcheck (`pong`).【F:esp32Hub75/main.sketch†L856-L858】
 
 ### WebSocket `/ws`
@@ -232,7 +249,7 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
   - `{"t":"fill","c":0xRRGGBB}` – Fill‑Farbe setzen.【F:esp32Hub75/main.sketch†L731-L735】
   - `{"t":"stop"}` – Animation stoppen.【F:esp32Hub75/main.sketch†L736-L739】
   - `{"t":"bright","v":128}` – Helligkeit (5–255) setzen.【F:esp32Hub75/main.sketch†L736-L768】
-  - `{"t":"fx","mode":"matrix","run":1,"speed":80,"intensity":180,"density":120,"trail":180,"duty":160,"dir":1,"cooling":120,"sparks":120,"c1":0x00FF00,"c2":0xFF0000}` – WLED‑ähnliche Effekte starten/parametrieren.【F:esp32Hub75/main.sketch†L94-L1149】
+  - `{"t":"fx","mode":"matrix","run":1,"speed":80,"intensity":180,"density":120,"trail":180,"cooling":120,"sparks":120,"c1":0x00FF00}` – WLED‑ähnliche Effekte starten/parametrieren (Matrix/Kaminfeuer).【F:esp32Hub75/main.sketch†L94-L1149】
   - `{"t":"mode","mode":"clock"}` – Display‑Modus setzen (`ui`, `clock`, `stopwatch`).【F:esp32Hub75/main.sketch†L1688-L1797】
   - `{"t":"clockfmt","fmt":"hhmm"}` – Uhrformat wählen (`hhmm` oder `hhmmss`).【F:esp32Hub75/main.sketch†L1688-L1797】
   - `{"t":"clock","c":0xFFFFFF,"i":255}` – Uhrfarbe (RGB) und Uhr‑Helligkeit (10–255) setzen.【F:esp32Hub75/main.sketch†L1872-L1905】
@@ -295,56 +312,49 @@ Die Bewertung basiert auf der Architektur (FrameBuffer + RLE + WebSocket).【F:e
 ## Erweiterungsmöglichkeiten
 
 - Mehrere Panels (Chain > 1).
-- Presets speichern.
-- Animation Builder im UI.
+- Preset‑Verwaltung (Listen/Umbenennen/Löschen in der UI).
 - MQTT / REST API.
 - OTA Update später wieder ergänzen.
 
 ## Zukünftige Features (Roadmap)
 
-### Pixelart‑Editor: Load/Save auf Client
+### Preset‑Management in der UI
 
-- **Export**: Pixelart als JSON vom Browser herunterladen (Datei auf dem Client speichern).
-- **Import**: JSON vom Client laden und als Pixelart ins Canvas + Panel übertragen.
+- Preset‑Liste anzeigen, umbenennen und löschen.
+- Optional: Vorschaubilder pro Preset.
 
 ### Animationen im Stil von WLED
 
-Umgesetzt ist ein eigener Animations‑Bereich mit Parametern pro Effekt:
+Umgesetzt ist ein eigener Animations‑Bereich mit Parametern pro Effekt. Aktiv sind Matrix und Kaminfeuer, weitere Effekte sind aktuell deaktiviert:
 
 - **Matrix Kino‑Film** (Digit‑Regen mit Trails): Parameter z. B. Geschwindigkeit, Dichte, Trail‑Länge, Farbpalette/Grün‑Tint.
-- **Blink**: Parameter z. B. Geschwindigkeit, Duty‑Cycle, Farbpalette, zufällige Startphasen.
-- **Colorfading**: Parameter z. B. Fade‑Speed, Farbpalette, Loop‑Modus.
-- **Rainbow**: Parameter z. B. Geschwindigkeit, Richtung, Sättigung/Intensität.
 - **Kaminfeuer**: Parameter z. B. Flammenhöhe, Glut‑Intensität, Flacker‑Stärke, Farbpalette.
-- **Twinkle**: Parameter z. B. Dichte, Speed, Intensität/Farbe.
-- **Scanner**: Parameter z. B. Speed, Breite/Trail, Richtung, Farbe.
-- **Waves**: Parameter z. B. Speed, Richtung, Intensität.
+Weitere Effekte (Blink, Colorfading, Rainbow, Twinkle, Scanner, Waves) sind aktuell deaktiviert.
 Status: umgesetzt (Effekt‑Engine + UI‑Steuerung im Sketch).【F:esp32Hub75/main.sketch†L58-L1684】
 
 ## Taskliste (Nächste notwendige Aufgaben)
 
 Basierend auf den dokumentierten Einschränkungen und Optional‑Features ergeben sich folgende nächste Schritte:
 
-1. **Presets für Pixelart/Bilder**: Speichern/Laden in LittleFS integrieren (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L777-L805】
-2. **Animation‑Builder im UI**: Pixelart‑Frames erfassen und als Animation exportieren (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L90-L377】
-3. **Umsetzungs‑Task Animationen**: Effekt‑Engine + Effekte inkl. UI‑Parametersteuerung (umgesetzt in `main.sketch`, siehe `tasks.md`, Abschnitt B0).
+1. **Preset‑Verwaltung**: Preset‑Liste, Umbenennen/Löschen, optional Vorschau.
+2. **Multi‑Panel Support**: Chain > 1 inkl. Layout/Mapping.
+3. **MQTT/REST API**: Externe Steuerung für Automationen/Installationen.
 
 ## Aufgaben zur Umsetzung (Roadmap‑Features)
 
-### Pixelart‑Editor: Load/Save auf Client
+### Preset‑Management in der UI
 
-1. **JSON‑Schema definieren**: 64×32 Pixel als Array (RGB888), Metadaten (Version, Breite/Höhe). Quelle: `README.md` (Roadmap), `main.sketch` (Framebuffer‑Format).
-2. **Export‑Button in UI**: Aktuelle Pixelart aus `pix[]` in JSON serialisieren und als Datei herunterladen. Quelle: `main.sketch` (UI/JS).
-3. **Import‑Flow in UI**: JSON vom Client laden, validieren (Größe/Version), Pixel ins Canvas schreiben und per `px`/`fill` ans Panel übertragen. Quelle: `main.sketch` (WebSocket `px`).
-4. **Fehlerhandling**: UI‑Meldungen bei ungültigem JSON/Format; optional Vorschau vor Senden. Quellen: `main.sketch` (UI/JS), `README.md`.
+1. **Preset‑Liste**: Verfügbare Presets aus LittleFS anzeigen.
+2. **Löschen/Umbenennen**: Presets verwalten (UI‑Flow, Bestätigungen).
+3. **Preview**: Optional Thumbnail aus erster Frame‑Zeile generieren.
 
 ### WLED‑ähnliche Animationen
 
 1. **Effekt‑Engine abstrahieren**: Basisklasse/Funktionspointer für Effekte (Frame‑Tick, Parameter). Quelle: `main.sketch` (loop/Framebuffer).
 2. **Matrix Kino‑Film**: Digit‑Regen mit Trails (Speed, Density, Trail‑Length, Palette). Quelle: `README.md` Roadmap.
-3. **Blink**: On/Off‑Pattern (Speed, Duty‑Cycle, Palette, Random Seed). Quelle: `README.md` Roadmap.
-4. **Colorfading**: Interpolation zwischen Farben (Fade‑Speed, Palette, Loop). Quelle: `README.md` Roadmap.
-5. **Rainbow**: HSV‑Sweep (Speed, Direction, Saturation/Intensity). Quelle: `README.md` Roadmap.
+3. **Blink**: On/Off‑Pattern (Speed, Duty‑Cycle, Palette, Random Seed) – vorerst deaktiviert. Quelle: `README.md` Roadmap.
+4. **Colorfading**: Interpolation zwischen Farben (Fade‑Speed, Palette, Loop) – vorerst deaktiviert. Quelle: `README.md` Roadmap.
+5. **Rainbow**: HSV‑Sweep (Speed, Direction, Saturation/Intensity) – vorerst deaktiviert. Quelle: `README.md` Roadmap.
 6. **Kaminfeuer**: Heat‑Map/Convolution (Flame Height, Glow, Flicker, Palette). Quelle: `README.md` Roadmap.
 7. **UI‑Parametersteuerung**: Dropdown + Parameter‑Slider, live Update über WebSocket JSON. Quelle: `main.sketch` (WebSocket).
 8. **Persistenz optional**: Letzten Effekt/Parameter in LittleFS speichern (Nice‑to‑Have). Quelle: `main.sketch` (LittleFS).
