@@ -138,6 +138,16 @@ Die How‑To‑Rezepte entsprechen den implementierten Endpoints, WebSocket‑Fo
 - **Waves**: Parameter z. B. Speed, Richtung, Intensität.
 Status: umgesetzt (UI + Effekt‑Engine im Sketch).【F:esp32Hub75/main.sketch†L58-L1684】
 
+
+### Driftfreie Uhr-Schrittsetzung
+
+Die Uhr/Stopuhr läuft jetzt mit fixer Sollzeit-Fortschreibung statt mit `now + interval` pro Tick. Dadurch akkumulieren Renderzeiten nicht mehr in die nächste Periode hinein und die Anzeige bleibt stabil im Schritt (kein regelmäßiges Verschieben). Zusätzlich werden Zeitabfragen (`getLocalTime`) im Render-/Sleep-Pfad nicht-blockierend ausgeführt.
+
+
+### Stabile Schriftsetzung der Uhr
+
+Die Uhrtexte werden jetzt vollständig in einem festen 6px-Zeichenraster mit `drawChar` gerendert (auch im zentrierten Pfad). Dadurch bleiben X-Positionen pro Zeichen über alle Frames deterministisch und die Uhranzeige wandert nicht mehr periodisch.
+
 ## Taskliste (Nächste notwendige Aufgaben)
 
 1. **Presets speichern/laden** per LittleFS (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L777-L805】
@@ -165,3 +175,14 @@ Status: umgesetzt (UI + Effekt‑Engine im Sketch).【F:esp32Hub75/main.sketch�
 8. **Persistenz optional**: Letzten Effekt/Parameter in LittleFS speichern.
 
 Die umfassende Aufgabenbeschreibung befindet sich in `tasks.md`.【F:esp32Hub75/tasks.md†L1-L99】
+
+
+## Doom-Style Feuer (Cellular Automata)
+
+Das Kaminfeuer wurde auf eine Doom-Style-Cellular-Automata angepasst: 1 Byte Heat pro Pixel (`0..63`), feste RGB565-Palette in PROGMEM und konstante Wärmequelle in der untersten Zeile. Pro Tick wird je Zelle aus `below/left/right` gemittelt und ein kleiner Integer-Decay abgezogen; optional verschiebt `dir` das Ergebnis als Wind in X-Richtung. Damit bleibt die Simulation DMA-freundlich (kein `delay()` im Effekt, keine Floats in der Feuerlogik).
+
+Parameter-Mapping im vorhandenen FX-Protokoll:
+- `speed`: Simulationsrate (praktisch 30–60 FPS bei kleinen Intervallen).
+- `cooling`: Decay-Stärke (`0..3` intern geklemmt).
+- `sparks`: Reignite-Wahrscheinlichkeit in der Bottom-Row.
+- `dir`: Windrichtung (`-1`, `0`, `+1`).

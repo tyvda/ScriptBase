@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-02-20 09:40:09 +0000
+- Schriftsetzung der Uhr stabilisiert: zentrierte Uhranzeige rendert jetzt ebenfalls per explizitem `drawChar`-Raster (6px-Zellen) statt `print()`. Damit sind Zeichenpositionen pro Frame deterministisch und es gibt kein periodisches horizontales Wandern durch Cursor-/Print-Pfad. Quelle/Zweck: `main.sketch` für visuell ruhige Uhrdarstellung.
+- `render_fixed_text` auf denselben deterministischen Renderpfad vereinheitlicht (`int`-Loop, `setTextWrap(false)`), damit Wetter-/Uhrpfad identisch stabil zeichnen. Quelle/Zweck: `main.sketch` für konsistente Textplatzierung.
+- Dokumentation zur Uhrdarstellung ergänzt. Quellen/Zweck: `README.md`, `TUTORIAL.md`, `HOWTO.md` zur eindeutigen Nachvollziehbarkeit zwischen Changelog und Code.
+
+## 2026-02-20 09:37:18 +0000
+- Uhr-/Timing-Schrittsetzung auf feste Intervalle umgestellt (`schedule_fixed_interval`): statt `now + interval` wird die nächste Fälligkeit aus dem vorherigen Sollwert fortgeschrieben. Dadurch kumuliert kein Render-/Loop-Jitter mehr und die Uhr verschiebt sich nicht regelmäßig. Quelle/Zweck: `main.sketch` für stabile Sekundenschritte.
+- Gleiche Fix-Logik auf Stopuhr-, Animations- und Effekt-Ticker angewendet, damit alle periodischen Jobs driftarm laufen. Quelle/Zweck: `main.sketch` für konsistentes Timing im gesamten Render-Loop.
+- `getLocalTime` in Clock/Sleep-Pfad auf nicht-blockierend (`timeout=0`) umgestellt, damit Zeitabfragen den Loop nicht periodisch ausbremsen. Quelle/Zweck: `main.sketch` für flüssige Darstellung und stabile Taktung.
+- Dokumentation um Abschnitt zur driftfreien Uhrschrittsetzung ergänzt. Quellen/Zweck: `README.md`, `TUTORIAL.md`, `HOWTO.md` zur nachvollziehbaren Ableitung zwischen Changelog und Source.
+
+## 2026-02-11 21:22:04 +0000
+- Feueranimation auf Doom-Style Cellular-Automata umgestellt: 64-stufige RGB565-Palette (`firePalette`) in PROGMEM, 1-Byte-Heatmap (`fireHeat`) mit `0..63`, untere Zeile als konstante Wärmequelle, Update-Regel über Mittelwert von `below/left/right` plus kleinem Decay (Integer-only) und optionalem Windversatz über `dir`. Quelle/Zweck: `main.sketch` für performante, projektspezifische HUB75-Feuersimulation.
+- FX-Reset für `FX_FIRE` initialisiert die Bottom-Row sofort auf Max-Intensität, damit der Effekt direkt sichtbar startet. Quelle/Zweck: `main.sketch` für stabilen Effekt-Start ohne Leerlauf.
+- Dokumentation für die neue Feuerlogik inkl. Parameterabbildung (`speed`, `cooling`, `sparks`, `dir`) ergänzt. Quellen/Zweck: `README.md`, `TUTORIAL.md`, `HOWTO.md` für nachvollziehbare Ableitung zwischen Changelog und Implementierung.
+
 ## 2026-02-02 13:53:03 +0000
 - Pixelart-Speicherung auf Browser-LocalStorage zurückgesetzt, um Web-UI-Hänger zu vermeiden. Quelle: `main.sketch`.
 - Dokumentation für lokales Pixelart-Save/Load aktualisiert. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.

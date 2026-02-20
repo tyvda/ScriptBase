@@ -171,7 +171,18 @@ static uint32_t effectNextMs = 0;
 static int8_t matrixPos[PANEL_RES_X];
 static uint8_t matrixLen[PANEL_RES_X];
 static bool matrixActive[PANEL_RES_X];
+static constexpr uint8_t FIRE_MAX_INTENSITY = 63;
 static uint8_t fireHeat[PANEL_RES_X * PANEL_RES_Y];
+static const uint16_t firePalette[64] PROGMEM = {
+  0x0000, 0x0000, 0x0800, 0x0800, 0x1000, 0x1000, 0x1800, 0x1800,
+  0x2000, 0x2000, 0x2800, 0x2800, 0x3000, 0x3000, 0x3800, 0x3800,
+  0x4000, 0x4800, 0x5000, 0x5800, 0x6000, 0x6800, 0x7000, 0x7800,
+  0x8000, 0x8800, 0x9000, 0x9800, 0xA000, 0xA800, 0xB000, 0xB800,
+  0xC000, 0xC800, 0xD000, 0xD820, 0xE040, 0xE860, 0xF080, 0xF8A0,
+  0xF8C0, 0xF8E0, 0xF900, 0xF920, 0xF940, 0xF960, 0xF980, 0xF9A0,
+  0xF9C0, 0xF9E0, 0xFA00, 0xFA20, 0xFA40, 0xFA60, 0xFA80, 0xFAA0,
+  0xFAC0, 0xFAE0, 0xFB20, 0xFB80, 0xFBC0, 0xFC20, 0xFC80, 0xFD00
+};
 static uint8_t colorfadePhase = 0;
 static bool colorfadeForward = true;
 static uint16_t rainbowHue = 0;
@@ -179,6 +190,17 @@ static uint32_t blinkStartMs = 0;
 static float scannerPos = 0.0f;
 static float scannerVel = 1.0f;
 static uint8_t twinkleMap[PANEL_RES_X * PANEL_RES_Y];
+
+static void schedule_fixed_interval(uint32_t &nextMs, uint32_t now, uint16_t intervalMs) {
+  if (intervalMs == 0) intervalMs = 1;
+  if (nextMs == 0) {
+    nextMs = now + intervalMs;
+    return;
+  }
+  do {
+    nextMs += intervalMs;
+  } while ((int32_t)(now - nextMs) >= 0);
+}
 
 // =====================
 // HTML UI
@@ -1655,19 +1677,21 @@ static void render_centered_text(const char* text, uint16_t color) {
   if (x < 0) x = 0;
   if (y < 0) y = 0;
   dma_display->setTextSize(1);
-  dma_display->setTextColor(color);
-  dma_display->setCursor(x, y);
-  dma_display->print(text);
+  dma_display->setTextWrap(false);
+  for (int i = 0; i < len; i++) {
+    dma_display->drawChar(x + i * 6, y, text[i], color, 0, 1);
+  }
 }
 
 static void render_fixed_text(const char* text, uint16_t color, int y) {
   if (!dma_display || !text) return;
-  size_t len = strlen(text);
-  int textWidth = (int)len * 6;
+  int len = strlen(text);
+  int textWidth = len * 6;
   int x = (PANEL_RES_X - textWidth) / 2;
   if (x < 0) x = 0;
-  for (size_t i = 0; i < len; i++) {
-    dma_display->drawChar(x + (int)i * 6, y, text[i], color, 0, 1);
+  dma_display->setTextWrap(false);
+  for (int i = 0; i < len; i++) {
+    dma_display->drawChar(x + i * 6, y, text[i], color, 0, 1);
   }
 }
 
@@ -1839,7 +1863,7 @@ static void draw_weather_icon(int16_t code, int x, int y) {
 
 static void render_clock_frame() {
   struct tm timeinfo;
-  bool timeOk = getLocalTime(&timeinfo);
+  bool timeOk = getLocalTime(&timeinfo, 0);
   const char* fallback = clockShowSeconds ? "--:--:--" : "--:--";
   char buf[12];
   if (timeOk) {
@@ -1957,21 +1981,8 @@ static void fade_frame(uint8_t factor) {
 }
 
 static uint16_t fire_color(uint8_t heat) {
-  uint8_t r=0,g=0,b=0;
-  if (heat > 170) {
-    r = 255;
-    g = 255;
-    b = (heat - 170) * 3;
-  } else if (heat > 85) {
-    r = 255;
-    g = (heat - 85) * 3;
-    b = 0;
-  } else {
-    r = heat * 3;
-    g = 0;
-    b = 0;
-  }
-  return rgb888_to_565((r << 16) | (g << 8) | b);
+  uint8_t idx = heat > FIRE_MAX_INTENSITY ? FIRE_MAX_INTENSITY : heat;
+  return firePalette[idx];
 }
 
 static EffectMode effectModeFromString(const char* mode) {
@@ -2001,6 +2012,9 @@ static void effectResetState(EffectMode mode) {
     rainbowHue = 0;
   } else if (mode == FX_FIRE) {
     memset(fireHeat, 0, sizeof(fireHeat));
+    for (int x=0; x<PANEL_RES_X; x++) {
+      fireHeat[(PANEL_RES_Y - 1) * PANEL_RES_X + x] = FIRE_MAX_INTENSITY;
+    }
   } else if (mode == FX_BLINK) {
     blinkStartMs = millis();
   } else if (mode == FX_SCANNER) {
@@ -2151,36 +2165,50 @@ static void effectTickRainbow() {
 }
 
 static void effectTickFire() {
-  uint8_t cooling = effectParams.cooling;
-  uint8_t sparks = effectParams.sparks;
+  uint8_t decay = 1 + (effectParams.cooling / 96);
+  if (decay > 3) decay = 3;
+  int8_t windDir = effectParams.direction < 0 ? -1 : (effectParams.direction > 0 ? 1 : 0);
 
-  for (int i=0; i<PANEL_RES_X*PANEL_RES_Y; i++) {
-    uint8_t cool = random(0, (cooling / 12) + 2);
-    fireHeat[i] = (cool > fireHeat[i]) ? 0 : (fireHeat[i] - cool);
-  }
-
-  for (int y=PANEL_RES_Y-1; y>=2; y--) {
+  for (int y=0; y<PANEL_RES_Y-1; y++) {
+    int row = y * PANEL_RES_X;
+    int rowBelow = (y + 1) * PANEL_RES_X;
     for (int x=0; x<PANEL_RES_X; x++) {
-      int idx = y*PANEL_RES_X + x;
-      int below = idx - PANEL_RES_X;
-      int left = (x == 0) ? below : (below - 1);
-      int right = (x == PANEL_RES_X-1) ? below : (below + 1);
-      uint16_t val = fireHeat[below] + fireHeat[left] + fireHeat[right] + fireHeat[idx];
-      fireHeat[idx - PANEL_RES_X] = val / 4;
+      int xm1 = (x == 0) ? (PANEL_RES_X - 1) : (x - 1);
+      int xp1 = (x == PANEL_RES_X - 1) ? 0 : (x + 1);
+
+      int below = fireHeat[rowBelow + x];
+      int left = fireHeat[rowBelow + xm1];
+      int right = fireHeat[rowBelow + xp1];
+
+      int value = (below + left + right) / 3;
+      value -= random(0, decay + 1);
+      if (value < 0) value = 0;
+      if (value > FIRE_MAX_INTENSITY) value = FIRE_MAX_INTENSITY;
+
+      int writeX = x + windDir;
+      if (writeX < 0) writeX += PANEL_RES_X;
+      if (writeX >= PANEL_RES_X) writeX -= PANEL_RES_X;
+      fireHeat[row + writeX] = (uint8_t)value;
     }
   }
 
+  uint8_t sparkThreshold = effectParams.sparks;
   for (int x=0; x<PANEL_RES_X; x++) {
-    if (random(0, 256) < sparks) {
-      fireHeat[(PANEL_RES_Y-1)*PANEL_RES_X + x] = random(160, 255);
+    if (random(0, 256) < sparkThreshold) {
+      uint8_t sparkDrop = random(0, decay + 1);
+      int value = FIRE_MAX_INTENSITY - sparkDrop;
+      fireHeat[(PANEL_RES_Y - 1) * PANEL_RES_X + x] = value < 0 ? 0 : (uint8_t)value;
+    } else {
+      fireHeat[(PANEL_RES_Y - 1) * PANEL_RES_X + x] = FIRE_MAX_INTENSITY;
     }
   }
 
   for (int y=0; y<PANEL_RES_Y; y++) {
+    int row = y * PANEL_RES_X;
     for (int x=0; x<PANEL_RES_X; x++) {
-      uint8_t heat = fireHeat[y*PANEL_RES_X + x];
+      uint8_t heat = fireHeat[row + x];
       uint16_t col = fire_color(heat);
-      fb[y*PANEL_RES_X + x] = scale565(col, effectParams.intensity);
+      fb[row + x] = scale565(col, effectParams.intensity);
     }
   }
   draw_full_frame();
@@ -2415,7 +2443,7 @@ static void update_sleep_state() {
   if (sleepNextCheckMs != 0 && (int32_t)(now - sleepNextCheckMs) < 0) return;
   sleepNextCheckMs = now + 30000;
   struct tm timeinfo;
-  if (!getLocalTime(&timeinfo)) return;
+  if (!getLocalTime(&timeinfo, 0)) return;
   bool shouldSleep = is_sleep_time(timeinfo);
   if (shouldSleep == sleepActive) return;
   sleepActive = shouldSleep;
@@ -2704,7 +2732,7 @@ void loop() {
     }
     if (clockNextMs == 0 || (int32_t)(now - clockNextMs) >= 0) {
       render_clock_frame();
-      clockNextMs = now + 1000;
+      schedule_fixed_interval(clockNextMs, now, 1000);
     }
     delay(2);
     return;
@@ -2714,7 +2742,7 @@ void loop() {
     uint32_t now = millis();
     if (stopwatchNextMs == 0 || (int32_t)(now - stopwatchNextMs) >= 0) {
       render_stopwatch_frame();
-      stopwatchNextMs = now + 200;
+      schedule_fixed_interval(stopwatchNextMs, now, 200);
     }
     delay(2);
     return;
@@ -2738,7 +2766,7 @@ void loop() {
           if (animHdr.loop) animOpenAndReadHeader();
           else animPlaying = false;
         }
-        animNextMs = now + delayMs;
+        schedule_fixed_interval(animNextMs, now, delayMs);
       }
     }
   }
@@ -2758,7 +2786,7 @@ void loop() {
         case FX_WAVES: effectTickWaves(); break;
         default: break;
       }
-      effectNextMs = now + interval;
+      schedule_fixed_interval(effectNextMs, now, interval);
     }
   }
 
