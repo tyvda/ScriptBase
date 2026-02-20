@@ -212,6 +212,32 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 - **Pixelart Save/Load**: Speichert in Browser‑LocalStorage als versioniertes Format mit Größenprüfung; Laden erfolgt lokal aus dem Browser‑Speicher. 【F:esp32Hub75/main.sketch†L1066-L1161】
 - **WLED‑ähnliche Effekte**: Eigener UI‑Bereich mit Start/Stop, Speed/Intensity sowie Effekt‑Parametern (Matrix, Blink, Colorfading, Rainbow, Kaminfeuer, Twinkle, Scanner, Waves).【F:esp32Hub75/main.sketch†L58-L1684】
 
+
+### Doom-Style Feuer (Cellular Automata)
+
+Das Kaminfeuer nutzt jetzt eine Doom-Style-CA mit 1 Byte pro Zelle (`0..63`) auf voller Panelauflösung (`PANEL_RES_X*PANEL_RES_Y`) und einer statischen RGB565-Palette (`firePalette[64]` in PROGMEM). Die unterste Zeile ist eine konstante Wärmequelle; pro Tick werden je Zelle `below/left/right` gemittelt und per kleinem Decay reduziert. Optionaler Wind wird über den Richtungsparameter (`dir`) als X-Offset beim Schreiben angewendet. Rendering läuft rein integerbasiert über LUT → Framebuffer, danach `draw_full_frame()`.
+
+Parameterabbildung im bestehenden FX-API:
+- `speed`: Simulationsintervall (30–60 FPS typisch bei kleinen `speed`-Werten).
+- `cooling`: steuert Decay (`0..3` intern, klein gehalten für stabile Flammen).
+- `sparks`: Wahrscheinlichkeit für Bottom-Row-Reignite.
+- `dir`: optionaler Wind (-1/0/+1).
+
+
+### Driftfreie Uhr-Schrittsetzung
+
+Die Uhr/Stopuhr läuft jetzt mit fixer Sollzeit-Fortschreibung statt mit `now + interval` pro Tick. Dadurch akkumulieren Renderzeiten nicht mehr in die nächste Periode hinein und die Anzeige bleibt stabil im Schritt (kein regelmäßiges Verschieben). Zusätzlich werden Zeitabfragen (`getLocalTime`) im Render-/Sleep-Pfad nicht-blockierend ausgeführt.
+
+
+### Stabile Schriftsetzung der Uhr
+
+Die Uhrtexte werden jetzt vollständig in einem festen 6px-Zeichenraster mit `drawChar` gerendert (auch im zentrierten Pfad). Dadurch bleiben X-Positionen pro Zeichen über alle Frames deterministisch und die Uhranzeige wandert nicht mehr periodisch.
+
+
+### Feste Uhr-Glyphen `NN:NN:NN`
+
+Die Uhr nutzt ein eigenes 4x7-Glyphenset mit fixen Zeichen-Slots. Das Muster `NN:NN:NN` wird über eine konstante Zellbreite gezeichnet; damit ist garantiert, dass jede Ziffer (`0..9`) innerhalb eines `N`-Feldes vollständig und identisch dargestellt wird. Der Doppelpunkt `:` ist als zwei exakt vertikal ausgerichtete 2x2-Punkte definiert.
+
 ## Netzwerk‑API (HTTP + WebSocket)
 
 ### HTTP Endpoints
