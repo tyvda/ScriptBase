@@ -148,6 +148,11 @@ Die Uhr/Stopuhr läuft jetzt mit fixer Sollzeit-Fortschreibung statt mit `now + 
 
 Die Uhrtexte werden jetzt vollständig in einem festen 6px-Zeichenraster mit `drawChar` gerendert (auch im zentrierten Pfad). Dadurch bleiben X-Positionen pro Zeichen über alle Frames deterministisch und die Uhranzeige wandert nicht mehr periodisch.
 
+
+### Feste Uhr-Glyphen `NN:NN:NN`
+
+Die Uhr nutzt ein eigenes 4x7-Glyphenset mit fixen Zeichen-Slots. Das Muster `NN:NN:NN` wird über eine konstante Zellbreite gezeichnet; damit ist garantiert, dass jede Ziffer (`0..9`) innerhalb eines `N`-Feldes vollständig und identisch dargestellt wird. Der Doppelpunkt `:` ist als zwei exakt vertikal ausgerichtete 2x2-Punkte definiert.
+
 ## Taskliste (Nächste notwendige Aufgaben)
 
 1. **Presets speichern/laden** per LittleFS (Nice‑to‑Have).【F:esp32Hub75/main.sketch†L777-L805】

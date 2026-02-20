@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-02-20 13:51:51 +0000
+- Uhranzeige auf eigenes festes 4x7-Glyphenset umgestellt (`CLOCK_DIGITS_4X7`) und Rendering über `render_clock_pattern` vereinheitlicht. Damit gilt ein explizites Slot-Muster `NN:NN:NN` mit fester Zellbreite je Zeichenfeld; jede Ziffer `0..9` passt deterministisch in ein `N`-Feld. Quelle/Zweck: `main.sketch` für konsistente, reproduzierbare Uhrtypografie.
+- Doppelpunkt explizit als zwei vertikal ausgerichtete 2x2-Punkte definiert, um den gemeldeten Versatz des unteren Punkts zu eliminieren. Quelle/Zweck: `main.sketch` für saubere `:`-Darstellung.
+- Clock- und Stopwatch-Textpfad verwenden jetzt denselben Pattern-Renderer; dadurch werden identische Ziffern (z. B. erste/zweite `4`) im gleichen Raster gleich gezeichnet. Quelle/Zweck: `main.sketch` für einheitliche Zeichendarstellung.
+- Dokumentation zur festen Uhrschrift (`NN:NN:NN`) ergänzt. Quellen/Zweck: `README.md`, `TUTORIAL.md`, `HOWTO.md` zur eindeutigen Ableitung zwischen Changelog und Source.
+
 ## 2026-02-20 09:40:09 +0000
 - Schriftsetzung der Uhr stabilisiert: zentrierte Uhranzeige rendert jetzt ebenfalls per explizitem `drawChar`-Raster (6px-Zellen) statt `print()`. Damit sind Zeichenpositionen pro Frame deterministisch und es gibt kein periodisches horizontales Wandern durch Cursor-/Print-Pfad. Quelle/Zweck: `main.sketch` für visuell ruhige Uhrdarstellung.
 - `render_fixed_text` auf denselben deterministischen Renderpfad vereinheitlicht (`int`-Loop, `setTextWrap(false)`), damit Wetter-/Uhrpfad identisch stabil zeichnen. Quelle/Zweck: `main.sketch` für konsistente Textplatzierung.
