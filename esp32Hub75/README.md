@@ -38,7 +38,7 @@ Die Weboberfläche wurde für schnellere Routineabläufe erweitert:
 - Neuer Workflow-Status direkt im Pixelart-Bereich (`Idle/Busy/Done/Error`).
 - Quick-Buttons für typische Kombi-Aktionen: **Quick Sync Panel** (aktuelles Canvas direkt auf Panel) und **Preview + Send Bild** (Image-Preview + Transfer als zusammenhängender Ablauf).
 - Workflow-Lock gegen parallele Ausführung, damit keine überlappenden Panel-Jobs entstehen.
-- Hinweis aus Betrieb: Bei instabiler WLAN-Verbindung kann ein WebSocket-Reconnect sonst den Display-Modus zurücksetzen; der Modus wird nun lokal persistiert und Medien-/FX-Starts erzwingen bei Bedarf `ui`, damit Animationen nicht unerwartet in `clock` abbrechen.
+- Hinweis aus Betrieb: Bei instabiler WLAN-Verbindung kann ein WebSocket-Reconnect sonst den Display-Modus zurücksetzen; der Modus wird nun lokal persistiert und Medien-/FX-Starts erzwingen bei Bedarf `ui`, damit Animationen nicht unerwartet in `clock` abbrechen. Zusätzlich ist der Server nun modussicher: redundante `mode`-Events stoppen laufende Medien nicht mehr, und Animations-/FX-Starts setzen serverseitig konsistent auf `ui`.
 
 Damit werden häufige Bedienpfade kürzer und der Status für laufende Aktionen transparenter. Neu: Der Workflow meldet „Done“ erst nach tatsächlichem Abarbeiten der Panel-Queue (kein starres Timing-Fenster mehr) und sperrt Quick-Buttons während laufender Jobs.【F:esp32Hub75/main.sketch†L473-L481】【F:esp32Hub75/main.sketch†L741-L744】【F:esp32Hub75/main.sketch†L889-L916】【F:esp32Hub75/main.sketch†L1275-L1302】【F:esp32Hub75/main.sketch†L1500-L1514】
 

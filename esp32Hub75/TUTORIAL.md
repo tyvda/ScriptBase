@@ -92,7 +92,7 @@ Damit ist klar erkennbar, was die UI gerade ausführt, und Standardaktionen brau
 
 ### Hinweis zu Abbrüchen nach einigen Minuten
 
-Falls Animationen früher nach einigen Minuten stoppten, lag das oft an einem WS-Reconnect mit Moduswechsel. Der Modus wird jetzt gespeichert und Media-/FX-Start setzt bei Bedarf wieder `ui`.
+Falls Animationen früher nach einigen Minuten stoppten, lag das oft an einem WS-Reconnect mit Moduswechsel. Der Modus wird jetzt gespeichert und Media-/FX-Start setzt bei Bedarf wieder `ui`. Zusätzlich sind die Server-Startpfade selbst abgesichert, damit ein doppeltes/verspätetes `mode`-Event laufende Animationen nicht unbeabsichtigt stoppt.
 
 ## Refactoring-Stand (Wartbarkeit)
 

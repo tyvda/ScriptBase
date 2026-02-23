@@ -2247,6 +2247,7 @@ static void stop_media_playback() {
 }
 
 static void set_display_mode(DisplayMode mode) {
+  if (displayMode == mode) return;
   displayMode = mode;
   clockNextMs = 0;
   stopwatchNextMs = 0;
@@ -2728,6 +2729,7 @@ void onWsEvent(AsyncWebSocket*, AsyncWebSocketClient*, AwsEventType type, void *
     int run = doc["run"] | -1;
     if (run == 0) effectStop();
     else if (run == 1) {
+      set_display_mode(MODE_UI);
       if (effectMode == FX_NONE) effectMode = requested;
       effectStart(effectMode);
     }
@@ -2872,8 +2874,7 @@ void setup_server() {
   );
 
   server.on("/api/anim/play", HTTP_GET, [](AsyncWebServerRequest *req){
-    effectStop();
-    animPlaying = false;
+    set_display_mode(MODE_UI);
     if (animOpenAndReadHeader()) {
       animPlaying = true;
       animNextMs = 0;

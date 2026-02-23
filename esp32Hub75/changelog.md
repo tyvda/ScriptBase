@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-02-23 15:06:23 +0000
+- Freeze bei Animationsansicht gegen Race zwischen Moduswechsel und Playback gehärtet: `set_display_mode()` ist nun idempotent (früher führte auch derselbe Modus erneut `stop_media_playback()` aus). Quelle/Zweck: `main.sketch` für stabile laufende Animationen ohne unnötigen Stop.
+- Server-seitig abgesichert: Startpfade für GIF/Animation und FX erzwingen nun explizit `MODE_UI` vor Start (`/api/anim/play`, `fx run=1`), statt sich nur auf UI-Client-Reihenfolgen zu verlassen. Quelle/Zweck: `main.sketch` für robustes Verhalten bei WS-Reconnect/Out-of-order Events.
+- Doku/Troubleshooting um den Modus-Playback-Race-Fix ergänzt. Quellen/Zweck: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 ## 2026-02-23 10:46:34 +0000
 - Ursache für „Animation stoppt nach Minuten“ adressiert: Default-Displaymodus in der UI auf `ui` gesetzt (statt `clock`) und Display-Modus in `localStorage` persistiert, damit WebSocket-Reconnects nicht ungewollt in den Uhrmodus umschalten. Quelle/Zweck: `main.sketch` für stabile Dauerwiedergabe.
 - Neue Hilfslogik `ensureUiMode()` ergänzt und an Medien-/FX-Startpfade gehängt (`sendAnimFromPix`, `playGif`, `sendFx(run=1)`), sodass Animation/Effekte beim Start immer explizit in den Canvas/Media-Modus wechseln. Quelle/Zweck: `main.sketch` für robustes Playback trotz WS-Neuverbindung.

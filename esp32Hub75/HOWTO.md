@@ -29,7 +29,7 @@ Zusätzlich schützt ein Workflow-Lock vor parallel gestarteten Panel-Jobs; Quic
 
 ## Animation stoppt nach Minuten (Troubleshooting)
 
-Mögliche Ursache ist ein WebSocket-Reconnect, der den Modus ungewollt auf Uhr zurücksetzt. Im aktuellen Stand wird der Display-Modus lokal gespeichert und Medien-/FX-Startpfade schalten aktiv auf `ui`, damit laufende Animationen stabil bleiben.
+Mögliche Ursache ist ein WebSocket-Reconnect, der den Modus ungewollt auf Uhr zurücksetzt. Im aktuellen Stand wird der Display-Modus lokal gespeichert und Medien-/FX-Startpfade schalten aktiv auf `ui`, damit laufende Animationen stabil bleiben. Zusätzlich ist der Serverpfad gehärtet: redundante Modus-Setzungen sind idempotent und Startpfade (`/api/anim/play`, `fx run=1`) erzwingen `ui` auch dann, wenn UI-Events verspätet/verdoppelt ankommen.
 
 ## Refactoring-Hinweis: WebSocket robuster machen
 
