@@ -19,6 +19,38 @@ Kein Cloud‑Zwang, kein WLED, kein externer Server.
 - Optionales Wetter‑Overlay für Koblenz im Uhr‑Modus (Temperatur + Kurzcode).【F:esp32Hub75/main.sketch†L1302-L1352】【F:esp32Hub75/main.sketch†L1455-L1484】
 - WLED‑ähnliche Animationen (Matrix, Blink, Colorfading, Rainbow, Kaminfeuer, Twinkle, Scanner, Waves) mit UI‑Parametern und WebSocket‑Steuerung.【F:esp32Hub75/main.sketch†L58-L1684】
 
+## Visual Refresh: Teenage-Engineering Style
+
+Die Oberfläche wurde optisch stärker im Teenage-Engineering-Stil ausgeprägt:
+
+- klarere Kontrastkanten (2px Rahmen),
+- markantere Pills/Badges,
+- tiefere Button-Haptik (Hover/Press),
+- differenzierte Aktionsfarben (Warn/Reset/Secondary),
+- farbcodierter Workflow-Status (`busy/done/error`) für schnellere Orientierung.
+
+Damit wirkt die UI technischer, eindeutiger und im Betrieb schneller erfassbar.【F:esp32Hub75/main.sketch†L250-L273】【F:esp32Hub75/main.sketch†L298-L307】【F:esp32Hub75/main.sketch†L352-L371】【F:esp32Hub75/main.sketch†L427-L430】【F:esp32Hub75/main.sketch†L468-L485】【F:esp32Hub75/main.sketch†L827-L838】
+
+## UI- & Workflow-Update
+
+Die Weboberfläche wurde für schnellere Routineabläufe erweitert:
+
+- Neuer Workflow-Status direkt im Pixelart-Bereich (`Idle/Busy/Done/Error`).
+- Quick-Buttons für typische Kombi-Aktionen: **Quick Sync Panel** (aktuelles Canvas direkt auf Panel) und **Preview + Send Bild** (Image-Preview + Transfer als zusammenhängender Ablauf).
+- Workflow-Lock gegen parallele Ausführung, damit keine überlappenden Panel-Jobs entstehen.
+- Hinweis aus Betrieb: Bei instabiler WLAN-Verbindung kann ein WebSocket-Reconnect sonst den Display-Modus zurücksetzen; der Modus wird nun lokal persistiert und Medien-/FX-Starts erzwingen bei Bedarf `ui`, damit Animationen nicht unerwartet in `clock` abbrechen.
+
+Damit werden häufige Bedienpfade kürzer und der Status für laufende Aktionen transparenter. Neu: Der Workflow meldet „Done“ erst nach tatsächlichem Abarbeiten der Panel-Queue (kein starres Timing-Fenster mehr) und sperrt Quick-Buttons während laufender Jobs.【F:esp32Hub75/main.sketch†L473-L481】【F:esp32Hub75/main.sketch†L741-L744】【F:esp32Hub75/main.sketch†L889-L916】【F:esp32Hub75/main.sketch†L1275-L1302】【F:esp32Hub75/main.sketch†L1500-L1514】
+
+## Refactoring-Update (WebSocket/Runtime)
+
+Im aktuellen Refactoring wurden zwei wartungsrelevante Punkte verbessert:
+
+- Medien-Stop-Logik ist im WebSocket-Handler zentralisiert: Für Pixel-, Clear-, Fill- und Binär-Frame-Eingaben wird jetzt einheitlich `stop_media_playback()` genutzt statt mehrfach verteilter Stop-Sequenzen.
+- Eingangsparameter aus JSON werden beim Übernehmen explizit begrenzt (Clamp-Helfer), damit FX-/Sleep-/Clock-/Brightness-Werte robust innerhalb gültiger Grenzen bleiben.
+
+Diese Änderungen reduzieren Duplikate im Event-Handling und machen Fehlwerte aus der UI oder aus externen WebSocket-Clients weniger kritisch.【F:esp32Hub75/main.sketch†L90-L116】【F:esp32Hub75/main.sketch†L2543-L2653】
+
 ## Implementierungscheck (Sketch-Abgleich)
 
 Folgende Kernfunktionen sind im aktuellen `main.sketch` implementiert und damit im Sketch nachweisbar:

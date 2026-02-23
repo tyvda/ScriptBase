@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-02-23 10:46:34 +0000
+- Ursache für „Animation stoppt nach Minuten“ adressiert: Default-Displaymodus in der UI auf `ui` gesetzt (statt `clock`) und Display-Modus in `localStorage` persistiert, damit WebSocket-Reconnects nicht ungewollt in den Uhrmodus umschalten. Quelle/Zweck: `main.sketch` für stabile Dauerwiedergabe.
+- Neue Hilfslogik `ensureUiMode()` ergänzt und an Medien-/FX-Startpfade gehängt (`sendAnimFromPix`, `playGif`, `sendFx(run=1)`), sodass Animation/Effekte beim Start immer explizit in den Canvas/Media-Modus wechseln. Quelle/Zweck: `main.sketch` für robustes Playback trotz WS-Neuverbindung.
+- Doku/Troubleshooting um diesen Reconnect-Modus-Effekt erweitert. Quellen/Zweck: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-02-22 10:00:19 +0000
+- Workflow-Handling vor PR weiter verbessert: `runPanelWorkflow()` wartet jetzt deterministisch auf echte Panel-Queue-Leere (`waitForPanelQueueIdle`) statt auf ein fixes Delay; `Done` signalisiert damit verlässlich „wirklich fertig“. Quelle/Zweck: `main.sketch` für präzisere UX-Semantik.
+- Robustheit erhöht: eigener `panelWorkflowActive`-Lock und temporäres Deaktivieren der Quick-Workflow-Buttons während laufender Jobs verhindern Doppelstarts/Spam-Klicks. Quelle/Zweck: `main.sketch` für stabilere Bedienung.
+- Status-Logik vereinfacht: `setWorkflowStatus(label, state)` nutzt explizite Zustände statt Text-Heuristik, wodurch `busy/done/error/idle` eindeutiger gesetzt werden. Quelle/Zweck: `main.sketch` für wartbareren Statuspfad.
+- Doku auf den finalen Workflow-Stand aktualisiert. Quellen/Zweck: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
+## 2026-02-21 15:20:11 +0000
+- UI visuell auf stärkeren Teenage-Engineering-Look geschärft: kräftigere Rahmen/Kontraste, markantere Header-/Pill-Darstellung, radialer Background-Layer, Button-Depth (Hover/Active) und differenzierte Button-Typen (`btn-secondary`, `btn-warn`, `btn-danger`). Quelle/Zweck: `main.sketch` für charakteristischere Industrial-UI.
+- Workflow-Status visuell codiert: Badge-Farbzustände via `data-state` (`busy/done/error`) plus Status-Mapper in `setWorkflowStatus()`. Quelle/Zweck: `main.sketch` für schneller erfassbare Laufzustände.
+- Doku auf das neue TE-Style-UI-Update ergänzt. Quellen/Zweck: `README.md`, `HOWTO.md`, `TUTORIAL.md` zur eindeutigen Ableitbarkeit zwischen Changelog und Source.
+
+## 2026-02-21 14:45:55 +0000
+- UI-Workflow im Pixelart-Bereich verbessert: neuer Workflow-Status (`workflowStatus`) plus Quick-Actions „Quick Sync Panel“ und „Preview + Send Bild“ für kürzere Bedienpfade im Alltag. Quelle/Zweck: `main.sketch` für schnellere Bedienung.
+- Panel-Workflow-Steuerung ergänzt (`runPanelWorkflow`): verhindert parallele Workflow-Starts, zeigt Busy/Done/Error-Zustände und meldet klare Fehlertexte im UI. Quelle/Zweck: `main.sketch` für robustere UX.
+- Doku zu UI/Workflow-Verbesserungen aktualisiert. Quellen/Zweck: `README.md`, `HOWTO.md`, `TUTORIAL.md` für eindeutige Nachvollziehbarkeit zwischen Changelog und Source.
+
+## 2026-02-21 06:04:09 +0000
+- WebSocket-Refactoring im Sketch: wiederholte Stop-Logik für Medien/FX zentral auf `stop_media_playback()` vereinheitlicht, damit alle relevanten Eingaben konsistent dieselbe Abschaltlogik nutzen. Quelle/Zweck: `main.sketch` für wartbarere Ereignisbehandlung.
+- Eingabe-Validierung im WebSocket-Handler gehärtet: neue Clamp-/JSON-Helfer (`clamp_u8`, `clamp_u16`, `json_read_u8_clamped`, `json_read_u16_clamped`) für begrenzte Parameterübernahme (FX, Sleep, Clock-Intensität, Brightness). Quelle/Zweck: `main.sketch` für robustere Laufzeitwerte.
+- Dokumentation für das Refactoring und die robustere Parameterbehandlung ergänzt. Quellen/Zweck: `README.md`, `HOWTO.md`, `TUTORIAL.md` für klare Zuordnung zwischen Changelog und Source.
+
 ## 2026-02-20 13:51:51 +0000
 - Uhranzeige auf eigenes festes 4x7-Glyphenset umgestellt (`CLOCK_DIGITS_4X7`) und Rendering über `render_clock_pattern` vereinheitlicht. Damit gilt ein explizites Slot-Muster `NN:NN:NN` mit fester Zellbreite je Zeichenfeld; jede Ziffer `0..9` passt deterministisch in ein `N`-Feld. Quelle/Zweck: `main.sketch` für konsistente, reproduzierbare Uhrtypografie.
 - Doppelpunkt explizit als zwei vertikal ausgerichtete 2x2-Punkte definiert, um den gemeldeten Versatz des unteren Punkts zu eliminieren. Quelle/Zweck: `main.sketch` für saubere `:`-Darstellung.
