@@ -75,6 +75,34 @@ Die UI wird vom ESP32 ausgeliefert.【F:esp32Hub75/main.sketch†L815-L818】
 
 Falls der WebSocket‑Status in der UI auf „connecting…“ stehen bleibt, Browser‑Konsole prüfen und ggf. Cache leeren oder die aktuelle Firmware erneut flashen.【F:esp32Hub75/main.sketch†L242-L536】
 
+## UI-Update: Teenage-Engineering Styling
+
+Die Weboberfläche wurde visuell auf einen ausgeprägteren Teenage-Engineering-Charakter gebracht: harte Rahmen, klar lesbare Badges/Pills, Button-Tiefe und farbcodierte Workflow-Zustände.
+
+## UI-Update: Quick Workflows
+
+Für tägliche Nutzung wurden schnelle Workflows ergänzt:
+
+- Statusanzeige für laufende UI-Jobs (`Idle/Busy/Done/Error`),
+- Quick Sync für Pixelart → Panel,
+- kombinierter Bild-Workflow „Preview + Send Bild“.
+
+Damit ist klar erkennbar, was die UI gerade ausführt, und Standardaktionen brauchen weniger Klicks. Der Done-Status erscheint jetzt erst nach tatsächlichem Abschluss der Queue; währenddessen sind Quick-Workflows gegen Doppelklicks gesperrt.
+
+
+### Hinweis zu Abbrüchen nach einigen Minuten
+
+Falls Animationen früher nach einigen Minuten stoppten, lag das oft an einem WS-Reconnect mit Moduswechsel. Der Modus wird jetzt gespeichert und Media-/FX-Start setzt bei Bedarf wieder `ui`. Zusätzlich sind die Server-Startpfade selbst abgesichert, damit ein doppeltes/verspätetes `mode`-Event laufende Animationen nicht unbeabsichtigt stoppt.
+
+## Refactoring-Stand (Wartbarkeit)
+
+Der Sketch nutzt im WebSocket-Handler jetzt weniger Duplikate und robustere Werteübernahme:
+
+- wiederverwendete Stop-Logik über `stop_media_playback()`,
+- zentrale Clamp-Helfer für JSON-Parameter.
+
+Praktischer Effekt: stabileres Verhalten bei ungültigen/ungewöhnlichen WS-Eingaben und klarere Wartung der Event-Logik.
+
 ## 7) Pixel‑Zeichnen
 
 - Linksklick malt mit Farbe.

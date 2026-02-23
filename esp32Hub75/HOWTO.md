@@ -12,6 +12,34 @@ Hinweis: Die Web‑UI ist im hellen Teenage‑Engineering‑Look mit Kartenlayou
 
 Die Web‑UI löst `/api/reinit` aus und initialisiert das Panel neu. Anschließend wird die UI‑Canvas geleert und das Panel per `clear` zurückgesetzt, damit Pixelart wieder sauber funktioniert.【F:esp32Hub75/main.sketch†L368-L377】【F:esp32Hub75/main.sketch†L820-L825】
 
+## UI-Style: Teenage-Engineering Look
+
+Der Sketch nutzt jetzt einen stärkeren TE-Look mit klaren Konturen, kontrastreichen Bedienelementen und differenzierten Aktionsfarben. Zusätzlich zeigt der Workflow-Status Zustände farbcodiert (`busy/done/error`) an.
+
+## UI-Workflow: Schnellere Bedienung
+
+Neu in der UI:
+
+- **Workflow-Status** zeigt `Idle/Busy/Done/Error` im Pixelart-Bereich.
+- **Quick Sync Panel** stößt den direkten Panel-Sync der aktuellen Pixelart an.
+- **Preview + Send Bild** führt Bild-Vorschau und Senden in einem Workflow zusammen.
+
+Zusätzlich schützt ein Workflow-Lock vor parallel gestarteten Panel-Jobs; Quick-Buttons werden während eines laufenden Workflows deaktiviert. „Done“ wird erst gesetzt, wenn die Panel-Queue wirklich leer ist.
+
+
+## Animation stoppt nach Minuten (Troubleshooting)
+
+Mögliche Ursache ist ein WebSocket-Reconnect, der den Modus ungewollt auf Uhr zurücksetzt. Im aktuellen Stand wird der Display-Modus lokal gespeichert und Medien-/FX-Startpfade schalten aktiv auf `ui`, damit laufende Animationen stabil bleiben. Zusätzlich ist der Serverpfad gehärtet: redundante Modus-Setzungen sind idempotent und Startpfade (`/api/anim/play`, `fx run=1`) erzwingen `ui` auch dann, wenn UI-Events verspätet/verdoppelt ankommen.
+
+## Refactoring-Hinweis: WebSocket robuster machen
+
+Beim Review des Sketch wurde der WebSocket-Pfad bereinigt:
+
+- Stoppen von GIF/FX wurde auf `stop_media_playback()` zentralisiert.
+- Numerische JSON-Werte werden beim Einlesen geclamped (statt rohe Casts), z. B. für `bright`, `sleep`, `clock` und `fx`.
+
+Das hilft vor allem, wenn externe Clients direkte WS-Frames mit Grenzwerten schicken.
+
 ## Vollbild‑Frame via WebSocket senden
 
 Der Sketch akzeptiert binäre Frames mit folgendem Format:
