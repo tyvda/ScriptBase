@@ -1,3 +1,10 @@
+## 2026-02-23 19:13:05 +0000
+- Pixelart-Editor um einen Frame-Animations-Workflow erweitert: Prev/Next/Add/Delete, Frame-Positionsanzeige und Play/Stop für Endlos-Loop als `anim.bin`. Quelle: `main.sketch`.
+- Neuer Frame wird als Kopie des aktuellen Frames angelegt (nicht leer), damit flüssige Frame-to-Frame-Animation direkt aus bestehender Pixelart möglich ist. Quelle: `main.sketch`.
+- Frame-Geschwindigkeit (30..1000 ms) als UI-Regler ergänzt und beim Export je Frame als Delay in die Animation übernommen. Quelle: `main.sketch`.
+- Pixelart Save/Load speichert jetzt zusätzlich `frames[]` und `animSpeedMs`, damit komplette Pixelart-Animationen persistent bleiben. Quelle: `main.sketch`.
+- Projektdokumentation für das neue Feature aktualisiert (README/HOWTO/TUTORIAL). Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`.
+
 # Changelog
 
 ## 2026-02-23 15:06:23 +0000

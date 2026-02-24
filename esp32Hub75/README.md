@@ -432,3 +432,16 @@ Das Projekt ist produktionsreif für Installationen, Art‑Displays, Prototyping
 ## Dateien
 
 - `main.sketch` – vollständiger Arduino‑Sketch mit Web‑UI und Panel‑Steuerung.【F:esp32Hub75/main.sketch†L1-L904】
+
+## Update: Pixelart‑Frame‑Animation (neu)
+
+Der Pixelart‑Editor unterstützt jetzt echte Frame‑Sequenzen direkt im Browser:
+
+- **Frames hinzufügen/löschen/wechseln** direkt im Editor (Prev/Next/Add/Delete).
+- **Neue Frames starten nicht leer**, sondern als Kopie des aktuell sichtbaren Frames.
+- **Play Pixelart Loop** exportiert alle Frames als `anim.bin` mit aktiviertem Endlos‑Loop und startet die Wiedergabe auf dem ESP32.
+- **Frame‑Geschwindigkeit** ist per Slider einstellbar (`30..1000 ms` pro Frame).
+- **Save/Load** persistiert jetzt nicht nur das aktuelle Bild, sondern die komplette Frame‑Liste plus Animationsgeschwindigkeit im bestehenden Pixelart‑Payload.
+
+Damit kann der Nutzer reine Pixelart‑Animationen ohne GIF erstellen und wiederverwenden.
+

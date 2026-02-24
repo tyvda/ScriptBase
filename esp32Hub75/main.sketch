@@ -495,10 +495,27 @@ a{color:var(--accent)}
       <button id="loadPixelart" type="button">Load</button>
     </div>
 
+    <div class="row">
+      <span class="badge">Frame <span id="pixAnimFramePos">1/1</span></span>
+      <button id="pixAnimPrev" type="button" class="btn-secondary">Prev</button>
+      <button id="pixAnimNext" type="button" class="btn-secondary">Next</button>
+      <button id="pixAnimAdd" type="button">Add Frame</button>
+      <button id="pixAnimDelete" type="button" class="btn-warn">Delete Frame</button>
+    </div>
+
+    <div class="row">
+      <label for="pixAnimSpeed">Frame‑Speed</label>
+      <input id="pixAnimSpeed" type="range" min="30" max="1000" step="10" value="180">
+      <span class="val" id="pixAnimSpeedVal">180 ms</span>
+      <button id="pixAnimPlay" type="button">Play Pixelart Loop</button>
+      <button id="pixAnimStop" type="button" class="btn-secondary">Stop Loop</button>
+    </div>
+
     <small>
       Pixelart: Click/Drag · Right-Click = Erase (black).<br/>
       Brush malt ein Quadrat um den Cursor (zentriert).<br/>
-      Beim Zeichnen/Frames senden wird Animation automatisch gestoppt.
+      Beim Zeichnen/Frames senden wird Animation automatisch gestoppt.<br/>
+      Neuer Frame startet immer mit dem Inhalt des vorherigen Frames.
     </small>
 
     <div class="row workflow-row">
@@ -804,6 +821,15 @@ a{color:var(--accent)}
   const colInput=document.getElementById('col');
   const savePixelartBtn=document.getElementById('savePixelart');
   const loadPixelartBtn=document.getElementById('loadPixelart');
+  const pixAnimFramePosEl=document.getElementById('pixAnimFramePos');
+  const pixAnimPrevBtn=document.getElementById('pixAnimPrev');
+  const pixAnimNextBtn=document.getElementById('pixAnimNext');
+  const pixAnimAddBtn=document.getElementById('pixAnimAdd');
+  const pixAnimDeleteBtn=document.getElementById('pixAnimDelete');
+  const pixAnimPlayBtn=document.getElementById('pixAnimPlay');
+  const pixAnimStopBtn=document.getElementById('pixAnimStop');
+  const pixAnimSpeedEl=document.getElementById('pixAnimSpeed');
+  const pixAnimSpeedVal=document.getElementById('pixAnimSpeedVal');
   const fxMode=document.getElementById('fxMode');
   const fxStart=document.getElementById('fxStart');
   const fxStop=document.getElementById('fxStop');
@@ -912,6 +938,11 @@ a{color:var(--accent)}
 
   // Preview buffer RGB888 0xRRGGBB
   const pix=new Uint32Array(W*H);
+  const pixelAnimState = {
+    frames: [new Uint32Array(W*H)],
+    index: 0,
+    speedMs: parseInt(pixAnimSpeedEl.value,10) || 180,
+  };
   const PIXELART_STORAGE_KEY = "hub75.pixelart.v1";
   const DISPLAY_MODE_STORAGE_KEY = "hub75.displaymode.v1";
   function redraw(){
@@ -923,6 +954,48 @@ a{color:var(--accent)}
         ctx.fillRect(x,y,1,1);
       }
     }
+  }
+
+  function clonePixBuffer(src){
+    const out = new Uint32Array(W*H);
+    out.set(src);
+    return out;
+  }
+
+  function setPixFromFrame(frame){
+    if(!frame || frame.length !== W*H) return;
+    pix.set(frame);
+    redraw();
+  }
+
+  function syncCurrentPixelAnimFrameFromPix(){
+    if(!pixelAnimState.frames.length) pixelAnimState.frames = [new Uint32Array(W*H)];
+    pixelAnimState.frames[pixelAnimState.index] = clonePixBuffer(pix);
+  }
+
+  function refreshPixelAnimUi(){
+    const count = pixelAnimState.frames.length;
+    pixAnimFramePosEl.textContent = `${pixelAnimState.index + 1}/${count}`;
+    pixAnimPrevBtn.disabled = (count <= 1);
+    pixAnimNextBtn.disabled = (count <= 1);
+    pixAnimDeleteBtn.disabled = (count <= 1);
+    pixAnimSpeedVal.textContent = `${pixelAnimState.speedMs} ms`;
+  }
+
+  function switchPixelAnimFrame(nextIndex){
+    const count = pixelAnimState.frames.length;
+    if(count < 1) return;
+    const idx = ((nextIndex % count) + count) % count;
+    syncCurrentPixelAnimFrameFromPix();
+    pixelAnimState.index = idx;
+    setPixFromFrame(pixelAnimState.frames[pixelAnimState.index]);
+    refreshPixelAnimUi();
+  }
+
+  function resetPixelAnimWithCurrentPix(){
+    pixelAnimState.frames = [clonePixBuffer(pix)];
+    pixelAnimState.index = 0;
+    refreshPixelAnimUi();
   }
 
   async function sendPixelsFromPix(){
@@ -1270,6 +1343,7 @@ a{color:var(--accent)}
         if(px<0||px>=W||py<0||py>=H) continue;
 
         pix[py*W+px] = col;
+        pixelAnimState.frames[pixelAnimState.index][py*W+px] = col;
         const rr=(col>>16)&255, gg=(col>>8)&255, bb=col&255;
         ctx.fillStyle=`rgb(${rr},${gg},${bb})`;
         ctx.fillRect(px,py,1,1);
@@ -1328,12 +1402,14 @@ a{color:var(--accent)}
 
   document.getElementById('clear').onclick=()=>{
     pix.fill(0); redraw();
+    syncCurrentPixelAnimFrameFromPix();
     enqueuePanelWork(async()=>{ sendJson({t:"clear"}); });
   };
 
   document.getElementById('fill').onclick=()=>{
     const c=hexToRgb(colInput.value);
     pix.fill(c); redraw();
+    syncCurrentPixelAnimFrameFromPix();
     enqueuePanelWork(async()=>{ sendJson({t:"fill", c}); });
   };
 
@@ -1341,6 +1417,7 @@ a{color:var(--accent)}
     await fetch('/api/reinit');
     pix.fill(0);
     redraw();
+    resetPixelAnimWithCurrentPix();
     enqueuePanelWork(async()=>{ sendJson({t:"clear"}); });
   };
 
@@ -1383,6 +1460,22 @@ a{color:var(--accent)}
   }
 
   function parsePixelartPayload(parsed){
+    const loadedSpeed = (parsed && parsed.animSpeedMs != null) ? parsed.animSpeedMs : pixelAnimState.speedMs;
+    pixelAnimState.speedMs = clamp(loadedSpeed, 30, 1000);
+    pixAnimSpeedEl.value = String(pixelAnimState.speedMs);
+
+    let frames = null;
+    if(parsed && Array.isArray(parsed.frames) && parsed.frames.length){
+      frames = [];
+      for(const frame of parsed.frames){
+        if(!Array.isArray(frame) || frame.length !== W*H) continue;
+        const buf = new Uint32Array(W*H);
+        for(let i=0;i<W*H;i++) buf[i] = frame[i] >>> 0;
+        frames.push(buf);
+      }
+      if(!frames.length) frames = null;
+    }
+
     let data = null;
     if(Array.isArray(parsed)){
       data = parsed;
@@ -1398,6 +1491,14 @@ a{color:var(--accent)}
       return null;
     }
     for(let i=0;i<W*H;i++){ pix[i] = data[i] >>> 0; }
+    if(frames){
+      pixelAnimState.frames = frames;
+    } else {
+      pixelAnimState.frames = [clonePixBuffer(pix)];
+    }
+    pixelAnimState.index = 0;
+    setPixFromFrame(pixelAnimState.frames[0]);
+    refreshPixelAnimUi();
     redraw();
     return data;
   }
@@ -1409,6 +1510,8 @@ a{color:var(--accent)}
         w: W,
         h: H,
         data: Array.from(pix),
+        frames: pixelAnimState.frames.map((frame)=>Array.from(frame)),
+        animSpeedMs: pixelAnimState.speedMs,
         savedAt: Date.now(),
       };
       localStorage.setItem(PIXELART_STORAGE_KEY, JSON.stringify(payload));
@@ -1444,6 +1547,34 @@ a{color:var(--accent)}
 
   savePixelartBtn.onclick=()=> savePixelart();
   loadPixelartBtn.onclick=()=> loadPixelart();
+
+  pixAnimPrevBtn.onclick=()=> switchPixelAnimFrame(pixelAnimState.index - 1);
+  pixAnimNextBtn.onclick=()=> switchPixelAnimFrame(pixelAnimState.index + 1);
+  pixAnimAddBtn.onclick=()=>{
+    syncCurrentPixelAnimFrameFromPix();
+    const template = pixelAnimState.frames[pixelAnimState.index];
+    const nextFrame = clonePixBuffer(template);
+    pixelAnimState.frames.splice(pixelAnimState.index + 1, 0, nextFrame);
+    pixelAnimState.index++;
+    setPixFromFrame(nextFrame);
+    refreshPixelAnimUi();
+    infoEl.textContent = `Frame ${pixelAnimState.index + 1} hinzugefügt.`;
+  };
+  pixAnimDeleteBtn.onclick=()=>{
+    if(pixelAnimState.frames.length <= 1) return;
+    pixelAnimState.frames.splice(pixelAnimState.index, 1);
+    if(pixelAnimState.index >= pixelAnimState.frames.length){
+      pixelAnimState.index = pixelAnimState.frames.length - 1;
+    }
+    setPixFromFrame(pixelAnimState.frames[pixelAnimState.index]);
+    refreshPixelAnimUi();
+    infoEl.textContent = "Frame gelöscht.";
+  };
+  pixAnimSpeedEl.addEventListener('input', ()=>{
+    pixelAnimState.speedMs = clamp(parseInt(pixAnimSpeedEl.value,10) || 180, 30, 1000);
+    refreshPixelAnimUi();
+  });
+  refreshPixelAnimUi();
 
   // ===== Aspect/Scale mapping =====
   function desiredAspectValue(sel) {
@@ -1665,6 +1796,16 @@ a{color:var(--accent)}
     return buildAnimBinFromFrames([record], loopFlag);
   }
 
+  function framePixToRecord(pixBuf, delayMs){
+    const rgb565=new Uint16Array(W*H);
+    for(let i=0;i<W*H;i++){
+      const col = pixBuf[i];
+      const r=(col>>16)&255, g=(col>>8)&255, b=col&255;
+      rgb565[i]=rgb888To565(r,g,b);
+    }
+    return frameRGB565ToRecord(rgb565, delayMs);
+  }
+
   async function uploadAnimBin(bin){
     const fd=new FormData();
     fd.append('anim', new Blob([bin],{type:'application/octet-stream'}), 'anim.bin');
@@ -1680,6 +1821,23 @@ a{color:var(--accent)}
     if(statusTarget) statusTarget.textContent = resp || "anim uploaded";
     await fetch('/api/anim/play');
   }
+
+  async function sendPixelartFramesLoop(statusTarget){
+    ensureUiMode();
+    syncCurrentPixelAnimFrameFromPix();
+    const records = pixelAnimState.frames.map((frame)=>framePixToRecord(frame, pixelAnimState.speedMs));
+    const bin = buildAnimBinFromFrames(records, true);
+    const resp = await uploadAnimBin(bin);
+    if(statusTarget) statusTarget.textContent = resp || "pixelart loop uploaded";
+    await fetch('/api/anim/play');
+  }
+
+  pixAnimPlayBtn.onclick=()=>{
+    runPanelWorkflow("Pixelart Loop", async()=>{
+      await sendPixelartFramesLoop(infoEl);
+    });
+  };
+  pixAnimStopBtn.onclick=async()=>{ await fetch('/api/anim/stop'); };
 
   // gifuct-js CDN -> window.GIF
   async function loadGifuct(){

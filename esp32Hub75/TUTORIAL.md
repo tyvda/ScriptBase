@@ -245,3 +245,17 @@ Parameter-Mapping im vorhandenen FX-Protokoll:
 - `cooling`: Decay-Stärke (`0..3` intern geklemmt).
 - `sparks`: Reignite-Wahrscheinlichkeit in der Bottom-Row.
 - `dir`: Windrichtung (`-1`, `0`, `+1`).
+
+## Neu: Pixelart‑Animation Builder im Editor
+
+Der Editor kann jetzt aus Pixelart‑Frames direkt Animationen erzeugen:
+
+- Frame‑Navigation: `Prev` / `Next`
+- Frame‑Management: `Add Frame` / `Delete Frame`
+- Kopierlogik: Jeder neue Frame startet als Kopie des aktuellen Frames
+- Timing: `Frame‑Speed` bestimmt die Wechselgeschwindigkeit
+- Export/Wiedergabe: `Play Pixelart Loop` baut aus allen Frames eine loopende `anim.bin`
+- Persistenz: `Save/Load` umfasst nun komplette Frame‑Animationen
+
+So entsteht eine kontinuierliche Endlos‑Schleife ohne externes GIF‑Tooling.
+
