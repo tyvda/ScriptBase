@@ -167,7 +167,7 @@ Die GIF‑Dekodierung nutzt `gifuct-js` via CDN.【F:esp32Hub75/main.sketch†L2
 
 ## 10) WLED‑ähnliche Effekte starten
 
-Im UI‑Bereich „Animationen“ kannst du Matrix, Kaminfeuer, Twinkle, Plasma, Tunnel und Ripple starten. Parameter wirken live über `frameMs` + `p1..p4` und sind pro Effekt semantisch zugeordnet.【F:esp32Hub75/main.sketch†L58-L1684】
+Im UI‑Bereich „Animationen“ kannst du Matrix, Kaminfeuer, Twinkle und Plasma starten. Parameter wirken live über `frameMs` + `p1..p4` und sind pro Effekt semantisch zugeordnet.【F:esp32Hub75/main.sketch†L58-L1684】
 
 ## Implementierungscheck (Sketch-Abgleich)
 
@@ -186,8 +186,6 @@ Die im Tutorial beschriebenen Funktionen (HUB75‑Betrieb, Pixelart, Bild‑Uplo
 - **Kaminfeuer (Doom‑Fire)**: Param A/B/C = Decay / Sparks / Smoke.
 - **Twinkle**: Param A/B/C = Spawn / Fade / Weißanteil.
 - **Plasma Palette‑Shift**: Param A/B/C/D = `ax` / `ay` / `a(x+y)` / Shift‑Speed.
-- **Texture Tunnel**: Param A/B = U‑Speed / V‑Speed.
-- **Water Ripple**: Param A/B/C = Dämpfung / Displacement‑Shift / Tropfenrate.
 Status: umgesetzt (Effekt‑Engine + UI‑Steuerung im Sketch).【F:esp32Hub75/main.sketch†L58-L1684】
 
 

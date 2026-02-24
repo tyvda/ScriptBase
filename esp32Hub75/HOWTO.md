@@ -96,7 +96,7 @@ Details zur Implementierung sind im Sketch dokumentiert.【F:esp32Hub75/main.ske
 
 ## WLED‑ähnliche Effekte starten
 
-Die UI bietet einen eigenen Bereich für Effekte (Matrix, Kaminfeuer, Twinkle, Plasma, Tunnel, Ripple). Start/Stop und Parameter werden per WebSocket gesteuert:
+Die UI bietet einen eigenen Bereich für Effekte (Matrix, Kaminfeuer, Twinkle, Plasma). Start/Stop und Parameter werden per WebSocket gesteuert:
 
 ```json
 {"t":"fx","mode":"matrix","run":1,"frameMs":50,"p1":120,"p2":180,"p3":100,"p4":0}
@@ -160,8 +160,6 @@ Die How‑To‑Rezepte entsprechen den implementierten Endpoints, WebSocket‑Fo
 - **Kaminfeuer (Doom‑Fire)**: Param A/B/C = Decay / Sparks / Smoke.
 - **Twinkle**: Param A/B/C = Spawn / Fade / Weißanteil.
 - **Plasma Palette‑Shift**: Param A/B/C/D = `ax` / `ay` / `a(x+y)` / Shift‑Speed.
-- **Texture Tunnel**: Param A/B = U‑Speed / V‑Speed.
-- **Water Ripple**: Param A/B/C = Dämpfung / Displacement‑Shift / Tropfenrate.
 Status: umgesetzt (UI + Effekt‑Engine im Sketch).【F:esp32Hub75/main.sketch†L58-L1684】
 
 

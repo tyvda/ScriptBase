@@ -167,9 +167,7 @@ enum EffectMode {
   FX_MATRIX,
   FX_FIRE,
   FX_TWINKLE,
-  FX_PLASMA,
-  FX_TUNNEL,
-  FX_RIPPLE
+  FX_PLASMA
 };
 
 struct EffectParams {
@@ -187,11 +185,6 @@ struct EffectParams {
   uint8_t plasmaAy = 11;
   uint8_t plasmaAxy = 5;
   uint8_t plasmaShiftSpeed = 2;
-  uint8_t tunnelSpeedU = 2;
-  uint8_t tunnelSpeedV = 3;
-  uint8_t rippleDamping = 238;
-  uint8_t rippleShift = 4;
-  uint8_t rippleDrop = 26;
 };
 
 static volatile bool effectRunning = false;
@@ -218,12 +211,6 @@ static uint8_t twinkleMap[PANEL_RES_X * PANEL_RES_Y];
 static int16_t sinLUT[256];
 static uint16_t fxPalette[64];
 static uint8_t plasmaPaletteShift = 0;
-static uint8_t tunnelAngleLUT[PANEL_RES_X * PANEL_RES_Y];
-static uint8_t tunnelDistLUT[PANEL_RES_X * PANEL_RES_Y];
-static uint8_t tunnelTex[64 * 64];
-static int16_t rippleH0[PANEL_RES_X * PANEL_RES_Y];
-static int16_t rippleH1[PANEL_RES_X * PANEL_RES_Y];
-static uint16_t rippleBg[PANEL_RES_X * PANEL_RES_Y];
 
 static const uint8_t CLOCK_DIGITS_4X7[10][7] PROGMEM = {
   {0x06, 0x09, 0x09, 0x09, 0x09, 0x09, 0x06}, // 0
@@ -709,8 +696,6 @@ a{color:var(--accent)}
           <option value="fire">Kaminfeuer</option>
           <option value="twinkle">Twinkle</option>
           <option value="plasma">Plasma Palette‑Shift</option>
-          <option value="tunnel">Texture Tunnel</option>
-          <option value="ripple">Water Ripple</option>
         </select>
         <button id="fxStart" type="button">Start</button>
         <button id="fxStop" type="button" class="btn-secondary">Stop</button>
@@ -1070,8 +1055,6 @@ a{color:var(--accent)}
       fire:{p1:2,p2:150,p3:70,p4:0,legend:'Kaminfeuer: Decay / Sparks / Smoke'},
       twinkle:{p1:90,p2:22,p3:255,p4:0,legend:'Twinkle: Spawn / Fade / Weißanteil'},
       plasma:{p1:7,p2:11,p3:5,p4:2,legend:'Plasma: ax / ay / axy / Palette‑Shift'},
-      tunnel:{p1:2,p2:3,p3:0,p4:0,legend:'Tunnel: U‑Speed / V‑Speed'},
-      ripple:{p1:238,p2:4,p3:26,p4:0,legend:'Ripple: Dämpfung / Shift / Drop'},
     };
     const p = presets[fxState.mode] || presets.matrix;
     fxP1.value = String(p.p1); fxP2.value = String(p.p2); fxP3.value = String(p.p3); fxP4.value = String(p.p4);
@@ -2316,8 +2299,6 @@ static EffectMode effectModeFromString(const char* mode) {
   if (!strcmp(mode, "fire")) return FX_FIRE;
   if (!strcmp(mode, "twinkle")) return FX_TWINKLE;
   if (!strcmp(mode, "plasma")) return FX_PLASMA;
-  if (!strcmp(mode, "tunnel")) return FX_TUNNEL;
-  if (!strcmp(mode, "ripple")) return FX_RIPPLE;
   return FX_NONE;
 }
 
@@ -2331,12 +2312,8 @@ static void init_effect_tables() {
       float ny = (y - PANEL_RES_Y / 2.0f);
       float a = atan2f(ny, nx);
       float d = sqrtf(nx*nx + ny*ny);
-      tunnelAngleLUT[idx] = (uint8_t)((a + PI) * 255.0f / (2.0f * PI));
-      tunnelDistLUT[idx] = (uint8_t)(d * 10.0f);
-      rippleBg[idx] = hsv_to_565((x * 4 + y * 8) % 360, 200, 220);
     }
   }
-  for (int y=0; y<64; y++) for (int x=0; x<64; x++) tunnelTex[y*64 + x] = (uint8_t)((x ^ y) & 63);
 }
 
 static void effectResetState(EffectMode mode) {
@@ -2349,9 +2326,6 @@ static void effectResetState(EffectMode mode) {
     memset(twinkleMap, 0, sizeof(twinkleMap));
   } else if (mode == FX_PLASMA) {
     plasmaPaletteShift = 0;
-  } else if (mode == FX_RIPPLE) {
-    memset(rippleH0, 0, sizeof(rippleH0));
-    memset(rippleH1, 0, sizeof(rippleH1));
   }
 }
 
@@ -2492,49 +2466,6 @@ static void effectTickPlasma() {
   }
   plasmaPaletteShift = (plasmaPaletteShift + effectParams.plasmaShiftSpeed) & 63;
   t++;
-  draw_full_frame();
-}
-
-static void effectTickTunnel() {
-  static uint8_t tu = 0;
-  static uint8_t tv = 0;
-  for (int i=0; i<PANEL_RES_X*PANEL_RES_Y; i++) {
-    uint8_t u = tunnelAngleLUT[i] + tu;
-    uint8_t v = tunnelDistLUT[i] + tv;
-    uint8_t tex = tunnelTex[((v & 63) << 6) | (u & 63)];
-    fb[i] = fxPalette[tex & 63];
-  }
-  tu += effectParams.tunnelSpeedU;
-  tv += effectParams.tunnelSpeedV;
-  draw_full_frame();
-}
-
-static void effectTickRipple() {
-  for (int y=1; y<PANEL_RES_Y-1; y++) {
-    for (int x=1; x<PANEL_RES_X-1; x++) {
-      int i = y * PANEL_RES_X + x;
-      int v = ((rippleH0[i-1] + rippleH0[i+1] + rippleH0[i-PANEL_RES_X] + rippleH0[i+PANEL_RES_X]) >> 1) - rippleH1[i];
-      v = (v * effectParams.rippleDamping) >> 8;
-      rippleH1[i] = v;
-    }
-  }
-  if (random(0, 100) < effectParams.rippleDrop) {
-    int cx = random(2, PANEL_RES_X-2); int cy = random(2, PANEL_RES_Y-2);
-    rippleH1[cy*PANEL_RES_X + cx] = 512;
-  }
-  for (int y=0; y<PANEL_RES_Y; y++) {
-    for (int x=0; x<PANEL_RES_X; x++) {
-      int i = y * PANEL_RES_X + x;
-      int16_t h = rippleH1[i];
-      int dx = h >> effectParams.rippleShift;
-      int dy = h >> effectParams.rippleShift;
-      int sx = x + dx; int sy = y + dy;
-      if (sx < 0) sx = 0; if (sx >= PANEL_RES_X) sx = PANEL_RES_X-1;
-      if (sy < 0) sy = 0; if (sy >= PANEL_RES_Y) sy = PANEL_RES_Y-1;
-      fb[i] = rippleBg[sy*PANEL_RES_X + sx];
-    }
-  }
-  memcpy(rippleH0, rippleH1, sizeof(rippleH0));
   draw_full_frame();
 }
 
@@ -2784,8 +2715,6 @@ void onWsEvent(AsyncWebSocket*, AsyncWebSocketClient*, AwsEventType type, void *
       case FX_FIRE: effectParams.fireDecay = p1; effectParams.fireSparks = p2; effectParams.fireSmoke = p3; break;
       case FX_TWINKLE: effectParams.twinkleDensity = p1; effectParams.twinkleFade = p2; effectParams.twinkleColor = rgb888_to_565(((uint32_t)p3 << 16) | ((uint32_t)p3 << 8) | p3); break;
       case FX_PLASMA: effectParams.plasmaAx = p1; effectParams.plasmaAy = p2; effectParams.plasmaAxy = p3; effectParams.plasmaShiftSpeed = p4; break;
-      case FX_TUNNEL: effectParams.tunnelSpeedU = p1; effectParams.tunnelSpeedV = p2; break;
-      case FX_RIPPLE: effectParams.rippleDamping = p1; effectParams.rippleShift = p2 < 1 ? 1 : p2; effectParams.rippleDrop = p3; break;
       default: break;
     }
 
@@ -3042,8 +2971,6 @@ void loop() {
         case FX_FIRE: effectTickFire(); break;
         case FX_TWINKLE: effectTickTwinkle(); break;
         case FX_PLASMA: effectTickPlasma(); break;
-        case FX_TUNNEL: effectTickTunnel(); break;
-        case FX_RIPPLE: effectTickRipple(); break;
         default: break;
       }
       schedule_fixed_interval(effectNextMs, now, interval);

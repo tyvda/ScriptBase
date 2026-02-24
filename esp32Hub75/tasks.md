@@ -5,7 +5,7 @@ Diese Aufgabenliste beschreibt detailliert die Umsetzung der geplanten Roadmap�
 ## Kontext & Ziele
 
 - **Pixelart‑Editor Load/Save**: JSON‑Export/Import direkt auf dem Client (Browser), damit Nutzer ihre Pixelart lokal speichern und wieder laden können.
-- **Animationen**: Effekt‑Engine + parametrierbare Effekte (Matrix, Kaminfeuer, Twinkle, Plasma, Tunnel, Ripple).
+- **Animationen**: Effekt‑Engine + parametrierbare Effekte (Matrix, Kaminfeuer, Twinkle, Plasma).
 
 ## A) Pixelart‑Editor: Load/Save auf Client
 

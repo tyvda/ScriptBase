@@ -17,7 +17,7 @@ Kein Cloud‑Zwang, kein WLED, kein externer Server.
 - Helligkeitssteuerung im UI (WebSocket, `setBrightness8`).【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
 - NTP‑Uhr (HH:MM oder HH:MM:SS) und Stopuhr (HH:MM:SS) mit einstellbarer LED‑Kettenfarbe für den Panel‑Rand.【F:esp32Hub75/main.sketch†L1279-L1340】
 - Optionales Wetter‑Overlay für Koblenz im Uhr‑Modus (Temperatur + Kurzcode).【F:esp32Hub75/main.sketch†L1302-L1352】【F:esp32Hub75/main.sketch†L1455-L1484】
-- Animationen (Matrix, Kaminfeuer, Twinkle, Plasma Palette‑Shift, Texture Tunnel, Water Ripple) mit UI‑Parametern und WebSocket‑Steuerung.【F:esp32Hub75/main.sketch†L58-L1684】
+- Animationen (Matrix, Kaminfeuer, Twinkle, Plasma Palette‑Shift) mit UI‑Parametern und WebSocket‑Steuerung.【F:esp32Hub75/main.sketch†L58-L1684】
 
 ## Visual Refresh: Teenage-Engineering Style
 
@@ -242,7 +242,7 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 - **Bild‑Mapping**: Bild‑Upload folgt derselben Canvas‑Mapping‑Pipeline wie GIFs (Image → Canvas → 64×32) und wird anschließend wie ein GIF‑Frame als `anim.bin` gepackt, hochgeladen und lokal vom ESP32 gerendert. 【F:esp32Hub75/main.sketch†L535-L799】
 - **Panel‑Redraw**: Button „Redraw Panel“ packt die aktuelle Pixelart als Single‑Frame‑`anim.bin` und lässt den ESP32 das Bild lokal anzeigen (wie bei GIFs), wodurch Unterbrechungen durch UI‑Jobs vermieden werden. 【F:esp32Hub75/main.sketch†L69-L799】
 - **Pixelart Save/Load**: Speichert in Browser‑LocalStorage als versioniertes Format mit Größenprüfung; Laden erfolgt lokal aus dem Browser‑Speicher. 【F:esp32Hub75/main.sketch†L1066-L1161】
-- **WLED‑ähnliche Effekte**: Eigener UI‑Bereich mit Start/Stop, Speed/Intensity sowie Effekt‑Parametern (Matrix, Kaminfeuer, Twinkle, Plasma, Tunnel, Ripple).【F:esp32Hub75/main.sketch†L58-L1684】
+- **WLED‑ähnliche Effekte**: Eigener UI‑Bereich mit Start/Stop, Speed/Intensity sowie Effekt‑Parametern (Matrix, Kaminfeuer, Twinkle, Plasma).【F:esp32Hub75/main.sketch†L58-L1684】
 
 
 ### Doom-Style Feuer (Cellular Automata)
@@ -373,8 +373,6 @@ Umgesetzt ist ein eigener Animations‑Bereich mit Parametern pro Effekt:
 - **Kaminfeuer (Doom‑Fire)**: Param A/B/C = Decay / Sparks / Smoke.
 - **Twinkle**: Param A/B/C = Spawn / Fade / Weißanteil.
 - **Plasma Palette‑Shift**: Param A/B/C/D = `ax` / `ay` / `a(x+y)` / Shift‑Speed.
-- **Texture Tunnel**: Param A/B = U‑Speed / V‑Speed.
-- **Water Ripple**: Param A/B/C = Dämpfung / Displacement‑Shift / Tropfenrate.
 Status: umgesetzt (Effekt‑Engine + UI‑Steuerung im Sketch).【F:esp32Hub75/main.sketch†L58-L1684】
 
 ## Taskliste (Nächste notwendige Aufgaben)
