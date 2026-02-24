@@ -167,7 +167,7 @@ Die GIF‑Dekodierung nutzt `gifuct-js` via CDN.【F:esp32Hub75/main.sketch†L2
 
 ## 10) WLED‑ähnliche Effekte starten
 
-Im UI‑Bereich „WLED‑ähnliche Animationen“ kannst du Effekte wie Matrix, Blink, Colorfading, Rainbow, Kaminfeuer, Twinkle, Scanner oder Waves starten. Parameter wirken live (Speed, Intensity usw.). Start/Stop und Parameteränderungen werden via WebSocket übertragen.【F:esp32Hub75/main.sketch†L58-L1684】
+Im UI‑Bereich „Animationen“ kannst du Matrix, Kaminfeuer, Twinkle und Plasma starten. Parameter wirken live über `frameMs` + `p1..p4` und sind pro Effekt semantisch zugeordnet.【F:esp32Hub75/main.sketch†L58-L1684】
 
 ## Implementierungscheck (Sketch-Abgleich)
 
@@ -182,14 +182,10 @@ Die im Tutorial beschriebenen Funktionen (HUB75‑Betrieb, Pixelart, Bild‑Uplo
 
 ### Animationen im Stil von WLED
 
-- **Matrix Kino‑Film** (Digit‑Regen mit Trails): Parameter z. B. Geschwindigkeit, Dichte, Trail‑Länge, Farbpalette/Grün‑Tint.
-- **Blink**: Parameter z. B. Geschwindigkeit, Duty‑Cycle, Farbpalette, zufällige Startphasen.
-- **Colorfading**: Parameter z. B. Fade‑Speed, Farbpalette, Loop‑Modus.
-- **Rainbow**: Parameter z. B. Geschwindigkeit, Richtung, Sättigung/Intensität.
-- **Kaminfeuer**: Parameter z. B. Flammenhöhe, Glut‑Intensität, Flacker‑Stärke, Farbpalette.
-- **Twinkle**: Parameter z. B. Dichte, Speed, Intensität/Farbe.
-- **Scanner**: Parameter z. B. Speed, Breite/Trail, Richtung, Farbe.
-- **Waves**: Parameter z. B. Speed, Richtung, Intensität.
+- **Matrix**: Param A/B/C = Dichte / Trail / Grünanteil.
+- **Kaminfeuer (Doom‑Fire)**: Param A/B/C = Decay / Sparks / Smoke.
+- **Twinkle**: Param A/B/C = Spawn / Fade / Weißanteil.
+- **Plasma Palette‑Shift**: Param A/B/C/D = `ax` / `ay` / `a(x+y)` / Shift‑Speed.
 Status: umgesetzt (Effekt‑Engine + UI‑Steuerung im Sketch).【F:esp32Hub75/main.sketch†L58-L1684】
 
 
@@ -222,13 +218,10 @@ Die Uhr nutzt ein eigenes 4x7-Glyphenset mit fixen Zeichen-Slots. Das Muster `NN
 3. **Import‑Flow in UI**: JSON laden, validieren, Pixel ins Canvas schreiben und per `px` ans Panel senden.
 4. **Fehlerhandling**: UI‑Meldungen + optional Vorschau.
 
-### WLED‑ähnliche Animationen
+### Animationen
 
 1. **Effekt‑Engine abstrahieren** (Frame‑Tick, Parameter).
-2. **Matrix Kino‑Film**: Digit‑Regen mit Trails (Speed, Density, Trail‑Length, Palette).
-3. **Blink**: On/Off‑Pattern (Speed, Duty‑Cycle, Palette, Random Seed).
-4. **Colorfading**: Interpolation (Fade‑Speed, Palette, Loop).
-5. **Rainbow**: HSV‑Sweep (Speed, Direction, Saturation/Intensity).
+2. **Matrix**: Digit‑Regen mit Trails (Speed, Density, Trail‑Length, Palette).
 6. **Kaminfeuer**: Heat‑Map/Convolution (Flame Height, Glow, Flicker, Palette).
 7. **UI‑Parametersteuerung**: Dropdown + Slider, Live‑Update via WebSocket JSON.
 8. **Persistenz optional**: Letzten Effekt/Parameter in LittleFS speichern.
@@ -238,7 +231,7 @@ Die vollständige Aufgabenliste steht in `tasks.md`.【F:esp32Hub75/tasks.md†L
 
 ## Doom-Style Feuer (Cellular Automata)
 
-Das Kaminfeuer wurde auf eine Doom-Style-Cellular-Automata angepasst: 1 Byte Heat pro Pixel (`0..63`), feste RGB565-Palette in PROGMEM und konstante Wärmequelle in der untersten Zeile. Pro Tick wird je Zelle aus `below/left/right` gemittelt und ein kleiner Integer-Decay abgezogen; optional verschiebt `dir` das Ergebnis als Wind in X-Richtung. Damit bleibt die Simulation DMA-freundlich (kein `delay()` im Effekt, keine Floats in der Feuerlogik).
+Das Kaminfeuer läuft als Doom-Fire-Cellular-Automata: Bottom-Row als Wärmequelle, Upward-Decays und Paletten-Rendering (RGB565, 0..63).
 
 Parameter-Mapping im vorhandenen FX-Protokoll:
 - `speed`: Simulationsrate (praktisch 30–60 FPS bei kleinen Intervallen).

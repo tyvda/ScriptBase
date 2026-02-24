@@ -165,26 +165,26 @@ static uint32_t animNextMs = 0;
 enum EffectMode {
   FX_NONE = 0,
   FX_MATRIX,
-  FX_BLINK,
-  FX_COLORFADE,
-  FX_RAINBOW,
   FX_FIRE,
   FX_TWINKLE,
-  FX_SCANNER,
-  FX_WAVES
+  FX_PLASMA
 };
 
 struct EffectParams {
-  uint16_t speedMs = 80;
-  uint8_t intensity = 180;
-  uint8_t density = 120;
-  uint8_t trail = 180;
-  uint8_t duty = 160;
-  int8_t direction = 1;
-  uint8_t cooling = 120;
-  uint8_t sparks = 120;
-  uint16_t color1 = 0x07E0; // grün
-  uint16_t color2 = 0xF800; // rot
+  uint16_t frameMs = 50;
+  uint8_t matrixDensity = 120;
+  uint8_t matrixTrail = 180;
+  uint16_t matrixColor = 0x07E0;
+  uint8_t twinkleDensity = 90;
+  uint8_t twinkleFade = 22;
+  uint16_t twinkleColor = 0xFFFF;
+  uint8_t fireDecay = 2;
+  uint8_t fireSparks = 150;
+  uint8_t fireSmoke = 70;
+  uint8_t plasmaAx = 7;
+  uint8_t plasmaAy = 11;
+  uint8_t plasmaAxy = 5;
+  uint8_t plasmaShiftSpeed = 2;
 };
 
 static volatile bool effectRunning = false;
@@ -207,13 +207,10 @@ static const uint16_t firePalette[64] PROGMEM = {
   0xF9C0, 0xF9E0, 0xFA00, 0xFA20, 0xFA40, 0xFA60, 0xFA80, 0xFAA0,
   0xFAC0, 0xFAE0, 0xFB20, 0xFB80, 0xFBC0, 0xFC20, 0xFC80, 0xFD00
 };
-static uint8_t colorfadePhase = 0;
-static bool colorfadeForward = true;
-static uint16_t rainbowHue = 0;
-static uint32_t blinkStartMs = 0;
-static float scannerPos = 0.0f;
-static float scannerVel = 1.0f;
 static uint8_t twinkleMap[PANEL_RES_X * PANEL_RES_Y];
+static int16_t sinLUT[256];
+static uint16_t fxPalette[64];
+static uint8_t plasmaPaletteShift = 0;
 
 static const uint8_t CLOCK_DIGITS_4X7[10][7] PROGMEM = {
   {0x06, 0x09, 0x09, 0x09, 0x09, 0x09, 0x06}, // 0
@@ -691,76 +688,46 @@ a{color:var(--accent)}
     <hr>
 
     <div>
-      <div class="section-title">WLED‑ähnliche Animationen</div>
+      <div class="section-title">Animationen</div>
       <div class="row">
         <label for="fxMode">Effekt</label>
         <select id="fxMode">
-          <option value="matrix" selected>Matrix Kino‑Film</option>
-          <option value="blink">Blink</option>
-          <option value="colorfade">Colorfading</option>
-          <option value="rainbow">Rainbow</option>
+          <option value="matrix" selected>Matrix</option>
           <option value="fire">Kaminfeuer</option>
           <option value="twinkle">Twinkle</option>
-          <option value="scanner">Scanner</option>
-          <option value="waves">Waves</option>
+          <option value="plasma">Plasma Palette‑Shift</option>
         </select>
         <button id="fxStart" type="button">Start</button>
         <button id="fxStop" type="button" class="btn-secondary">Stop</button>
       </div>
 
       <div class="row">
-        <label>Speed</label>
-        <input id="fxSpeed" type="range" min="20" max="300" value="80">
-        <span class="val" id="fxSpeedVal">80</span>
-
-        <label>Intensity</label>
-        <input id="fxIntensity" type="range" min="20" max="255" value="180">
-        <span class="val" id="fxIntensityVal">180</span>
+        <label>Frame ms</label>
+        <input id="fxFrameMs" type="range" min="20" max="200" value="50">
+        <span class="val" id="fxFrameMsVal">50</span>
       </div>
 
       <div class="row">
-        <label>Density</label>
-        <input id="fxDensity" type="range" min="10" max="255" value="120">
-        <span class="val" id="fxDensityVal">120</span>
+        <label>Param A</label>
+        <input id="fxP1" type="range" min="0" max="255" value="120">
+        <span class="val" id="fxP1Val">120</span>
 
-        <label>Trail</label>
-        <input id="fxTrail" type="range" min="10" max="255" value="180">
-        <span class="val" id="fxTrailVal">180</span>
+        <label>Param B</label>
+        <input id="fxP2" type="range" min="0" max="255" value="180">
+        <span class="val" id="fxP2Val">180</span>
       </div>
 
       <div class="row">
-        <label>Duty</label>
-        <input id="fxDuty" type="range" min="10" max="255" value="160">
-        <span class="val" id="fxDutyVal">160</span>
+        <label>Param C</label>
+        <input id="fxP3" type="range" min="0" max="255" value="90">
+        <span class="val" id="fxP3Val">90</span>
 
-        <label>Direction</label>
-        <select id="fxDirection">
-          <option value="1" selected>→</option>
-          <option value="-1">←</option>
-        </select>
+        <label>Param D</label>
+        <input id="fxP4" type="range" min="0" max="255" value="22">
+        <span class="val" id="fxP4Val">22</span>
       </div>
 
-      <div class="row">
-        <label>Cooling</label>
-        <input id="fxCooling" type="range" min="10" max="255" value="120">
-        <span class="val" id="fxCoolingVal">120</span>
-
-        <label>Sparks</label>
-        <input id="fxSparks" type="range" min="10" max="255" value="120">
-        <span class="val" id="fxSparksVal">120</span>
-      </div>
-
-      <div class="row">
-        <label>Color 1</label>
-        <input id="fxColor1" type="color" value="#00ff00">
-
-        <label>Color 2</label>
-        <input id="fxColor2" type="color" value="#ff0000">
-      </div>
-
-      <small>
-        Effekte laufen lokal auf dem ESP32. Start/Stop und Parameter werden via WebSocket gesteuert.
-      </small>
+      <small id="fxParamLegend">Matrix: Dichte/Trail/Farbe.</small>
     </div>
   </div>
 </div>
@@ -833,23 +800,17 @@ a{color:var(--accent)}
   const fxMode=document.getElementById('fxMode');
   const fxStart=document.getElementById('fxStart');
   const fxStop=document.getElementById('fxStop');
-  const fxSpeed=document.getElementById('fxSpeed');
-  const fxSpeedVal=document.getElementById('fxSpeedVal');
-  const fxIntensity=document.getElementById('fxIntensity');
-  const fxIntensityVal=document.getElementById('fxIntensityVal');
-  const fxDensity=document.getElementById('fxDensity');
-  const fxDensityVal=document.getElementById('fxDensityVal');
-  const fxTrail=document.getElementById('fxTrail');
-  const fxTrailVal=document.getElementById('fxTrailVal');
-  const fxDuty=document.getElementById('fxDuty');
-  const fxDutyVal=document.getElementById('fxDutyVal');
-  const fxDirection=document.getElementById('fxDirection');
-  const fxCooling=document.getElementById('fxCooling');
-  const fxCoolingVal=document.getElementById('fxCoolingVal');
-  const fxSparks=document.getElementById('fxSparks');
-  const fxSparksVal=document.getElementById('fxSparksVal');
-  const fxColor1=document.getElementById('fxColor1');
-  const fxColor2=document.getElementById('fxColor2');
+  const fxFrameMs=document.getElementById('fxFrameMs');
+  const fxFrameMsVal=document.getElementById('fxFrameMsVal');
+  const fxP1=document.getElementById('fxP1');
+  const fxP1Val=document.getElementById('fxP1Val');
+  const fxP2=document.getElementById('fxP2');
+  const fxP2Val=document.getElementById('fxP2Val');
+  const fxP3=document.getElementById('fxP3');
+  const fxP3Val=document.getElementById('fxP3Val');
+  const fxP4=document.getElementById('fxP4');
+  const fxP4Val=document.getElementById('fxP4Val');
+  const fxParamLegend=document.getElementById('fxParamLegend');
 
   // ---- WebSocket
   var ws;
@@ -1081,51 +1042,45 @@ a{color:var(--accent)}
   const fxState = {
     mode: fxMode.value,
     running: false,
-    speed: parseInt(fxSpeed.value,10),
-    intensity: parseInt(fxIntensity.value,10),
-    density: parseInt(fxDensity.value,10),
-    trail: parseInt(fxTrail.value,10),
-    duty: parseInt(fxDuty.value,10),
-    direction: parseInt(fxDirection.value,10),
-    cooling: parseInt(fxCooling.value,10),
-    sparks: parseInt(fxSparks.value,10),
-    color1: hexToRgb(fxColor1.value),
-    color2: hexToRgb(fxColor2.value),
+    frameMs: parseInt(fxFrameMs.value,10),
+    p1: parseInt(fxP1.value,10),
+    p2: parseInt(fxP2.value,10),
+    p3: parseInt(fxP3.value,10),
+    p4: parseInt(fxP4.value,10),
   };
 
-  function updateFxDisplay(){
-    fxSpeedVal.textContent = String(fxState.speed);
-    fxIntensityVal.textContent = String(fxState.intensity);
-    fxDensityVal.textContent = String(fxState.density);
-    fxTrailVal.textContent = String(fxState.trail);
-    fxDutyVal.textContent = String(fxState.duty);
-    fxCoolingVal.textContent = String(fxState.cooling);
-    fxSparksVal.textContent = String(fxState.sparks);
+  function applyFxPreset(){
+    const presets = {
+      matrix:{p1:120,p2:180,p3:100,p4:0,legend:'Matrix: Dichte / Trail / Grünanteil'},
+      fire:{p1:2,p2:150,p3:70,p4:0,legend:'Kaminfeuer: Decay / Sparks / Smoke'},
+      twinkle:{p1:90,p2:22,p3:255,p4:0,legend:'Twinkle: Spawn / Fade / Weißanteil'},
+      plasma:{p1:7,p2:11,p3:5,p4:2,legend:'Plasma: ax / ay / axy / Palette‑Shift'},
+    };
+    const p = presets[fxState.mode] || presets.matrix;
+    fxP1.value = String(p.p1); fxP2.value = String(p.p2); fxP3.value = String(p.p3); fxP4.value = String(p.p4);
+    fxState.p1=p.p1; fxState.p2=p.p2; fxState.p3=p.p3; fxState.p4=p.p4;
+    fxParamLegend.textContent = p.legend;
+    updateFxDisplay();
   }
-  updateFxDisplay();
+
+  function updateFxDisplay(){
+    fxFrameMsVal.textContent = String(fxState.frameMs);
+    fxP1Val.textContent = String(fxState.p1);
+    fxP2Val.textContent = String(fxState.p2);
+    fxP3Val.textContent = String(fxState.p3);
+    fxP4Val.textContent = String(fxState.p4);
+  }
+  applyFxPreset();
 
   function sendFx(runOverride){
     if (typeof runOverride === "boolean") fxState.running = runOverride;
     if (fxState.running) ensureUiMode();
-    sendJson({
-      t:"fx",
-      mode: fxState.mode,
-      run: fxState.running ? 1 : 0,
-      speed: fxState.speed,
-      intensity: fxState.intensity,
-      density: fxState.density,
-      trail: fxState.trail,
-      duty: fxState.duty,
-      dir: fxState.direction,
-      cooling: fxState.cooling,
-      sparks: fxState.sparks,
-      c1: fxState.color1,
-      c2: fxState.color2,
-    });
+    sendJson({ t:"fx", mode:fxState.mode, run:fxState.running?1:0, frameMs:fxState.frameMs, p1:fxState.p1, p2:fxState.p2, p3:fxState.p3, p4:fxState.p4 });
   }
 
   fxMode.addEventListener('change', () => {
     fxState.mode = fxMode.value;
+    applyFxPreset();
     if (fxState.running) sendFx(true);
   });
   fxStart.addEventListener('click', () => sendFx(true));
@@ -1138,25 +1093,11 @@ a{color:var(--accent)}
       if (fxState.running) sendFx(true);
     });
   }
-  bindFxRange(fxSpeed, "speed", fxSpeedVal);
-  bindFxRange(fxIntensity, "intensity", fxIntensityVal);
-  bindFxRange(fxDensity, "density", fxDensityVal);
-  bindFxRange(fxTrail, "trail", fxTrailVal);
-  bindFxRange(fxDuty, "duty", fxDutyVal);
-  bindFxRange(fxCooling, "cooling", fxCoolingVal);
-  bindFxRange(fxSparks, "sparks", fxSparksVal);
-  fxDirection.addEventListener('change', () => {
-    fxState.direction = parseInt(fxDirection.value,10);
-    if (fxState.running) sendFx(true);
-  });
-  fxColor1.addEventListener('input', () => {
-    fxState.color1 = hexToRgb(fxColor1.value);
-    if (fxState.running) sendFx(true);
-  });
-  fxColor2.addEventListener('input', () => {
-    fxState.color2 = hexToRgb(fxColor2.value);
-    if (fxState.running) sendFx(true);
-  });
+  bindFxRange(fxFrameMs, "frameMs", fxFrameMsVal);
+  bindFxRange(fxP1, "p1", fxP1Val);
+  bindFxRange(fxP2, "p2", fxP2Val);
+  bindFxRange(fxP3, "p3", fxP3Val);
+  bindFxRange(fxP4, "p4", fxP4Val);
 
   function applyLUT(v){ return lut[v&255]; }
   function rgb888To565LUT(r,g,b){
@@ -2355,48 +2296,40 @@ static uint16_t fire_color(uint8_t heat) {
 static EffectMode effectModeFromString(const char* mode) {
   if (!mode || !*mode) return FX_NONE;
   if (!strcmp(mode, "matrix")) return FX_MATRIX;
-  if (!strcmp(mode, "blink")) return FX_BLINK;
-  if (!strcmp(mode, "colorfade")) return FX_COLORFADE;
-  if (!strcmp(mode, "rainbow")) return FX_RAINBOW;
   if (!strcmp(mode, "fire")) return FX_FIRE;
   if (!strcmp(mode, "twinkle")) return FX_TWINKLE;
-  if (!strcmp(mode, "scanner")) return FX_SCANNER;
-  if (!strcmp(mode, "waves")) return FX_WAVES;
+  if (!strcmp(mode, "plasma")) return FX_PLASMA;
   return FX_NONE;
+}
+
+static void init_effect_tables() {
+  for (int i=0; i<256; i++) sinLUT[i] = (int16_t)(sinf((2.0f * PI * i) / 256.0f) * 127.0f);
+  for (int i=0; i<64; i++) fxPalette[i] = hsv_to_565((i * 360) / 64, 255, 255);
+  for (int y=0; y<PANEL_RES_Y; y++) {
+    for (int x=0; x<PANEL_RES_X; x++) {
+      int idx = y * PANEL_RES_X + x;
+      float nx = (x - PANEL_RES_X / 2.0f);
+      float ny = (y - PANEL_RES_Y / 2.0f);
+      float a = atan2f(ny, nx);
+      float d = sqrtf(nx*nx + ny*ny);
+    }
+  }
 }
 
 static void effectResetState(EffectMode mode) {
   if (mode == FX_MATRIX) {
-    for (int x=0; x<PANEL_RES_X; x++) {
-      matrixActive[x] = false;
-      matrixPos[x] = 0;
-      matrixLen[x] = 0;
-    }
-  } else if (mode == FX_COLORFADE) {
-    colorfadePhase = 0;
-    colorfadeForward = true;
-  } else if (mode == FX_RAINBOW) {
-    rainbowHue = 0;
+    for (int x=0; x<PANEL_RES_X; x++) { matrixActive[x] = false; matrixPos[x] = 0; matrixLen[x] = 0; }
   } else if (mode == FX_FIRE) {
     memset(fireHeat, 0, sizeof(fireHeat));
-    for (int x=0; x<PANEL_RES_X; x++) {
-      fireHeat[(PANEL_RES_Y - 1) * PANEL_RES_X + x] = FIRE_MAX_INTENSITY;
-    }
-  } else if (mode == FX_BLINK) {
-    blinkStartMs = millis();
-  } else if (mode == FX_SCANNER) {
-    scannerPos = 0.0f;
-    scannerVel = effectParams.direction < 0 ? -0.6f : 0.6f;
+    for (int x=0; x<PANEL_RES_X; x++) fireHeat[(PANEL_RES_Y - 1) * PANEL_RES_X + x] = FIRE_MAX_INTENSITY;
   } else if (mode == FX_TWINKLE) {
     memset(twinkleMap, 0, sizeof(twinkleMap));
+  } else if (mode == FX_PLASMA) {
+    plasmaPaletteShift = 0;
   }
 }
 
-static void effectStop() {
-  effectRunning = false;
-  effectMode = FX_NONE;
-  effectNextMs = 0;
-}
+static void effectStop() { effectRunning = false; effectMode = FX_NONE; effectNextMs = 0; }
 
 static void stop_media_playback() {
   effectStop();
@@ -2465,18 +2398,14 @@ static void effectStart(EffectMode mode) {
 }
 
 static void effectTickMatrix() {
-  uint8_t fade = 255 - (uint16_t)effectParams.trail * 180 / 255;
+  uint8_t fade = 255 - (uint16_t)effectParams.matrixTrail * 180 / 255;
   if (fade < 30) fade = 30;
   fade_frame(fade);
-
-  uint8_t trailLen = 1 + (effectParams.trail / 32);
-  uint16_t baseColor = scale565(effectParams.color1, effectParams.intensity);
-
+  uint8_t trailLen = 1 + (effectParams.matrixTrail / 32);
+  uint16_t baseColor = scale565(effectParams.matrixColor, 220);
   for (int x=0; x<PANEL_RES_X; x++) {
-    if (!matrixActive[x] && random(0, 256) < effectParams.density) {
-      matrixActive[x] = true;
-      matrixPos[x] = 0;
-      matrixLen[x] = trailLen;
+    if (!matrixActive[x] && random(0, 256) < effectParams.matrixDensity) {
+      matrixActive[x] = true; matrixPos[x] = 0; matrixLen[x] = trailLen;
     }
     if (matrixActive[x]) {
       int head = matrixPos[x];
@@ -2487,155 +2416,57 @@ static void effectTickMatrix() {
         fb[y*PANEL_RES_X + x] = scale565(baseColor, falloff);
       }
       matrixPos[x]++;
-      if (matrixPos[x] - matrixLen[x] > PANEL_RES_Y + 2) {
-        matrixActive[x] = false;
-      }
+      if (matrixPos[x] - matrixLen[x] > PANEL_RES_Y + 2) matrixActive[x] = false;
     }
   }
   draw_full_frame();
-}
-
-static void effectTickBlink(uint32_t now) {
-  uint16_t period = effectParams.speedMs < 60 ? 60 : effectParams.speedMs;
-  uint32_t elapsed = (now - blinkStartMs) % period;
-  uint32_t onTime = (uint32_t)period * effectParams.duty / 255;
-  if (elapsed < onTime) {
-    fill_color565(scale565(effectParams.color1, effectParams.intensity));
-  } else {
-    fill_color565(0x0000);
-  }
-}
-
-static void effectTickColorfade() {
-  uint16_t blended = blend565(effectParams.color1, effectParams.color2, colorfadePhase);
-  fill_color565(scale565(blended, effectParams.intensity));
-  if (colorfadeForward) {
-    colorfadePhase += 6;
-    if (colorfadePhase >= 250) { colorfadePhase = 255; colorfadeForward = false; }
-  } else {
-    if (colorfadePhase <= 6) { colorfadePhase = 0; colorfadeForward = true; }
-    else colorfadePhase -= 6;
-  }
-}
-
-static void effectTickRainbow() {
-  uint8_t intensity = effectParams.intensity;
-  for (int y=0; y<PANEL_RES_Y; y++) {
-    for (int x=0; x<PANEL_RES_X; x++) {
-      uint16_t hue = (rainbowHue + x*4 + y*2) % 360;
-      uint16_t col = hsv_to_565(hue, 255, intensity);
-      fb[y*PANEL_RES_X + x] = col;
-    }
-  }
-  draw_full_frame();
-  int16_t dir = effectParams.direction < 0 ? -1 : 1;
-  rainbowHue = (rainbowHue + dir + 360) % 360;
 }
 
 static void effectTickFire() {
-  uint8_t decay = 1 + (effectParams.cooling / 96);
-  if (decay > 3) decay = 3;
-  int8_t windDir = effectParams.direction < 0 ? -1 : (effectParams.direction > 0 ? 1 : 0);
-
+  uint8_t decay = effectParams.fireDecay < 1 ? 1 : (effectParams.fireDecay > 6 ? 6 : effectParams.fireDecay);
   for (int y=0; y<PANEL_RES_Y-1; y++) {
     int row = y * PANEL_RES_X;
     int rowBelow = (y + 1) * PANEL_RES_X;
     for (int x=0; x<PANEL_RES_X; x++) {
       int xm1 = (x == 0) ? (PANEL_RES_X - 1) : (x - 1);
       int xp1 = (x == PANEL_RES_X - 1) ? 0 : (x + 1);
-
-      int below = fireHeat[rowBelow + x];
-      int left = fireHeat[rowBelow + xm1];
-      int right = fireHeat[rowBelow + xp1];
-
-      int value = (below + left + right) / 3;
-      value -= random(0, decay + 1);
-      if (value < 0) value = 0;
-      if (value > FIRE_MAX_INTENSITY) value = FIRE_MAX_INTENSITY;
-
-      int writeX = x + windDir;
-      if (writeX < 0) writeX += PANEL_RES_X;
-      if (writeX >= PANEL_RES_X) writeX -= PANEL_RES_X;
-      fireHeat[row + writeX] = (uint8_t)value;
+      int v = (fireHeat[rowBelow + x] + fireHeat[rowBelow + xm1] + fireHeat[rowBelow + xp1]) / 3;
+      v -= random(0, decay + 1);
+      if (v < 0) v = 0; if (v > FIRE_MAX_INTENSITY) v = FIRE_MAX_INTENSITY;
+      fireHeat[row + x] = (uint8_t)v;
     }
   }
-
-  uint8_t sparkThreshold = effectParams.sparks;
   for (int x=0; x<PANEL_RES_X; x++) {
-    if (random(0, 256) < sparkThreshold) {
-      uint8_t sparkDrop = random(0, decay + 1);
-      int value = FIRE_MAX_INTENSITY - sparkDrop;
-      fireHeat[(PANEL_RES_Y - 1) * PANEL_RES_X + x] = value < 0 ? 0 : (uint8_t)value;
-    } else {
-      fireHeat[(PANEL_RES_Y - 1) * PANEL_RES_X + x] = FIRE_MAX_INTENSITY;
-    }
+    fireHeat[(PANEL_RES_Y - 1) * PANEL_RES_X + x] = (random(0,256) < effectParams.fireSparks) ? FIRE_MAX_INTENSITY : (FIRE_MAX_INTENSITY - decay);
   }
-
-  for (int y=0; y<PANEL_RES_Y; y++) {
-    int row = y * PANEL_RES_X;
-    for (int x=0; x<PANEL_RES_X; x++) {
-      uint8_t heat = fireHeat[row + x];
-      uint16_t col = fire_color(heat);
-      fb[row + x] = scale565(col, effectParams.intensity);
-    }
-  }
+  uint8_t smoke = effectParams.fireSmoke;
+  for (int i=0; i<PANEL_RES_X*PANEL_RES_Y; i++) fb[i] = scale565(fire_color(fireHeat[i]), 255 - smoke / 2);
   draw_full_frame();
 }
 
 static void effectTickTwinkle() {
-  fade_frame(235);
-  uint16_t baseColor = scale565(effectParams.color1, effectParams.intensity);
+  uint8_t fade = effectParams.twinkleFade < 2 ? 2 : effectParams.twinkleFade;
+  fade_frame(255 - fade);
+  uint16_t baseColor = effectParams.twinkleColor;
   for (int i=0; i<PANEL_RES_X*PANEL_RES_Y; i++) {
-    if (random(0, 256) < effectParams.density) {
-      twinkleMap[i] = 255;
-    }
-    if (twinkleMap[i] > 0) {
-      uint8_t glow = twinkleMap[i];
-      fb[i] = scale565(baseColor, glow);
-      twinkleMap[i] = glow > 20 ? (glow - 20) : 0;
-    }
+    if (random(0, 256) < effectParams.twinkleDensity) twinkleMap[i] = 255;
+    if (twinkleMap[i] > 0) { fb[i] = scale565(baseColor, twinkleMap[i]); twinkleMap[i] = twinkleMap[i] > fade ? (twinkleMap[i] - fade) : 0; }
   }
   draw_full_frame();
 }
 
-static void effectTickScanner() {
-  fade_frame(220);
-  uint8_t width = 1 + (effectParams.trail / 64);
-  uint16_t col = scale565(effectParams.color1, effectParams.intensity);
-  int head = (int)scannerPos;
-  for (int x=0; x<PANEL_RES_X; x++) {
-    int dist = abs(x - head);
-    if (dist <= width) {
-      uint8_t falloff = 255 - (dist * 180 / (width + 1));
-      for (int y=0; y<PANEL_RES_Y; y++) {
-        fb[y*PANEL_RES_X + x] = scale565(col, falloff);
-      }
-    }
-  }
-  scannerPos += scannerVel;
-  if (scannerPos >= (PANEL_RES_X - 1) || scannerPos <= 0) {
-    scannerVel = -scannerVel;
-    scannerPos = scannerPos <= 0 ? 0 : (PANEL_RES_X - 1);
-  }
-  draw_full_frame();
-}
-
-static void effectTickWaves() {
-  uint16_t baseHue = rainbowHue;
-  uint8_t intensity = effectParams.intensity;
-  float speed = (effectParams.speedMs < 20 ? 20 : effectParams.speedMs) / 80.0f;
+static void effectTickPlasma() {
+  static uint8_t t = 0;
   for (int y=0; y<PANEL_RES_Y; y++) {
     for (int x=0; x<PANEL_RES_X; x++) {
-      float phase = (x * 0.35f + y * 0.22f) + (baseHue * 0.02f);
-      float wave = sinf(phase) * 0.5f + 0.5f;
-      uint8_t val = (uint8_t)(wave * intensity);
-      uint16_t hue = (uint16_t)((baseHue + x * 6 + y * 4) % 360);
-      fb[y*PANEL_RES_X + x] = hsv_to_565(hue, 255, val);
+      int v = sinLUT[(uint8_t)(x * effectParams.plasmaAx + t)] + sinLUT[(uint8_t)(y * effectParams.plasmaAy + t)] + sinLUT[(uint8_t)((x + y) * effectParams.plasmaAxy + t)];
+      uint8_t idx = (uint8_t)((v >> 2) & 63);
+      fb[y*PANEL_RES_X + x] = fxPalette[(idx + plasmaPaletteShift) & 63];
     }
   }
+  plasmaPaletteShift = (plasmaPaletteShift + effectParams.plasmaShiftSpeed) & 63;
+  t++;
   draw_full_frame();
-  int16_t dir = effectParams.direction < 0 ? -1 : 1;
-  rainbowHue = (uint16_t)((int)rainbowHue + (int)(dir * speed * 2) + 360) % 360;
 }
 
 static void predrive_gpio_low(const HubPins& p) {
@@ -2871,19 +2702,22 @@ void onWsEvent(AsyncWebSocket*, AsyncWebSocketClient*, AwsEventType type, void *
     if (animFile) animFile.close();
   } else if (!strcmp(t,"fx")) {
     const char* modeStr = doc["mode"] | "";
-    json_read_u16_clamped(doc["speed"], effectParams.speedMs, 1, 2000);
-    json_read_u8_clamped(doc["intensity"], effectParams.intensity, 0, 255);
-    json_read_u8_clamped(doc["density"], effectParams.density, 0, 255);
-    json_read_u8_clamped(doc["trail"], effectParams.trail, 0, 255);
-    json_read_u8_clamped(doc["duty"], effectParams.duty, 0, 255);
-    if (doc["dir"].is<int>()) effectParams.direction = doc["dir"].as<int>() < 0 ? -1 : 1;
-    json_read_u8_clamped(doc["cooling"], effectParams.cooling, 0, 255);
-    json_read_u8_clamped(doc["sparks"], effectParams.sparks, 0, 255);
-    if (doc["c1"].is<uint32_t>()) effectParams.color1 = rgb888_to_565(doc["c1"].as<uint32_t>());
-    if (doc["c2"].is<uint32_t>()) effectParams.color2 = rgb888_to_565(doc["c2"].as<uint32_t>());
+    json_read_u16_clamped(doc["frameMs"], effectParams.frameMs, 20, 500);
+    uint8_t p1 = clamp_u8(doc["p1"] | 0, 0, 255);
+    uint8_t p2 = clamp_u8(doc["p2"] | 0, 0, 255);
+    uint8_t p3 = clamp_u8(doc["p3"] | 0, 0, 255);
+    uint8_t p4 = clamp_u8(doc["p4"] | 0, 0, 255);
 
     EffectMode requested = effectModeFromString(modeStr);
     if (requested != FX_NONE) effectMode = requested;
+    switch (effectMode) {
+      case FX_MATRIX: effectParams.matrixDensity = p1; effectParams.matrixTrail = p2; effectParams.matrixColor = rgb888_to_565((uint32_t)p3 << 8); break;
+      case FX_FIRE: effectParams.fireDecay = p1; effectParams.fireSparks = p2; effectParams.fireSmoke = p3; break;
+      case FX_TWINKLE: effectParams.twinkleDensity = p1; effectParams.twinkleFade = p2; effectParams.twinkleColor = rgb888_to_565(((uint32_t)p3 << 16) | ((uint32_t)p3 << 8) | p3); break;
+      case FX_PLASMA: effectParams.plasmaAx = p1; effectParams.plasmaAy = p2; effectParams.plasmaAxy = p3; effectParams.plasmaShiftSpeed = p4; break;
+      default: break;
+    }
+
     int run = doc["run"] | -1;
     if (run == 0) effectStop();
     else if (run == 1) {
@@ -3070,6 +2904,7 @@ void setup() {
   setup_time();
   reinit_display_now(); // boot fix
   setup_server();
+  init_effect_tables();
 
   dma_display->setTextSize(1);
   dma_display->setTextWrap(false);
@@ -3129,17 +2964,13 @@ void loop() {
 
   if (effectRunning) {
     uint32_t now = millis();
-    uint16_t interval = effectParams.speedMs < 20 ? 20 : effectParams.speedMs;
+    uint16_t interval = effectParams.frameMs < 20 ? 20 : effectParams.frameMs;
     if (effectNextMs == 0 || (int32_t)(now - effectNextMs) >= 0) {
       switch (effectMode) {
         case FX_MATRIX: effectTickMatrix(); break;
-        case FX_BLINK: effectTickBlink(now); break;
-        case FX_COLORFADE: effectTickColorfade(); break;
-        case FX_RAINBOW: effectTickRainbow(); break;
         case FX_FIRE: effectTickFire(); break;
         case FX_TWINKLE: effectTickTwinkle(); break;
-        case FX_SCANNER: effectTickScanner(); break;
-        case FX_WAVES: effectTickWaves(); break;
+        case FX_PLASMA: effectTickPlasma(); break;
         default: break;
       }
       schedule_fixed_interval(effectNextMs, now, interval);

@@ -244,3 +244,12 @@
 - Dokumentation reengineered aus `main.sketch` und als `README.md` zusammengeführt (Features, API, Animationsformat, Troubleshooting). Quelle: `main.sketch`.
 - Tutorial ergänzt (`TUTORIAL.md`) für Konfiguration, Flash und UI‑Bedienung. Quelle: `main.sketch`.
 - How‑To ergänzt (`HOWTO.md`) für Reinit, WebSocket‑Frames und Animationen. Quelle: `main.sketch`.
+
+## 2026-02-24 18:55:28 +0000
+- Animations-Engine in `main.sketch` bereinigt: entfernt wurden Blink, Colorfading, Rainbow, Scanner und Waves; aktiv bleiben Matrix, Kaminfeuer und Twinkle. Zusätzlich neu implementiert: Plasma (Palette-Shift), Texture Tunnel (Polar Mapping) und Water Ripple (Displacement über Height-Buffer). Quelle: `main.sketch`.
+- Effekt-Parameter auf nicht-generische Semantik umgestellt (`frameMs` + `p1..p4` mit effektabhängiger Bedeutung), inklusive UI-Presets und WebSocket-Transport. Quelle: `main.sketch`.
+- Dokumentation auf neuen Animations-Scope und neue Parameter angepasst. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`, `tasks.md`.
+
+## 2026-02-24 19:15:37 +0000
+- `main.sketch` erneut überarbeitet: Texture Tunnel und Water Ripple aus Effekt-Engine, UI-Auswahl, Presets, WebSocket-Mode-Mapping und Tick-Dispatch entfernt; aktiver Scope ist jetzt Matrix, Kaminfeuer, Twinkle und Plasma. Quelle: `main.sketch`.
+- Dokumentation auf den reduzierten Scope aktualisiert (Featurelisten und Effektparameter), damit Changelog und Source wieder 1:1 zusammenpassen. Quellen: `README.md`, `HOWTO.md`, `TUTORIAL.md`, `tasks.md`.
