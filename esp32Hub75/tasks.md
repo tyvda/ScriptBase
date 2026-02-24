@@ -5,7 +5,7 @@ Diese Aufgabenliste beschreibt detailliert die Umsetzung der geplanten Roadmap�
 ## Kontext & Ziele
 
 - **Pixelart‑Editor Load/Save**: JSON‑Export/Import direkt auf dem Client (Browser), damit Nutzer ihre Pixelart lokal speichern und wieder laden können.
-- **WLED‑ähnliche Animationen**: Effekt‑Engine + parametrierbare Effekte (Matrix Kino‑Film, Blink, Colorfading, Rainbow, Kaminfeuer).
+- **Animationen**: Effekt‑Engine + parametrierbare Effekte (Matrix, Kaminfeuer, Twinkle, Plasma, Tunnel, Ripple).
 
 ## A) Pixelart‑Editor: Load/Save auf Client
 
@@ -43,11 +43,13 @@ Diese Aufgabenliste beschreibt detailliert die Umsetzung der geplanten Roadmap�
 - Update `README.md`, `HOWTO.md`, `TUTORIAL.md` mit Import/Export‑Workflow.
 - Verweis auf JSON‑Schema (hier dokumentiert).
 
-## B) WLED‑ähnliche Animationen
+## B) Animationen
+
+> Hinweis: Unterpunkte B3/B4/B5/B10/B11 sind historisch und nicht mehr im aktiven Effekt-Scope.
 
 ### B0) Umsetzungs‑Task: Effekt‑Engine + Effekte (Sprint‑Story)
 
-- **Ziel**: WLED‑ähnliche Animationen als integrierten Modus im Sketch bereitstellen.
+- **Ziel**: Animationen als integrierten Modus im Sketch bereitstellen.
 - **Scope**:
   - Effekt‑Engine (Registry + Tick‑Loop + Parameter‑Schema).
   - Effekte B2–B6 implementieren.
@@ -67,7 +69,7 @@ Diese Aufgabenliste beschreibt detailliert die Umsetzung der geplanten Roadmap�
 - **Effekt‑Registry**: Auswahl per Name/ID.
 - **Stop/Start**: Effekt via WebSocket‑JSON steuern.
 
-### B2) Matrix Kino‑Film
+### B2) Matrix
 
 - **Algorithmus**: Digit‑Regen mit Trail‑Decay.
 - **Parameter**: Geschwindigkeit, Dichte, Trail‑Länge, Farbpalette (Grün‑Tint).

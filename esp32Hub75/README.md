@@ -17,7 +17,7 @@ Kein Cloud‑Zwang, kein WLED, kein externer Server.
 - Helligkeitssteuerung im UI (WebSocket, `setBrightness8`).【F:esp32Hub75/main.sketch†L160-L360】【F:esp32Hub75/main.sketch†L720-L768】
 - NTP‑Uhr (HH:MM oder HH:MM:SS) und Stopuhr (HH:MM:SS) mit einstellbarer LED‑Kettenfarbe für den Panel‑Rand.【F:esp32Hub75/main.sketch†L1279-L1340】
 - Optionales Wetter‑Overlay für Koblenz im Uhr‑Modus (Temperatur + Kurzcode).【F:esp32Hub75/main.sketch†L1302-L1352】【F:esp32Hub75/main.sketch†L1455-L1484】
-- WLED‑ähnliche Animationen (Matrix, Blink, Colorfading, Rainbow, Kaminfeuer, Twinkle, Scanner, Waves) mit UI‑Parametern und WebSocket‑Steuerung.【F:esp32Hub75/main.sketch†L58-L1684】
+- Animationen (Matrix, Kaminfeuer, Twinkle, Plasma Palette‑Shift, Texture Tunnel, Water Ripple) mit UI‑Parametern und WebSocket‑Steuerung.【F:esp32Hub75/main.sketch†L58-L1684】
 
 ## Visual Refresh: Teenage-Engineering Style
 
@@ -242,7 +242,7 @@ Die Umsetzung ist im Sketch beschrieben (WebSocket Handler, Framebuffer Copy, RL
 - **Bild‑Mapping**: Bild‑Upload folgt derselben Canvas‑Mapping‑Pipeline wie GIFs (Image → Canvas → 64×32) und wird anschließend wie ein GIF‑Frame als `anim.bin` gepackt, hochgeladen und lokal vom ESP32 gerendert. 【F:esp32Hub75/main.sketch†L535-L799】
 - **Panel‑Redraw**: Button „Redraw Panel“ packt die aktuelle Pixelart als Single‑Frame‑`anim.bin` und lässt den ESP32 das Bild lokal anzeigen (wie bei GIFs), wodurch Unterbrechungen durch UI‑Jobs vermieden werden. 【F:esp32Hub75/main.sketch†L69-L799】
 - **Pixelart Save/Load**: Speichert in Browser‑LocalStorage als versioniertes Format mit Größenprüfung; Laden erfolgt lokal aus dem Browser‑Speicher. 【F:esp32Hub75/main.sketch†L1066-L1161】
-- **WLED‑ähnliche Effekte**: Eigener UI‑Bereich mit Start/Stop, Speed/Intensity sowie Effekt‑Parametern (Matrix, Blink, Colorfading, Rainbow, Kaminfeuer, Twinkle, Scanner, Waves).【F:esp32Hub75/main.sketch†L58-L1684】
+- **WLED‑ähnliche Effekte**: Eigener UI‑Bereich mit Start/Stop, Speed/Intensity sowie Effekt‑Parametern (Matrix, Kaminfeuer, Twinkle, Plasma, Tunnel, Ripple).【F:esp32Hub75/main.sketch†L58-L1684】
 
 
 ### Doom-Style Feuer (Cellular Automata)
@@ -290,7 +290,7 @@ Die Uhr nutzt ein eigenes 4x7-Glyphenset mit fixen Zeichen-Slots. Das Muster `NN
   - `{"t":"fill","c":0xRRGGBB}` – Fill‑Farbe setzen.【F:esp32Hub75/main.sketch†L731-L735】
   - `{"t":"stop"}` – Animation stoppen.【F:esp32Hub75/main.sketch†L736-L739】
   - `{"t":"bright","v":128}` – Helligkeit (5–255) setzen.【F:esp32Hub75/main.sketch†L736-L768】
-  - `{"t":"fx","mode":"matrix","run":1,"speed":80,"intensity":180,"density":120,"trail":180,"duty":160,"dir":1,"cooling":120,"sparks":120,"c1":0x00FF00,"c2":0xFF0000}` – WLED‑ähnliche Effekte starten/parametrieren.【F:esp32Hub75/main.sketch†L94-L1149】
+  - `{"t":"fx","mode":"matrix","run":1,"frameMs":50,"p1":120,"p2":180,"p3":100,"p4":0}` – WLED‑ähnliche Effekte starten/parametrieren.【F:esp32Hub75/main.sketch†L94-L1149】
   - `{"t":"mode","mode":"clock"}` – Display‑Modus setzen (`ui`, `clock`, `stopwatch`).【F:esp32Hub75/main.sketch†L1688-L1797】
   - `{"t":"clockfmt","fmt":"hhmm"}` – Uhrformat wählen (`hhmm` oder `hhmmss`).【F:esp32Hub75/main.sketch†L1688-L1797】
   - `{"t":"clock","c":0xFFFFFF,"i":255}` – Uhrfarbe (RGB) und Uhr‑Helligkeit (10–255) setzen.【F:esp32Hub75/main.sketch†L1872-L1905】
@@ -369,14 +369,12 @@ Die Bewertung basiert auf der Architektur (FrameBuffer + RLE + WebSocket).【F:e
 
 Umgesetzt ist ein eigener Animations‑Bereich mit Parametern pro Effekt:
 
-- **Matrix Kino‑Film** (Digit‑Regen mit Trails): Parameter z. B. Geschwindigkeit, Dichte, Trail‑Länge, Farbpalette/Grün‑Tint.
-- **Blink**: Parameter z. B. Geschwindigkeit, Duty‑Cycle, Farbpalette, zufällige Startphasen.
-- **Colorfading**: Parameter z. B. Fade‑Speed, Farbpalette, Loop‑Modus.
-- **Rainbow**: Parameter z. B. Geschwindigkeit, Richtung, Sättigung/Intensität.
-- **Kaminfeuer**: Parameter z. B. Flammenhöhe, Glut‑Intensität, Flacker‑Stärke, Farbpalette.
-- **Twinkle**: Parameter z. B. Dichte, Speed, Intensität/Farbe.
-- **Scanner**: Parameter z. B. Speed, Breite/Trail, Richtung, Farbe.
-- **Waves**: Parameter z. B. Speed, Richtung, Intensität.
+- **Matrix**: Param A/B/C = Dichte / Trail / Grünanteil.
+- **Kaminfeuer (Doom‑Fire)**: Param A/B/C = Decay / Sparks / Smoke.
+- **Twinkle**: Param A/B/C = Spawn / Fade / Weißanteil.
+- **Plasma Palette‑Shift**: Param A/B/C/D = `ax` / `ay` / `a(x+y)` / Shift‑Speed.
+- **Texture Tunnel**: Param A/B = U‑Speed / V‑Speed.
+- **Water Ripple**: Param A/B/C = Dämpfung / Displacement‑Shift / Tropfenrate.
 Status: umgesetzt (Effekt‑Engine + UI‑Steuerung im Sketch).【F:esp32Hub75/main.sketch†L58-L1684】
 
 ## Taskliste (Nächste notwendige Aufgaben)
@@ -396,13 +394,10 @@ Basierend auf den dokumentierten Einschränkungen und Optional‑Features ergebe
 3. **Import‑Flow in UI**: JSON vom Client laden, validieren (Größe/Version), Pixel ins Canvas schreiben und per `px`/`fill` ans Panel übertragen. Quelle: `main.sketch` (WebSocket `px`).
 4. **Fehlerhandling**: UI‑Meldungen bei ungültigem JSON/Format; optional Vorschau vor Senden. Quellen: `main.sketch` (UI/JS), `README.md`.
 
-### WLED‑ähnliche Animationen
+### Animationen
 
 1. **Effekt‑Engine abstrahieren**: Basisklasse/Funktionspointer für Effekte (Frame‑Tick, Parameter). Quelle: `main.sketch` (loop/Framebuffer).
-2. **Matrix Kino‑Film**: Digit‑Regen mit Trails (Speed, Density, Trail‑Length, Palette). Quelle: `README.md` Roadmap.
-3. **Blink**: On/Off‑Pattern (Speed, Duty‑Cycle, Palette, Random Seed). Quelle: `README.md` Roadmap.
-4. **Colorfading**: Interpolation zwischen Farben (Fade‑Speed, Palette, Loop). Quelle: `README.md` Roadmap.
-5. **Rainbow**: HSV‑Sweep (Speed, Direction, Saturation/Intensity). Quelle: `README.md` Roadmap.
+2. **Matrix**: Digit‑Regen mit Trails (Speed, Density, Trail‑Length, Palette). Quelle: `README.md` Roadmap.
 6. **Kaminfeuer**: Heat‑Map/Convolution (Flame Height, Glow, Flicker, Palette). Quelle: `README.md` Roadmap.
 7. **UI‑Parametersteuerung**: Dropdown + Parameter‑Slider, live Update über WebSocket JSON. Quelle: `main.sketch` (WebSocket).
 8. **Persistenz optional**: Letzten Effekt/Parameter in LittleFS speichern (Nice‑to‑Have). Quelle: `main.sketch` (LittleFS).
