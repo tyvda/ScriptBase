@@ -219,3 +219,15 @@ Parameter-Mapping im vorhandenen FX-Protokoll:
 - `cooling`: Decay-Stärke (`0..3` intern geklemmt).
 - `sparks`: Reignite-Wahrscheinlichkeit in der Bottom-Row.
 - `dir`: Windrichtung (`-1`, `0`, `+1`).
+
+## Pixelart‑Animation aus Frames (neu)
+
+1. Pixelart wie gewohnt zeichnen.
+2. Mit **Add Frame** einen weiteren Frame erzeugen.
+   - Der neue Frame übernimmt automatisch den vorherigen Inhalt (kein leerer Start).
+3. Mit **Prev/Next** zwischen Frames wechseln und Unterschiede einzeichnen.
+4. **Frame‑Speed** einstellen (ms pro Frame).
+5. Mit **Play Pixelart Loop** als Endlos‑Animation auf das Panel senden.
+6. Mit **Stop Loop** anhalten.
+7. **Save** / **Load** speichert und lädt alle Frames inklusive Speed mit.
+
