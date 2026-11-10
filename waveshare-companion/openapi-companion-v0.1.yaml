@@ -1,0 +1,256 @@
+openapi: 3.0.3
+info:
+  title: Waveshare Local AI Companion HTTP Contract
+  version: 0.1.0
+  description: >-
+    Implementierter asynchroner Audio-Vertrag zwischen Waveshare ESP32-S3 und
+    lokalem Ubuntu-Backend. Der Server initiiert keine Verbindung zum Gerät.
+    Erweiterte Semantik, PCM-Header und Retry-Regeln: API_CONTRACT.md.
+servers:
+  - url: http://{ubuntuHost}:8000
+    variables:
+      ubuntuHost:
+        default: 192.168.1.123
+        description: LAN-IP oder Hostname des Ubuntu-Servers, nicht localhost auf dem ESP32.
+tags:
+  - name: Health
+  - name: Audio turns
+components:
+  securitySchemes:
+    CompanionBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+      description: Token aus COMPANION_TOKEN, nicht in die URL schreiben.
+  schemas:
+    Health:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+          enum: [true]
+    AcceptedTurn:
+      type: object
+      required: [id, state]
+      properties:
+        id:
+          type: string
+          format: uuid
+        state:
+          type: string
+          enum: [queued]
+    TurnState:
+      type: string
+      enum:
+        - queued
+        - transcribing
+        - thinking
+        - speaking
+        - ready
+        - failed
+    TurnStatus:
+      type: object
+      required: [id, state, transcript, answer, error, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        state:
+          $ref: '#/components/schemas/TurnState'
+        transcript:
+          type: string
+          description: Transkript, vor dem Schritt thinking leer.
+        answer:
+          type: string
+          description: Textantwort, vor dem Schritt speaking leer.
+        error:
+          type: string
+          description: Bei failed gesetzte Fehlermeldung, sonst leer.
+          maxLength: 300
+        created_at:
+          type: string
+          format: date-time
+          description: ISO-8601-Zeitpunkt in UTC.
+    ApiError:
+      type: object
+      required: [detail]
+      properties:
+        detail:
+          type: string
+  responses:
+    Unauthorized:
+      description: Bearer-Token fehlt oder ist ungültig.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example: {detail: Unauthorized}
+    Unconfigured:
+      description: COMPANION_TOKEN ist serverseitig nicht gesetzt.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example: {detail: COMPANION_TOKEN is not configured}
+    NotFound:
+      description: Turn-ID ist unbekannt (auch nach Serverneustart).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example: {detail: Unknown turn}
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Prüfen, ob der HTTP-Prozess antwortet
+      description: Keine Aussage über Modellbereitschaft; kein Bearer erforderlich.
+      security: []
+      responses:
+        '200':
+          description: HTTP-Prozess erreichbar.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+              example: {ok: true}
+  /api/turns:
+    post:
+      tags: [Audio turns]
+      summary: WAV hochladen und asynchronen Turn anlegen
+      description: >-
+        Raw PCM-WAV im Request-Body, kein multipart/form-data. 16000 Hz,
+        16 Bit signed, ein Kanal, Little Endian, maximal 20 Sekunden und
+        maximal 640044 Bytes HTTP-Body. Wiederholtes POST erzeugt neuen Turn.
+      security:
+        - CompanionBearer: []
+      parameters:
+        - in: query
+          name: plain
+          required: false
+          schema:
+            type: string
+            enum: ['1']
+          description: Wenn exakt 1, Antwort nur als UUID in text/plain.
+      requestBody:
+        required: true
+        content:
+          audio/wav:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '202':
+          description: Turn angelegt, Verarbeitung läuft später im Worker.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcceptedTurn'
+              example:
+                id: e7eb1c04-2171-48ab-8aeb-5665af66b1c4
+                state: queued
+            text/plain:
+              schema:
+                type: string
+                format: uuid
+              example: e7eb1c04-2171-48ab-8aeb-5665af66b1c4
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '503': {$ref: '#/components/responses/Unconfigured'}
+        '413':
+          description: WAV-Body größer als 640044 Bytes.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ApiError'}
+        '415':
+          description: Content-Type ist nicht audio/wav.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ApiError'}
+        '422':
+          description: WAV-Container oder PCM-Eigenschaften ungültig.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ApiError'}
+  /api/turns/{id}:
+    get:
+      tags: [Audio turns]
+      summary: Vollständigen Turn-Status mit Transkript und Antwort abfragen
+      security:
+        - CompanionBearer: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Vom POST zurückgegebene UUID.
+      responses:
+        '200':
+          description: Status-Snapshot, auch bei state=failed HTTP 200.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TurnStatus'}
+              example:
+                id: e7eb1c04-2171-48ab-8aeb-5665af66b1c4
+                state: ready
+                transcript: Hallo
+                answer: Guten Tag!
+                error: ''
+                created_at: '2026-11-10T10:30:00+00:00'
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '503': {$ref: '#/components/responses/Unconfigured'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /api/turns/{id}/state:
+    get:
+      tags: [Audio turns]
+      summary: Kompakten Turn-Status als Text abfragen
+      security:
+        - CompanionBearer: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: Ein Statuswort ohne JSON-Anführungszeichen.
+          content:
+            text/plain:
+              schema: {$ref: '#/components/schemas/TurnState'}
+              example: thinking
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '503': {$ref: '#/components/responses/Unconfigured'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /api/turns/{id}/audio.wav:
+    get:
+      tags: [Audio turns]
+      summary: Fertige 16-kHz-Mono-PCM-WAV herunterladen
+      description: >-
+        Nur bei state=ready verfügbar. Vollständige WAV mit 44-Byte-Header;
+        kein PCM-Rawstream. Mehrfacher GET ist erlaubt.
+      security:
+        - CompanionBearer: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: Vollständige, fertig synthetisierte Audioantwort.
+          content:
+            audio/wav:
+              schema:
+                type: string
+                format: binary
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '503': {$ref: '#/components/responses/Unconfigured'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409':
+          description: Turn ist noch nicht ready oder ist failed.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ApiError'}
+              example: {detail: Audio not ready}
+
