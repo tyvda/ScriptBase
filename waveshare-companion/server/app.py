@@ -25,14 +25,16 @@ import httpx
 import pipeline
 
 
-app = FastAPI(title="Local Companion Bridge", version="0.3.0")
+app = FastAPI(title="Local Companion Bridge", version="0.4.0")
 
 # This MVP intentionally serializes inference to avoid exhausting a local GPU.
 _pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="companion-ai")
 _lock = threading.RLock()
 _store = TemporaryDirectory(prefix="companion-mvp-")
 _work_dir = Path(_store.name)
-_max_bytes = 44 + 16000 * 2 * 20  # up to 20 seconds of mono PCM
+_max_seconds = 10
+_sample_rate = 16000
+_max_bytes = 44 + _sample_rate * 2 * _max_seconds  # max 320044 bytes
 _max_pending = 8  # At most 8 queued/running turns, even on an unauthenticated LAN.
 _history_turns = 8  # Last 8 completed exchanges per conversational session.
 _terminal = frozenset({"ready", "failed", "cancelled"})
@@ -73,8 +75,8 @@ def validate_wav(data: bytes) -> None:
         with wave.open(io.BytesIO(data), "rb") as f:
             if (f.getnchannels(), f.getsampwidth(), f.getframerate(), f.getcomptype()) != (1, 2, 16000, "NONE"):
                 raise ValueError("Expected 16 kHz, 16-bit, mono PCM WAV")
-            if not 0 < f.getnframes() <= 16000 * 20:
-                raise ValueError("Audio must be between 1 sample and 20 seconds")
+            if not 0 < f.getnframes() <= _sample_rate * _max_seconds:
+                raise ValueError("Audio must be between 1 sample and 10 seconds")
             # Reject truncated recordings; wave.open alone does not validate payload length.
             if len(f.readframes(f.getnframes())) != f.getnframes() * 2:
                 raise ValueError("Truncated WAV audio")
@@ -185,9 +187,9 @@ def ready():
 @app.get("/api/capabilities")
 def capabilities():
     return {
-        "protocol_version": "0.3.0", "authentication_required": False,
+        "protocol_version": "0.4.0", "authentication_required": False,
         "audio_input": {"format": "wav", "codec": "pcm_s16le", "sample_rate": 16000,
-                        "channels": 1, "max_seconds": 20, "max_bytes": _max_bytes},
+                        "channels": 1, "max_seconds": _max_seconds, "max_bytes": _max_bytes},
         "audio_output": {"format": "wav", "codec": "pcm_s16le", "sample_rate": 16000,
                          "channels": 1},
         "features": {"sessions": True, "cancel": True, "sse": True,
@@ -227,7 +229,7 @@ async def create_turn(request: Request):
     async for chunk in request.stream():
         size += len(chunk)
         if size > _max_bytes:
-            raise HTTPException(status_code=413, detail="Recording exceeds 20 seconds")
+            raise HTTPException(status_code=413, detail="Recording exceeds 10 seconds")
         chunks.append(chunk)
     data = b"".join(chunks)
     validate_wav(data)

@@ -26,7 +26,7 @@ static constexpr int kI2sWs = 45;
 static constexpr int kI2sMicData = 10;
 static constexpr int kI2sSpeakerData = 8;
 static constexpr uint32_t kSampleRate = 16000;
-static constexpr size_t kMaxSamples = 12 * kSampleRate;
+static constexpr size_t kMaxSamples = 10 * kSampleRate;
 static constexpr size_t kWavHeaderSize = 44;
 
 I2SClass i2s;

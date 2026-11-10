@@ -100,6 +100,12 @@ def synthesize(answer: str, output_wav: Path) -> None:
             with raw_pcm.open("rb") as src:
                 while chunk := src.read(64 * 1024):
                     dst.writeframesraw(chunk)
+    except subprocess.CalledProcessError as exc:
+        error_text = (exc.stderr or b"").decode("utf-8", errors="replace").strip()
+        command_name = "Piper" if "piper" in exc.cmd else "ffmpeg"
+        raise RuntimeError(f"{command_name} failed: {error_text[:240] or exc.returncode}") from exc
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError("Piper/ffmpeg timeout during speech synthesis") from exc
     finally:
         piper_wav.unlink(missing_ok=True)
         raw_pcm.unlink(missing_ok=True)

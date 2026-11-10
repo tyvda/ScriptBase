@@ -1,4 +1,4 @@
-# Waveshare Local AI Companion – Backend v0.3 (ohne Token)
+# Waveshare Local AI Companion – Audio-Pipeline v0.4 (ohne Token)
 
 Ein lokaler Sprachassistent für das **Waveshare ESP32-S3-Touch-AMOLED-2.16**.
 
@@ -22,7 +22,7 @@ flowchart TD
 
 - Eingabe/Ausgabe: **16 kHz, 16 Bit, Mono, PCM-WAV**.
 - Sprache: Deutsch. Push-to-talk über **KEY3 / GPIO18**.
-- Maximal 12 Sekunden Aufnahme auf dem ESP32, 20 Sekunden im Server-Protokoll.
+- **Maximal 10 Sekunden** Aufnahme auf dem ESP32 und im Server-Protokoll.
 - Asynchroner Job: Upload, kurze Job-ID, Status-Polling, WAV-Download.
 - Optionale **Gesprächssitzungen** mit den letzten 8 erfolgreichen Dialogrunden
   als Ollama-Kontext. Das bisherige API-Protokoll bleibt ohne Session nutzbar.
@@ -30,6 +30,13 @@ flowchart TD
   Capabilities. Maximal 8 gleichzeitig wartende/laufende Turns.
 - Keine externen KI-APIs. Die Ersteinrichtung der lokalen Modelle benötigt
   ggf. Downloads; danach kann das System offline im LAN laufen.
+
+**Verbindlicher Ablauf v0.4:** Waveshare sendet eine einzelne PCM-WAV-Aufnahme
+(16.000 Hz, 16 Bit, Mono, maximal 10 Sekunden, höchstens 320.044 Bytes).
+Das Backend validiert die WAV, speichert sie temporär und lässt nacheinander
+**faster-whisper (Deutsch) → Ollama `/api/chat` → Piper TTS → 16-kHz-WAV** laufen.
+Whisper-Transkript und LLM-Antwort stehen in `GET /api/turns/{id}`; die
+fertige Sprachausgabe liegt bei `GET /api/turns/{id}/audio.wav`.
 
 ## Board-Bezug
 
@@ -66,7 +73,8 @@ bash setup_ubuntu.sh
 
 Das Skript installiert Ubuntu-Systempakete, richtet eine isolierte Python-
 Umgebung ein, installiert faster-whisper und Piper und lädt die deutsche
-Stimme `de_DE-thorsten-medium` herunter. Es verändert die vorhandene Ollama-
+Stimme `de_DE-thorsten-medium` sowie das Whisper-Modell `small` herunter.
+Es verändert die vorhandene Ollama-
 Installation nicht. Es benötigt Internet für Pakete/Modelle sowie `sudo` für
 `apt-get`.
 
@@ -159,7 +167,18 @@ Zustände: `queued → transcribing → thinking → speaking → ready`, bei Fe
 Mit `python -m unittest -v test_app` laufen die API-Tests mit nachgebauten
 KI-Funktionen; dafür müssen Ollama/Piper/Whisper nicht gestartet sein.
 
-### Neue Backend-Funktionen ab v0.3
+**Echter Ende-zu-Ende-Test auf Ubuntu** (Backend muss laufen, Ollama-Modell
+und Piper/Whisper müssen installiert sein):
+
+```bash
+bash server/smoke_test.sh http://127.0.0.1:8000
+```
+
+Das Skript erzeugt selbst eine deutsche Testfrage mit Piper, wandelt sie in
+maximal 10 Sekunden PCM-WAV um, lädt sie hoch und prüft Whisper → Ollama →
+Piper inklusive der heruntergeladenen Audioantwort.
+
+### Weitere Backend-Funktionen (seit v0.3)
 
 ```bash
 curl -s http://127.0.0.1:8000/api/capabilities
@@ -181,7 +200,7 @@ Abbruch ist **kooperativ**: Die bereits gestartete Whisper-/Ollama-/Piper-
 Operation kann noch zu Ende laufen. Die API bleibt trotzdem im Zustand
 `cancelled` und gibt keine WAV aus. SSE transportiert nur Status, kein
 gestreamtes Audio. Für den vollständigen Vertrag siehe `API_CONTRACT.md` und
-`openapi-companion-v0.3.yaml`.
+`openapi-companion-v0.4.yaml`.
 
 ## 3. Arduino-Firmware vorbereiten
 

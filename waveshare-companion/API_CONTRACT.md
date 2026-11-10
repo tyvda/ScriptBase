@@ -1,4 +1,4 @@
-# Waveshare Local AI Companion – vollständiger Geräte-/Backend-Vertrag v0.3
+# Waveshare Local AI Companion – vollständiger Geräte-/Backend-Vertrag v0.4
 
 **Stand:** 2026-11-10  
 **Implementierung:** `server/app.py` und `server/pipeline.py` im Companion-MVP.  
@@ -44,9 +44,9 @@ des Ubuntu-Rechners einsetzen. **Vom ESP32 aus ist `localhost` falsch.**
 | Kanäle | **1 (Mono)** | **1 (Mono)** |
 | Byte-Reihenfolge | Little Endian | Little Endian |
 | HTTP Content-Type | `audio/wav` | `audio/wav` |
-| Begrenzung | max. **20 s**, ca. 640.044 Bytes inkl. 44-Byte-Header | Länge variabel |
+| Begrenzung | max. **10 s**, **320.044 Bytes** inkl. 44-Byte-Header | Länge variabel |
 
-Die aktuelle ESP32-Firmware nimmt höchstens **12 Sekunden** pro Tastendruck
+Die aktuelle ESP32-Firmware nimmt höchstens **10 Sekunden** pro Tastendruck
 auf und übernimmt zunächst den **ersten I²S-Eingangsslot** als Monospur. Für die Wiedergabe dupliziert
 sie die Mono-Samples in zwei I²S-Slots. Die Slotzuordnung ist auf realer
 Hardware noch zu validieren.
@@ -197,7 +197,7 @@ oder `/state` aufrufen; bei `ready` genau einmal die WAV laden. Auf dem Gerät
 | HTTP-Code | Wann? | Client-Reaktion |
 | --- | --- | --- |
 | `202` | Aufnahme angenommen | ID speichern, Polling starten |
-| `413` | WAV-Body zu groß | Aufnahme kürzen (max. 20 s) |
+| `413` | WAV-Body zu groß | Aufnahme kürzen (max. 10 s) |
 | `415` | `Content-Type` ist nicht `audio/wav` | Header korrigieren |
 | `422` | WAV beschädigt oder falsches PCM-Format | Aufnahmeformat korrigieren |
 | `404` | Unbekannte Job-ID | neuen Turn beginnen (z. B. nach Serverneustart) |
@@ -250,7 +250,7 @@ curl -fS \
 - **Keine Wakeword-Erkennung, Sprecheridentifikation, Tools/Actions, TLS,
   Browser-CORS oder Pairing.** Die API ist weiterhin ohne Token erreichbar.
 
-## 9. Neue Backend-Endpunkte ab v0.3 (implementiert)
+## 9. Zusätzliche Backend-Endpunkte (seit v0.3 implementiert)
 
 ### 9.1 Capabilities und Readiness
 
@@ -258,9 +258,9 @@ curl -fS \
 
 ```json
 {
-  "protocol_version": "0.3.0",
+  "protocol_version": "0.4.0",
   "authentication_required": false,
-  "audio_input": {"format":"wav","codec":"pcm_s16le","sample_rate":16000,"channels":1,"max_seconds":20,"max_bytes":640044},
+  "audio_input": {"format":"wav","codec":"pcm_s16le","sample_rate":16000,"channels":1,"max_seconds":10,"max_bytes":320044},
   "audio_output": {"format":"wav","codec":"pcm_s16le","sample_rate":16000,"channels":1},
   "features": {"sessions":true,"cancel":true,"sse":true,"audio_streaming":false,"job_persistence":false}
 }
@@ -368,7 +368,7 @@ sequenceDiagram
 | Phase | Client-Aktion | Pflichtdaten | Erwartung |
 | --- | --- | --- | --- |
 | Verbindungsprüfung | `GET /health` | keine | Backend erreichbar, nicht zwingend KI-bereit |
-| Aufnahme | lokal an ES7210, keine HTTP-Nachricht | PCM 16 kHz / 16 Bit / Mono | bis max. 12 s Referenzfirmware |
+| Aufnahme | lokal an ES7210, keine HTTP-Nachricht | PCM 16 kHz / 16 Bit / Mono | bis max. 10 s Referenzfirmware |
 | Upload | `POST /api/turns` | `audio/wav`, roher Body | `202`, neue Job-ID |
 | Status | `GET /api/turns/{id}` | exakt diese UUID | `200`, Statusobjekt |
 | Audio abrufen | `GET /api/turns/{id}/audio.wav` | Job muss `ready` sein | `200`, WAV-Body |
@@ -426,9 +426,8 @@ Rechenbeispiele:
 | Dauer | PCM-Samples | PCM-Bytes | WAV-Bytes inkl. 44-Byte-Header |
 | --- | ---: | ---: | ---: |
 | 1 s | 16.000 | 32.000 | 32.044 |
-| 10 s | 160.000 | 320.000 | 320.044 |
-| 12 s (Gerätelimit) | 192.000 | 384.000 | 384.044 |
-| 20 s (Serverlimit) | 320.000 | 640.000 | 640.044 |
+| 10 s (Server-/Gerätelimit) | 160.000 | 320.000 | 320.044 |
+| 12 s (wird abgewiesen) | 192.000 | 384.000 | 384.044 |
 
 Der ESP32 sollte beim Upload einen korrekten `Content-Length` senden. Beim
 Download den HTTP-Status **vor** dem Parsen der WAV-Bytes prüfen und aus dem
@@ -507,7 +506,7 @@ des Prozesses.
 | T07 | Kein `Authorization`-Header | gleiche Antwort wie ohne Anmeldung, kein `401` |
 | T08 | `Content-Type: application/json` | `415` |
 | T09 | WAV 44,1 kHz/Stereo | `422` |
-| T10 | Body größer 640.044 Bytes | `413` |
+| T10 | Body größer 320.044 Bytes (mehr als 10 s PCM) | `413` |
 | T11 | unbekannte UUID | `404` |
 | T12 | Modellfehler während Inferenz | später `state=failed`, `error` gesetzt |
 | T13 | Backend nach T02 neu gestartet | alte UUID wird `404` |
@@ -534,8 +533,40 @@ Job-Verarbeitung mit simulierten KI-Funktionen und Audio-Download ab.
 | ESP32 `secrets.h` | `SERVER_BASE_URL` | `http://<Ubuntu-LAN-IP>:8000` |
 | ESP32 `secrets.h` | WLAN-SSID/Passwort | Netzwerkzugang, nie in Git |
 
-**Für v0.3 gilt:** Pfade, Statuswerte, Feldnamen und PCM-Format nicht ohne
+**Für v0.4 gilt:** Pfade, Statuswerte, Feldnamen und PCM-Format nicht ohne
 gleichzeitige Anpassung beider Seiten ändern. Neue Optionen als zusätzliche
 Felder oder neue versionierte Endpunkte einführen, statt bestehende Typen
 unbemerkt umzudeuten.
+
+## 16. Implementierte Whisper-LLM-Piper-Pipeline (v0.4)
+
+Der Server erwartet **eine abgeschlossene Aufnahme** als `POST /api/turns`.
+Kein Live-Mikrofonstream und kein Multipart-Upload.
+
+1. **WAV-Validierung:** RIFF/WAVE, PCM s16le, Mono 16.000 Hz, höchstens
+   160.000 Samples bzw. 320.044 Bytes bei kanonischem 44-Byte-Header.
+   Größere Bodies → `413`, fehlerhafte WAVs → `422`, falscher Content-Type →
+   `415`. Der gültige Upload liefert `202` und eine Turn-ID.
+2. **Whisper:** `faster_whisper.WhisperModel` mit dem konfigurierten Modell
+   (standardmäßig `small`), `language="de"` und `vad_filter=True`. Das erkannte
+   Transkript wird unter `transcript` gespeichert. Kein erkannter Sprachtext
+   → Job-Status `failed`.
+3. **Ollama:** `POST` an die lokale Ollama-API `/api/chat` mit
+   `{"model":OLLAMA_MODEL,"stream":false,"messages":[...]}`. Die letzte
+   User-Nachricht enthält exakt das Whisper-Transkript; optional kommen bis
+   zu acht frühere erfolgreiche Dialogpaare derselben Session hinzu.
+   Ollamas Textantwort wird als `answer` gespeichert.
+4. **Piper:** Der Antworttext wird lokal über `python -m piper` synthetisiert.
+   `ffmpeg` resampelt die Ausgabe auf 16 kHz, 16 Bit, Mono und der Server
+   schreibt eine vollständige WAV-Datei. Danach Zustand `ready`.
+5. **Waveshare:** `GET /api/turns/{id}` liefert `transcript`, `answer` und
+   den aktuellen Status; `GET /api/turns/{id}/audio.wav` liefert bei `ready`
+   die fertige Sprachantwort. Ein Fehler in Whisper/Ollama/Piper wird als
+   `state=failed` und Fehlermeldung im Statusobjekt sichtbar.
+
+**Realer Ubuntu-Integrationstest:** `bash server/smoke_test.sh` erzeugt eine
+deutsche Testfrage mit Piper, erstellt daraus ein maximal 10 Sekunden langes
+WAV und sendet es über die unveränderte HTTP-API durch Whisper → Ollama →
+Piper. Der Test prüft Antworttext und heruntergeladenes Audio. Er benötigt
+  laufende Modelle und kann nicht durch die 13 Mock-Tests ersetzt werden.
 
