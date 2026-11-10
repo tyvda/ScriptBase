@@ -1,4 +1,4 @@
-# Waveshare Local AI Companion – Backend-/Frontend-Vertrag v0.1
+# Waveshare Local AI Companion – vollständiger Geräte-/Backend-Vertrag v0.1
 
 **Stand:** 2026-11-10  
 **Implementierung:** `server/app.py` und `server/pipeline.py` im Companion-MVP.  
@@ -255,4 +255,199 @@ Erst nach stabilem Audio-MVP sinnvoll:
 **Vertragsregel:** Die hier beschriebenen v0.1-Endpunkte bleiben der aktuelle
 Implementierungsstand. Änderungen an Struktur oder Format zuerst im Backend
 implementieren und testen, dann die Frontend-Dokumentation aktualisieren.
+
+## 10. Vollständiger bidirektionaler Nachrichtenfluss
+
+Das Protokoll verwendet **HTTP Request/Response**. Es gibt **keinen vom Backend
+initiierten HTTP-Aufruf an das ESP32**, keinen Push-Kanal und keinen MQTT-Broker.
+„Backend → Waveshare“ bedeutet deshalb immer: **HTTP-Antwort auf eine zuvor vom
+Waveshare-Gerät gesendete Anfrage**. Dies ist für die Firmware-Architektur
+verbindlich.
+
+```mermaid
+sequenceDiagram
+    participant W as Waveshare ESP32
+    participant B as Ubuntu Backend
+    W->>B: GET /health (optional)
+    B-->>W: 200 {"ok":true}
+    W->>W: KEY3/Touch, Aufnahme in PSRAM
+    W->>B: POST /api/turns, audio/wav + Bearer
+    B-->>W: 202 {"id":"UUID","state":"queued"}
+    loop Etwa alle 1–2 Sekunden
+        W->>B: GET /api/turns/{id} + Bearer
+        B-->>W: 200 {state,transcript,answer,error,...}
+    end
+    W->>B: GET /api/turns/{id}/audio.wav + Bearer
+    B-->>W: 200 audio/wav (binär)
+    W->>W: I2S-Wiedergabe über ES8311
+```
+
+### 10.1 Waveshare → Backend (Gerät sendet)
+
+| Phase | Client-Aktion | Pflichtdaten | Erwartung |
+| --- | --- | --- | --- |
+| Verbindungsprüfung | `GET /health` | keine | Backend erreichbar, nicht zwingend KI-bereit |
+| Aufnahme | lokal an ES7210, keine HTTP-Nachricht | PCM 16 kHz / 16 Bit / Mono | bis max. 12 s Referenzfirmware |
+| Upload | `POST /api/turns` | Bearer, `audio/wav`, roher Body | `202`, neue Job-ID |
+| Status | `GET /api/turns/{id}` | Bearer, exakt diese UUID | `200`, Statusobjekt |
+| Audio abrufen | `GET /api/turns/{id}/audio.wav` | Bearer, Job muss `ready` sein | `200`, WAV-Body |
+
+Der `POST` ist **nicht idempotent**: Ein erneuter Upload legt einen **zweiten
+Job** an. Bei einem HTTP-Timeout nach dem Senden kann der Client aktuell nicht
+feststellen, ob der Server schon eine Job-ID angelegt hat. Im MVP dann eine neue
+Aufnahme/Anfrage anbieten und keine unsichtbare Endlos-Wiederholung starten.
+
+### 10.2 Backend → Waveshare (Antworten auf Client-Anfragen)
+
+| Client-Anfrage | HTTP-Antwort | Payload | Frontend-Aktion |
+| --- | --- | --- | --- |
+| Health | `200` JSON | `{"ok":true}` | online anzeigen |
+| POST ohne `plain=1` | `202` JSON | `{"id":"UUID","state":"queued"}` | UUID speichern |
+| POST mit `plain=1` | `202` Text | UUID als `text/plain` | UUID direkt speichern |
+| Status-JSON | `200` JSON | sechs Felder, siehe §4.2 | UI aktualisieren |
+| Status-Text | `200` Text | genau ein Statuswort | UI aktualisieren |
+| WAV abrufen (bereit) | `200` `audio/wav` | RIFF/WAVE-Bytes | I²S starten |
+| WAV abrufen (noch nicht bereit) | `409` JSON | `{"detail":"Audio not ready"}` | weiter pollen |
+| Unbekannter Job | `404` JSON | `{"detail":"Unknown turn"}` | alte UUID verwerfen |
+| Fehler beim Upload | `4xx` JSON | `{"detail":"..."}` | Fehler lokal anzeigen |
+
+Bei `failed` liefert die Statusabfrage weiterhin `200` und den JSON-Status
+`failed`; das **ist kein HTTP-Fehler**. Die Audio-URL liefert in diesem Fall
+weiterhin `409` und keine WAV-Datei.
+
+## 11. WAV-Bytes und Framing auf der Leitung
+
+Für interoperable ESP32-Implementierungen empfehlen wir den **kanonischen
+44-Byte-PCM-WAV-Header**. Das Backend kann valide WAV-Dateien mit einem von
+Python `wave` unterstützten Header lesen, solange Format und Gesamtgröße
+passen. Die aktuelle Referenzfirmware erwartet beim **Download** jedoch genau
+den kanonischen Header, den der Server erzeugt.
+
+| Byte-Offset | Länge | Inhalt | Sollwert |
+| --- | ---: | --- | --- |
+| `0` | 4 | Chunk-ID | ASCII `RIFF` |
+| `4` | 4 | RIFF-Länge minus 8 | `36 + PCM-Bytes`, uint32 LE |
+| `8` | 4 | Format | ASCII `WAVE` |
+| `12` | 4 | Subchunk-ID | ASCII `fmt ` |
+| `16` | 4 | Größe `fmt` | `16`, uint32 LE |
+| `20` | 2 | Audioformat | `1` (PCM), uint16 LE |
+| `22` | 2 | Kanalzahl | `1`, uint16 LE |
+| `24` | 4 | Sample Rate | `16000`, uint32 LE |
+| `28` | 4 | Byte Rate | `32000`, uint32 LE |
+| `32` | 2 | Block Align | `2`, uint16 LE |
+| `34` | 2 | Bits pro Sample | `16`, uint16 LE |
+| `36` | 4 | Subchunk-ID | ASCII `data` |
+| `40` | 4 | PCM-Datenlänge | `Samples × 2`, uint32 LE |
+| `44+` | variabel | Audiodaten | signed int16 LE, Mono |
+
+Rechenbeispiele:
+
+| Dauer | PCM-Samples | PCM-Bytes | WAV-Bytes inkl. 44-Byte-Header |
+| --- | ---: | ---: | ---: |
+| 1 s | 16.000 | 32.000 | 32.044 |
+| 10 s | 160.000 | 320.000 | 320.044 |
+| 12 s (Gerätelimit) | 192.000 | 384.000 | 384.044 |
+| 20 s (Serverlimit) | 320.000 | 640.000 | 640.044 |
+
+Der ESP32 sollte beim Upload einen korrekten `Content-Length` senden. Beim
+Download den HTTP-Status **vor** dem Parsen der WAV-Bytes prüfen und aus dem
+`data`-Chunk die tatsächlich zu lesende PCM-Länge bestimmen. `Content-Length`
+ist die gesamte HTTP-Body-Größe, einschließlich WAV-Header.
+
+### 11.1 Audio-Pinbelegung (Waveshare 2.16, Referenzfirmware)
+
+| Verbindung | GPIO | Richtung / Funktion |
+| --- | --- | --- |
+| `I2S_MCLK` | 42 | gemeinsamer Master-Clock-Ausgang |
+| `I2S_BCLK` | 9 | gemeinsamer Bitclock |
+| `I2S_LRCK` | 45 | gemeinsamer Wordselect |
+| `I2S_ASDOUT` | 10 | ES7210 → ESP32 (Mikrofon) |
+| `I2S_DSDIN` | 8 | ESP32 → ES8311 (Lautsprecher) |
+| `I2C_SDA` | 15 | gemeinsame Codec-Steuerung |
+| `I2C_SCL` | 14 | gemeinsame Codec-Steuerung |
+| `PA_CTRL` | 46 | Verstärkersteuerung gemäß Herstellerbeispiel |
+| `KEY3` | 18 | Aufnahme-Taste, aktiv LOW |
+
+Die elektrische Audiokonfiguration und die Auswahl des ersten Empfangsslots
+sind auf der tatsächlichen Boardrevision noch mit den Herstellerdemos zu testen.
+
+## 12. Präzise Daten- und Statussemantik
+
+**Status-JSON:** `id` ist eine UUID als String; `state` ist genau eines der
+sechs Statuswörter; `transcript`, `answer` und `error` sind immer Strings;
+`created_at` ist ein UTC-Zeitpunkt als ISO-8601-String. Kein Feld ist `null`.
+
+| Übergang | Vorliegende Daten | Nicht garantiert |
+| --- | --- | --- |
+| `queued` | `id`, `created_at`, leere Texte | dass der Worker schon läuft |
+| `transcribing` | wie oben | ein Transkript |
+| `thinking` | `transcript` nicht leer | eine Antwort |
+| `speaking` | `transcript` und `answer` vorhanden | fertige WAV |
+| `ready` | `transcript`, `answer`, WAV-Datei | dass das Gerät sie schon spielt |
+| `failed` | `error` mit Fehlermeldung | WAV-Datei |
+
+`speaking` bedeutet **TTS-Erzeugung auf Ubuntu**, nicht Wiedergabe auf dem
+Waveshare. Der Client setzt seinen eigenen Zustand `playing`, sobald er die
+fertige WAV empfängt und über I²S ausgibt.
+
+## 13. Timeouts, Retry und Lebensdauer
+
+**Backend-seitig implementiert:** Ein Worker bearbeitet Jobs nacheinander;
+dieser API-Vertrag verspricht **keine feste maximale Inferenzdauer**. Die IDs
+und Dateien liegen pro Python-Prozess im Speicher/Temp-Verzeichnis. Nach einem
+Neustart sind sie nicht abrufbar. Es gibt keine aktive Jobbereinigung während
+des Prozesses.
+
+**Empfohlene Client-Policy** (Referenzfirmware, kein harter Serververtrag):
+
+- WLAN verbinden und `/health` prüfen, bevor eine Aufnahme hochgeladen wird.
+- Für Upload und Status-Anfragen passende Netzwerk-Timeouts verwenden (aktuell
+  Referenzfirmware: POST ca. 15 s, GET ca. 10 s).
+- Nach `202` alle 1–2 s `GET /api/turns/{id}` pollen, insgesamt z. B. 180 s.
+- `ready`: **einmal** WAV laden; `failed`: Fehlermeldung zeigen; `404`: neue
+  Anfrage beginnen; `401`/`503`: Konfigurationsproblem statt endlosem Retry.
+- GET-Anfragen dürfen bei kurzzeitigem WLAN-Ausfall erneut gesendet werden;
+  POST nicht blind wiederholen (Duplikatgefahr).
+- Vor neuer Aufnahme Wiedergabe stoppen und Audio-RX/TX-Puffer sauber behandeln.
+
+## 14. Beispiel-Testmatrix für Frontend und Firmware
+
+| Test | Anfrage / Situation | Erwartetes Verhalten |
+| --- | --- | --- |
+| T01 | `GET /health` | `200`, JSON `ok=true` |
+| T02 | gültiges 10-s-WAV per POST | `202`, UUID vorhanden |
+| T03 | Status direkt nach T02 | `200`, gültiges Statuswort |
+| T04 | `GET audio.wav` vor `ready` | `409` JSON, **keine** Wiedergabe |
+| T05 | Status irgendwann `ready` | Transkript/Antwort verfügbar |
+| T06 | `GET audio.wav` bei `ready` | `200`, WAV 16k/16bit/Mono |
+| T07 | Bearer fehlt/ungültig | `401` |
+| T08 | `Content-Type: application/json` | `415` |
+| T09 | WAV 44,1 kHz/Stereo | `422` |
+| T10 | Body größer 640.044 Bytes | `413` |
+| T11 | unbekannte UUID | `404` |
+| T12 | Modellfehler während Inferenz | später `state=failed`, `error` gesetzt |
+| T13 | Backend nach T02 neu gestartet | alte UUID wird `404` |
+| T14 | WLAN beim Status-Poll kurz weg | kein doppelter POST, GET später wiederholen |
+
+Ein vollständiger Integrationstest mit echter Mikrofonaufnahme und
+Lautsprecherwiedergabe erfordert das angeschlossene Waveshare-Board. Die
+vorhandenen automatisierten Tests decken Upload-Validierung, Authentifizierung,
+Job-Verarbeitung mit simulierten KI-Funktionen und Audio-Download ab.
+
+## 15. Konfigurations- und Kompatibilitätsregel
+
+| Ort | Einstellung | Bedeutung |
+| --- | --- | --- |
+| Ubuntu `server/.env.companion` | `COMPANION_TOKEN` | gemeinsames Bearer-Secret |
+| Ubuntu `server/.env.companion` | `OLLAMA_URL` / `OLLAMA_MODEL` | lokaler LLM-Endpunkt und Modell |
+| Ubuntu `server/.env.companion` | `PIPER_MODEL` | lokale deutsche TTS-Stimme |
+| Ubuntu `server/.env.companion` | `WHISPER_*` | lokales STT-Modell und Ausführung |
+| ESP32 `secrets.h` | `SERVER_BASE_URL` | `http://<Ubuntu-LAN-IP>:8000` |
+| ESP32 `secrets.h` | `COMPANION_TOKEN` | **identisch** zum Backend |
+| ESP32 `secrets.h` | WLAN-SSID/Passwort | Netzwerkzugang, nie in Git |
+
+**Für v0.1 gilt:** Pfade, Statuswerte, Feldnamen und PCM-Format nicht ohne
+gleichzeitige Anpassung beider Seiten ändern. Neue Optionen als zusätzliche
+Felder oder neue versionierte Endpunkte einführen, statt bestehende Typen
+unbemerkt umzudeuten.
 
