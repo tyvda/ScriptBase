@@ -1,4 +1,4 @@
-# Waveshare Local AI Companion – vollständiger Geräte-/Backend-Vertrag v0.2
+# Waveshare Local AI Companion – vollständiger Geräte-/Backend-Vertrag v0.3
 
 **Stand:** 2026-11-10  
 **Implementierung:** `server/app.py` und `server/pipeline.py` im Companion-MVP.  
@@ -59,11 +59,19 @@ kein Base64 und kein `multipart/form-data`.
 | Methode | Pfad | Body / Header | Erfolgsantwort |
 | --- | --- | --- | --- |
 | `GET` | `/health` | keine Authentifizierung | `200` JSON `{"ok":true}` |
+| `GET` | `/ready` | keine | `200` JSON bei einsatzbereiten Komponenten, sonst `503` |
+| `GET` | `/api/capabilities` | keine | `200` JSON mit Audio- und Feature-Fähigkeiten |
+| `POST` | `/api/sessions` | optional JSON `{"label":"Wave"}` | `201` Sessionobjekt |
+| `GET` | `/api/sessions/{id}` | Session-ID | `200` Sessionobjekt |
+| `GET` | `/api/sessions/{id}/turns` | Session-ID | `200` Liste der Turns |
 | `POST` | `/api/turns` | `audio/wav`, roher WAV-Body | `202` JSON mit `id`, `state` |
+| `POST` | `/api/turns?session_id={id}` | wie oben; Session-ID optional | `202` mit Turn-ID |
 | `POST` | `/api/turns?plain=1` | wie oben | `202` `text/plain` mit UUID |
 | `GET` | `/api/turns/{id}` | kein Auth-Header | `200` JSON mit vollständigem Job-Status |
 | `GET` | `/api/turns/{id}/state` | kein Auth-Header | `200` `text/plain` mit Zustandswort |
 | `GET` | `/api/turns/{id}/audio.wav` | kein Auth-Header; erst bei `ready` | `200` `audio/wav` |
+| `GET` | `/api/turns/{id}/events` | kein Auth-Header | `200` `text/event-stream` (SSE) |
+| `DELETE` | `/api/turns/{id}` | kein Auth-Header | `200` Statusobjekt (`cancelled` sofern aktiv) |
 
 ### 4.1 Aufnahme hochladen
 
@@ -105,11 +113,13 @@ Antwortbeispiel (`200 OK`, `application/json`):
   "transcript": "Wie wird morgen das Wetter?",
   "answer": "Das kann ich dir sagen, wenn du mir deinen Ort nennst.",
   "error": "",
+  "session_id": null,
   "created_at": "2026-11-10T10:30:00.000000+00:00"
 }
 ```
 
-Alle Felder sind vorhanden. `transcript` und `answer` sind anfangs leere
+Die sechs bisherigen Felder bleiben vorhanden; neu ist `session_id` als UUID
+oder `null`. `transcript` und `answer` sind anfangs leere
 Strings. Bei `failed` steht in `error` eine Fehlermeldung (max. 300 Zeichen).
 `created_at` ist ein ISO-8601-Zeitstempel in UTC.
 
@@ -119,8 +129,8 @@ Kompakte Alternative:
 GET /api/turns/e7eb1c04-2171-48ab-8aeb-5665af66b1c4/state HTTP/1.1
 ```
 
-Antwort-Body: `queued`, `transcribing`, `thinking`, `speaking`, `ready` oder
-`failed` als reiner Text. **Keine Anführungszeichen, kein JSON.**
+Antwort-Body: `queued`, `transcribing`, `thinking`, `speaking`, `ready`,
+`failed` oder `cancelled` als reiner Text. **Keine Anführungszeichen, kein JSON.**
 
 ### 4.3 Audioantwort herunterladen
 
@@ -144,6 +154,7 @@ GET /api/turns/e7eb1c04-2171-48ab-8aeb-5665af66b1c4/audio.wav HTTP/1.1
 | `speaking` | Piper erzeugt die Antwort-WAV | „Ich formuliere meine Antwort …“ |
 | `ready` | WAV liegt zum Download bereit | herunterladen → abspielen |
 | `failed` | Verarbeitung fehlgeschlagen | Fehler zeigen, neue Aufnahme anbieten |
+| `cancelled` | Job abgebrochen; WAV wird nicht bereitgestellt | zurück zu `idle` |
 
 Der Client benötigt **zusätzliche lokale Zustände**, die nicht vom Backend
 kommen: `idle`, `recording`, `uploading`, `downloading`, `playing`, `offline`.
@@ -167,15 +178,19 @@ stateDiagram-v2
     transcribing --> failed: Jobfehler
     thinking --> failed: Jobfehler
     speaking --> failed: Jobfehler
+    queued --> cancelled: DELETE
+    transcribing --> cancelled: DELETE
+    thinking --> cancelled: DELETE
+    speaking --> cancelled: DELETE
     failed --> idle: Erneut versuchen
+    cancelled --> idle: Abbruch bestätigt
     offline --> idle: WLAN wiederhergestellt
 ```
 
 Für das MVP nach dem Upload alle **1–2 Sekunden** pollend `GET /api/turns/{id}`
 oder `/state` aufrufen; bei `ready` genau einmal die WAV laden. Auf dem Gerät
-einen Timeout (z. B. 180 Sekunden) und einen Abbruch für den UI-Dialog
-vorsehen. Das ist zunächst nur ein **clientseitiger** Abbruch: Es gibt noch
-keinen Backend-Endpoint zum Abbrechen eines Jobs.
+  einen Timeout (z. B. 180 Sekunden) vorsehen. Ab v0.3 kann der Client mit
+  `DELETE /api/turns/{id}` auch einen **serverseitigen** Abbruch anfordern.
 
 ## 6. Fehlerbehandlung
 
@@ -187,6 +202,8 @@ keinen Backend-Endpoint zum Abbrechen eines Jobs.
 | `422` | WAV beschädigt oder falsches PCM-Format | Aufnahmeformat korrigieren |
 | `404` | Unbekannte Job-ID | neuen Turn beginnen (z. B. nach Serverneustart) |
 | `409` | WAV vor `ready` angefordert | weiter auf `ready` warten |
+| `429` | Maximal 8 gleichzeitig offene Turns | warten, nicht sofort erneut hochladen |
+| `503` | `/ready`: mindestens eine KI-Komponente fehlt | Backend-Status/Modelle prüfen |
 | Netzwerkfehler/Timeout | Server/WLAN nicht erreichbar | UI `offline`, Retry mit Begrenzung |
 
 Ausführungsfehler von Whisper/Ollama/Piper werden normalerweise **nicht** als
@@ -216,33 +233,109 @@ curl -fS \
 
 ## 8. Aktuelle Grenzen (wichtig für die Weiterentwicklung)
 
-- **Ein Turn = eine unabhängige Frage/Antwort.** Kein Gesprächsgedächtnis und
-  keine serverseitige Session-ID.
-- **Keine Echtzeit-Audiostreams** und keine WebSockets/SSE. Aufnehmen →
-  hochladen → warten → Antwort herunterladen.
-- **Ein Inferenz-Worker** verarbeitet Jobs nacheinander; weitere Jobs warten.
-- **In-Memory-Jobverwaltung** und temporäre WAV-Dateien: Beim Neustart des
-  Backend-Prozesses gehen alte Job-IDs/Antworten verloren.
-- **Kein Abbrechen, Löschen, Wiederaufnehmen oder Fortschritt in Prozent.**
-- **Keine Wakeword-Erkennung, keine Sprecheridentifikation, keine Tools/Actions.**
-- **Kein Browser-CORS**, keine TLS-Verbindung, kein Pairing.
-- Ausgabe ist immer die vollständig synthetisierte WAV-Datei, kein
-  inkrementelles TTS-Streaming.
+- **Sessions sind optional.** Ohne `session_id` bleibt jeder Turn unabhängig.
+  Mit Session werden höchstens **8 abgeschlossene erfolgreiche** Frage/Antwort-
+  Paare als Ollama-Kontext verwendet. Fehlgeschlagene und abgebrochene Turns
+  gelangen nicht in die Historie.
+- **Ein Inferenz-Worker** arbeitet seriell; maximal **8 noch nicht terminale**
+  Jobs sind zugelassen. Weitere Uploads erhalten `429`.
+- **In-Memory-Job- und Sessionverwaltung:** Nach Backend-Neustart gehen
+  Sitzungs- und Turn-IDs sowie die temporären WAVs verloren. Keine Persistenz,
+  automatische Bereinigung während der Laufzeit oder Benutzertrennung.
+- **Keine Echtzeit-Audiostreams/WebSockets.** SSE liefert nur Statusereignisse;
+  die eigentliche WAV-Antwort wird vollständig heruntergeladen.
+- **DELETE ist Best Effort:** Wartende Jobs werden aus der Future-Warteschlange
+  entfernt, wenn möglich. Bereits laufende Whisper-/Ollama-/Piper-Schritte
+  werden nicht hart unterbrochen, aber das Ergebnis nicht freigegeben.
+- **Keine Wakeword-Erkennung, Sprecheridentifikation, Tools/Actions, TLS,
+  Browser-CORS oder Pairing.** Die API ist weiterhin ohne Token erreichbar.
 
-## 9. Vorschlag für API v0.3 (noch nicht implementiert)
+## 9. Neue Backend-Endpunkte ab v0.3 (implementiert)
 
-Erst nach stabilem Audio-MVP sinnvoll:
+### 9.1 Capabilities und Readiness
 
-1. `POST /api/sessions` mit mehrturnigem Gesprächskontext.
-2. `DELETE /api/turns/{id}` zum Abbrechen und zur Jobbereinigung.
-3. Ereignis-Stream (`SSE` oder `WebSocket`) statt Status-Polling.
-4. Chunked Audio-Upload und TTS-Streaming für geringere Latenz.
-5. Geräte-Pairing, HTTPS, Health/Capabilities-Endpoint und Versionierung
-   `/api/v1/...`.
+`GET /api/capabilities` → `200 application/json`, beispielsweise:
 
-**Vertragsregel:** Die hier beschriebenen v0.2-Endpunkte bleiben der aktuelle
-Implementierungsstand. Änderungen an Struktur oder Format zuerst im Backend
-implementieren und testen, dann die Frontend-Dokumentation aktualisieren.
+```json
+{
+  "protocol_version": "0.3.0",
+  "authentication_required": false,
+  "audio_input": {"format":"wav","codec":"pcm_s16le","sample_rate":16000,"channels":1,"max_seconds":20,"max_bytes":640044},
+  "audio_output": {"format":"wav","codec":"pcm_s16le","sample_rate":16000,"channels":1},
+  "features": {"sessions":true,"cancel":true,"sse":true,"audio_streaming":false,"job_persistence":false}
+}
+```
+
+`GET /ready` → `200`, wenn alle geprüften Komponenten verfügbar sind,
+andernfalls `503`, immer mit JSON:
+
+```json
+{
+  "ready": false,
+  "components": {"whisper_installed": true, "piper_model": true,
+                 "ffmpeg": true, "ollama": false}
+}
+```
+
+Der Readiness-Check prüft Whisper-Paketinstallation, Existenz der Piper-ONNX,
+`ffmpeg` und per Ollama `/api/tags` das konfigurierte Modell. Er testet **nicht**
+die erste Whisper-Modellinitialisierung oder die vollständige Sprachpipeline.
+`/health` bleibt ein reiner Prozess-Heartbeat.
+
+### 9.2 Sessions und Kontext
+
+`POST /api/sessions` mit optionalem JSON-Body `{"label":"Wave"}` (Label max.
+80 Zeichen) → `201`:
+
+```json
+{"id":"c8174a6c-2a5b-4582-81c5-1f632b9bf5b6", "label":"Wave", "created_at":"2026-11-10T10:30:00+00:00", "turn_count":0}
+```
+
+Ohne Body wird ein leeres Label angelegt. Anschließend:
+
+- `GET /api/sessions/{id}` → `200` mit derselben Struktur; unbekannt → `404`.
+- `GET /api/sessions/{id}/turns` → `200` mit `{"session_id":"UUID","turns":[...]}`;
+  jedes Element ist ein vollständiges Statusobjekt nach §4.2.
+- `POST /api/turns?session_id=UUID` → unveränderter WAV-Body, unveränderte
+  `202`-Antwort; unbekannte Session → `404`. Der Status enthält fortan
+  `session_id` (UUID oder `null`).
+
+Der Server verarbeitet Session-Turns im selben einzigen Worker. Für Ollama
+werden die letzten 8 vorher **erfolgreich fertigen** Dialogpaare übergeben.
+Einzelne Session-Turns dürfen nicht parallel als unabhängig interpretiert werden.
+
+### 9.3 SSE-Statusstream
+
+`GET /api/turns/{id}/events` → `200 text/event-stream`, ohne Auth-Header.
+Unbekannte ID → reguläres `404`. Der Stream sendet sofort den aktuellen Status
+und bei jeder Änderung ein weiteres Ereignis:
+
+```text
+event: state
+data: {"id":"UUID","state":"thinking","session_id":null,"transcript":"Hallo","answer":"","error":"","created_at":"..."}
+
+```
+
+Die Payload ist immer ein vollständiges Statusobjekt nach §4.2. Etwa alle
+15 Sekunden ohne Änderung folgt ein Kommentar `: keepalive`. Bei `ready`,
+`failed` oder `cancelled` schließt der Server den Stream. Kein `Last-Event-ID`
+oder garantierter Replay-Mechanismus: Bei Reconnect gibt es sofort wieder
+einen aktuellen Snapshot. **SSE überträgt keine Audio-Bytes.** Polling bleibt
+für Mikrocontroller weiterhin unterstützt.
+
+### 9.4 Job abbrechen
+
+`DELETE /api/turns/{id}` → `200` mit vollständigem Statusobjekt.
+Bei aktivem Job wird `state="cancelled"` und `error="Cancelled by client"`.
+Wiederholtes DELETE ist sicher; bereits terminale Jobs (`ready`, `failed`,
+`cancelled`) bleiben unverändert. Unbekannte ID → `404`.
+Nach einem Abbruch liefert `/audio.wav` `409` und keine Audiodaten. Ein bereits
+laufender CPU/GPU-Schritt darf im Hintergrund auslaufen (kooperative
+Stornierung, keine sofortige Prozessunterbrechung).
+
+**Vertragsregel:** Der v0.2-Audioablauf und `?plain=1` bleiben kompatibel.
+Das ESP32-Frontend kann später Sessions/SSE ergänzen, ohne gleichzeitig die
+Audio-Encoder-/Decoder-Schnittstelle zu ändern.
 
 ## 10. Vollständiger bidirektionaler Nachrichtenfluss
 
@@ -292,7 +385,7 @@ Aufnahme/Anfrage anbieten und keine unsichtbare Endlos-Wiederholung starten.
 | Health | `200` JSON | `{"ok":true}` | online anzeigen |
 | POST ohne `plain=1` | `202` JSON | `{"id":"UUID","state":"queued"}` | UUID speichern |
 | POST mit `plain=1` | `202` Text | UUID als `text/plain` | UUID direkt speichern |
-| Status-JSON | `200` JSON | sechs Felder, siehe §4.2 | UI aktualisieren |
+| Status-JSON | `200` JSON | sieben Felder, siehe §4.2 | UI aktualisieren |
 | Status-Text | `200` Text | genau ein Statuswort | UI aktualisieren |
 | WAV abrufen (bereit) | `200` `audio/wav` | RIFF/WAVE-Bytes | I²S starten |
 | WAV abrufen (noch nicht bereit) | `409` JSON | `{"detail":"Audio not ready"}` | weiter pollen |
@@ -362,8 +455,9 @@ sind auf der tatsächlichen Boardrevision noch mit den Herstellerdemos zu testen
 ## 12. Präzise Daten- und Statussemantik
 
 **Status-JSON:** `id` ist eine UUID als String; `state` ist genau eines der
-sechs Statuswörter; `transcript`, `answer` und `error` sind immer Strings;
-`created_at` ist ein UTC-Zeitpunkt als ISO-8601-String. Kein Feld ist `null`.
+sieben Statuswörter; `transcript`, `answer` und `error` sind immer Strings;
+`created_at` ist ein UTC-Zeitpunkt als ISO-8601-String. Nur `session_id`
+darf `null` sein, wenn ohne Sitzung aufgenommen wurde.
 
 | Übergang | Vorliegende Daten | Nicht garantiert |
 | --- | --- | --- |
@@ -373,6 +467,7 @@ sechs Statuswörter; `transcript`, `answer` und `error` sind immer Strings;
 | `speaking` | `transcript` und `answer` vorhanden | fertige WAV |
 | `ready` | `transcript`, `answer`, WAV-Datei | dass das Gerät sie schon spielt |
 | `failed` | `error` mit Fehlermeldung | WAV-Datei |
+| `cancelled` | `error="Cancelled by client"` | Audio-URL ist nicht verfügbar |
 
 `speaking` bedeutet **TTS-Erzeugung auf Ubuntu**, nicht Wiedergabe auf dem
 Waveshare. Der Client setzt seinen eigenen Zustand `playing`, sobald er die
@@ -392,7 +487,8 @@ des Prozesses.
 - Für Upload und Status-Anfragen passende Netzwerk-Timeouts verwenden (aktuell
   Referenzfirmware: POST ca. 15 s, GET ca. 10 s).
 - Nach `202` alle 1–2 s `GET /api/turns/{id}` pollen, insgesamt z. B. 180 s.
-- `ready`: **einmal** WAV laden; `failed`: Fehlermeldung zeigen; `404`: neue
+- `ready`: **einmal** WAV laden; `failed`: Fehlermeldung zeigen; `cancelled`:
+  nicht mehr pollen; `404`: neue
   Anfrage beginnen.
 - GET-Anfragen dürfen bei kurzzeitigem WLAN-Ausfall erneut gesendet werden;
   POST nicht blind wiederholen (Duplikatgefahr).
@@ -416,6 +512,12 @@ des Prozesses.
 | T12 | Modellfehler während Inferenz | später `state=failed`, `error` gesetzt |
 | T13 | Backend nach T02 neu gestartet | alte UUID wird `404` |
 | T14 | WLAN beim Status-Poll kurz weg | kein doppelter POST, GET später wiederholen |
+| T15 | `GET /api/capabilities` | `200`, Features und PCM-Konfiguration |
+| T16 | `GET /ready` bei fehlendem Ollama-Modell | `503`, Komponentenstatus im JSON |
+| T17 | Session erstellen + zwei Turns | `201`, zweiter Turn kennt ersten Dialog |
+| T18 | `DELETE /api/turns/{id}` in `queued` | `200`, `cancelled`; WAV liefert `409` |
+| T19 | `GET /api/turns/{id}/events` | `200` SSE-Snapshots bis terminal |
+| T20 | 9. simultan nichtterminaler Turn | `429` |
 
 Ein vollständiger Integrationstest mit echter Mikrofonaufnahme und
 Lautsprecherwiedergabe erfordert das angeschlossene Waveshare-Board. Die
@@ -432,7 +534,7 @@ Job-Verarbeitung mit simulierten KI-Funktionen und Audio-Download ab.
 | ESP32 `secrets.h` | `SERVER_BASE_URL` | `http://<Ubuntu-LAN-IP>:8000` |
 | ESP32 `secrets.h` | WLAN-SSID/Passwort | Netzwerkzugang, nie in Git |
 
-**Für v0.2 gilt:** Pfade, Statuswerte, Feldnamen und PCM-Format nicht ohne
+**Für v0.3 gilt:** Pfade, Statuswerte, Feldnamen und PCM-Format nicht ohne
 gleichzeitige Anpassung beider Seiten ändern. Neue Optionen als zusätzliche
 Felder oder neue versionierte Endpunkte einführen, statt bestehende Typen
 unbemerkt umzudeuten.

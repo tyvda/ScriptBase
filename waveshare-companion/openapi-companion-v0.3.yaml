@@ -1,0 +1,393 @@
+openapi: 3.0.3
+info:
+  title: Waveshare Local AI Companion HTTP Contract
+  version: 0.3.0
+  description: >-
+    Implementierter asynchroner Audio-Vertrag zwischen Waveshare ESP32-S3 und
+    lokalem Ubuntu-Backend. Der Server initiiert keine Verbindung zum Gerät.
+    Erweiterte Semantik, PCM-Header und Retry-Regeln: API_CONTRACT.md.
+servers:
+  - url: http://{ubuntuHost}:8000
+    variables:
+      ubuntuHost:
+        default: 192.168.1.123
+        description: LAN-IP oder Hostname des Ubuntu-Servers, nicht localhost auf dem ESP32.
+tags:
+  - name: Health
+  - name: Audio turns
+  - name: Sessions
+components:
+  schemas:
+    Health:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+          enum: [true]
+    Readiness:
+      type: object
+      required: [ready, components]
+      properties:
+        ready: {type: boolean}
+        components:
+          type: object
+          required: [whisper_installed, piper_model, ffmpeg, ollama]
+          properties:
+            whisper_installed: {type: boolean}
+            piper_model: {type: boolean}
+            ffmpeg: {type: boolean}
+            ollama: {type: boolean}
+    Capabilities:
+      type: object
+      required: [protocol_version, authentication_required, audio_input, audio_output, features]
+      properties:
+        protocol_version: {type: string, example: '0.3.0'}
+        authentication_required: {type: boolean, enum: [false]}
+        audio_input: {type: object}
+        audio_output: {type: object}
+        features: {type: object}
+    SessionCreate:
+      type: object
+      properties:
+        label: {type: string, maxLength: 80, default: ''}
+    Session:
+      type: object
+      required: [id, label, created_at, turn_count]
+      properties:
+        id: {type: string, format: uuid}
+        label: {type: string}
+        created_at: {type: string, format: date-time}
+        turn_count: {type: integer, minimum: 0}
+    SessionTurns:
+      type: object
+      required: [session_id, turns]
+      properties:
+        session_id: {type: string, format: uuid}
+        turns:
+          type: array
+          items: {$ref: '#/components/schemas/TurnStatus'}
+    AcceptedTurn:
+      type: object
+      required: [id, state]
+      properties:
+        id:
+          type: string
+          format: uuid
+        state:
+          type: string
+          enum: [queued]
+    TurnState:
+      type: string
+      enum:
+        - queued
+        - transcribing
+        - thinking
+        - speaking
+        - ready
+        - failed
+        - cancelled
+    TurnStatus:
+      type: object
+      required: [id, state, transcript, answer, error, created_at, session_id]
+      properties:
+        id:
+          type: string
+          format: uuid
+        state:
+          $ref: '#/components/schemas/TurnState'
+        transcript:
+          type: string
+          description: Transkript, vor dem Schritt thinking leer.
+        answer:
+          type: string
+          description: Textantwort, vor dem Schritt speaking leer.
+        error:
+          type: string
+          description: Bei failed gesetzte Fehlermeldung, sonst leer.
+          maxLength: 300
+        created_at:
+          type: string
+          format: date-time
+          description: ISO-8601-Zeitpunkt in UTC.
+        session_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Optionaler Gesprächskontext; null bei alten ESP32-Clients.
+    ApiError:
+      type: object
+      required: [detail]
+      properties:
+        detail:
+          type: string
+  responses:
+    NotFound:
+      description: Turn-ID ist unbekannt (auch nach Serverneustart).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example: {detail: Unknown turn}
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Prüfen, ob der HTTP-Prozess antwortet
+      description: Keine Aussage über Modellbereitschaft. Kein Token erforderlich.
+      responses:
+        '200':
+          description: HTTP-Prozess erreichbar.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+              example: {ok: true}
+  /ready:
+    get:
+      tags: [Health]
+      summary: Pruefung der lokalen STT-LLM-TTS-Voraussetzungen
+      description: Modellinitialisierung und komplette Inferenz werden nicht getestet.
+      responses:
+        '200':
+          description: Alle geprueften Voraussetzungen vorhanden.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Readiness'}
+        '503':
+          description: Mindestens eine Voraussetzung fehlt.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Readiness'}
+  /api/capabilities:
+    get:
+      tags: [Health]
+      summary: Serverfunktionen und Audioformat abfragen
+      responses:
+        '200':
+          description: Versions- und Kompatibilitaetsdaten.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Capabilities'}
+  /api/sessions:
+    post:
+      tags: [Sessions]
+      summary: Neue Konversationssession anlegen
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SessionCreate'}
+      responses:
+        '201':
+          description: Neue Session (nur im Prozessspeicher).
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Session'}
+        '422':
+          description: Session-Label zu lang oder Body ungueltig.
+  /api/sessions/{session_id}:
+    get:
+      tags: [Sessions]
+      summary: Sessionmetadaten abrufen
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200':
+          description: Metadaten und Anzahl Turns.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Session'}
+        '404':
+          description: Unbekannte Session-ID.
+  /api/sessions/{session_id}/turns:
+    get:
+      tags: [Sessions]
+      summary: Alle Turns einer Session abrufen
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200':
+          description: Session-ID und Turn-Statusliste.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SessionTurns'}
+        '404':
+          description: Unbekannte Session-ID.
+  /api/turns:
+    post:
+      tags: [Audio turns]
+      summary: WAV hochladen und asynchronen Turn anlegen
+      description: >-
+        Raw PCM-WAV im Request-Body, kein multipart/form-data. 16000 Hz,
+        16 Bit signed, ein Kanal, Little Endian, maximal 20 Sekunden und
+        maximal 640044 Bytes HTTP-Body. Wiederholtes POST erzeugt neuen Turn.
+      parameters:
+        - in: query
+          name: plain
+          required: false
+          schema:
+            type: string
+            enum: ['1']
+          description: Wenn exakt 1, Antwort nur als UUID in text/plain.
+        - in: query
+          name: session_id
+          required: false
+          schema: {type: string, format: uuid}
+          description: Optionale zuvor erzeugte Session-ID; unbekannte ID ergibt 404.
+      requestBody:
+        required: true
+        content:
+          audio/wav:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '202':
+          description: Turn angelegt, Verarbeitung läuft später im Worker.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcceptedTurn'
+              example:
+                id: e7eb1c04-2171-48ab-8aeb-5665af66b1c4
+                state: queued
+            text/plain:
+              schema:
+                type: string
+                format: uuid
+              example: e7eb1c04-2171-48ab-8aeb-5665af66b1c4
+        '413':
+          description: WAV-Body größer als 640044 Bytes.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ApiError'}
+        '415':
+          description: Content-Type ist nicht audio/wav.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ApiError'}
+        '422':
+          description: WAV-Container oder PCM-Eigenschaften ungültig.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ApiError'}
+        '404':
+          description: Unbekannte session_id.
+        '429':
+          description: Schon acht aktive oder wartende Turns.
+  /api/turns/{turn_id}:
+    get:
+      tags: [Audio turns]
+      summary: Vollständigen Turn-Status mit Transkript und Antwort abfragen
+      parameters:
+        - in: path
+          name: turn_id
+          required: true
+          schema:
+            type: string
+          description: Vom POST zurückgegebene UUID.
+      responses:
+        '200':
+          description: Status-Snapshot, auch bei state=failed HTTP 200.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TurnStatus'}
+              example:
+                id: e7eb1c04-2171-48ab-8aeb-5665af66b1c4
+                state: ready
+                transcript: Hallo
+                answer: Guten Tag!
+                error: ''
+                session_id: null
+                created_at: '2026-11-10T10:30:00+00:00'
+        '404': {$ref: '#/components/responses/NotFound'}
+    delete:
+      tags: [Audio turns]
+      summary: Turn kooperativ abbrechen
+      description: >-
+        Ein laufender Whisper-/Ollama-/Piper-Aufruf wird nicht sofort gestoppt.
+        Bereits terminale Turns bleiben unveraendert; wiederholtes DELETE ist sicher.
+      parameters:
+        - in: path
+          name: turn_id
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: Statusobjekt (bei aktivem Turn nun cancelled).
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TurnStatus'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /api/turns/{turn_id}/state:
+    get:
+      tags: [Audio turns]
+      summary: Kompakten Turn-Status als Text abfragen
+      parameters:
+        - in: path
+          name: turn_id
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: Ein Statuswort ohne JSON-Anführungszeichen.
+          content:
+            text/plain:
+              schema: {$ref: '#/components/schemas/TurnState'}
+              example: thinking
+        '404': {$ref: '#/components/responses/NotFound'}
+  /api/turns/{turn_id}/audio.wav:
+    get:
+      tags: [Audio turns]
+      summary: Fertige 16-kHz-Mono-PCM-WAV herunterladen
+      description: >-
+        Nur bei state=ready verfügbar. Vollständige WAV mit 44-Byte-Header;
+        kein PCM-Rawstream. Mehrfacher GET ist erlaubt.
+      parameters:
+        - in: path
+          name: turn_id
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: Vollständige, fertig synthetisierte Audioantwort.
+          content:
+            audio/wav:
+              schema:
+                type: string
+                format: binary
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409':
+          description: Turn ist noch nicht ready oder ist failed.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ApiError'}
+              example: {detail: Audio not ready}
+  /api/turns/{turn_id}/events:
+    get:
+      tags: [Audio turns]
+      summary: Status-Snapshots als SSE empfangen
+      description: >-
+        Sofortiger Snapshot, weitere Ereignisse bei Aenderungen, Keepalive alle
+        etwa 15 Sekunden, Streamende bei ready/failed/cancelled. Kein Audio und
+        kein Replay mit Last-Event-ID.
+      parameters:
+        - in: path
+          name: turn_id
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: SSE-Stream mit event state und JSON-Status im data-Feld.
+          content:
+            text/event-stream:
+              schema: {type: string}
+        '404': {$ref: '#/components/responses/NotFound'}
+

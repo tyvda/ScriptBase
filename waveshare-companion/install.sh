@@ -4,8 +4,10 @@
 # Ollama must already be installed, running, and have at least one model.
 set -Eeuo pipefail
 
-release_url='https://raw.githubusercontent.com/tyvda/ScriptBase/waveshare-companion-mvp-v0.2/waveshare-companion/waveshare_local_companion_mvp_v0_2.zip'
-expected_sha='f87e17d12e63112d487a007d1ecb91448c55642df83bf32a904ef5d9f871c92f'
+release_url='https://raw.githubusercontent.com/tyvda/ScriptBase/waveshare-companion-mvp-v0.3/waveshare-companion/waveshare_local_companion_mvp_v0_3.zip'
+expected_sha='6a72cc0e3a32de75b2f17bf4563b0e9ffc656aa41526b78262fae5499065f217'
+service_url='https://raw.githubusercontent.com/tyvda/ScriptBase/waveshare-companion-mvp-v0.3/waveshare-companion/setup_service.sh'
+service_sha='9aa72b7c6fc928cff48fcec49926ed6104cc09e9ef61b495442c5b0602766758'
 project_dir="${COMPANION_DIR:-$PWD/companion-mvp}"
 
 for program in wget sha256sum python3 ollama; do
@@ -60,19 +62,14 @@ umask 077
   printf 'WHISPER_COMPUTE_TYPE=%q\n' 'int8'
 } > "$config"
 
-printf 'Starting Companion bridge on port 8000...\n'
-nohup bash -c '
-  set -a
-  source "$1"
-  set +a
-  cd "$2"
-  exec "$2/.venv/bin/uvicorn" app:app --host 0.0.0.0 --port 8000
-' _ "$config" "$project_dir/server" > "$project_dir/server/server.log" 2>&1 < /dev/null &
-server_pid=$!
+printf 'Installing systemd user service...\n'
+wget --https-only --tries=3 --timeout=30 --max-redirect=5 \
+  -O "$tmp_dir/setup_service.sh" "$service_url"
+printf '%s  %s\n' "$service_sha" "$tmp_dir/setup_service.sh" | sha256sum -c -
+bash "$tmp_dir/setup_service.sh" "$project_dir"
 
 healthy=0
 for _ in {1..20}; do
-  if ! kill -0 "$server_pid" 2>/dev/null; then break; fi
   if "$project_dir/server/.venv/bin/python" -c \
     'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/health", timeout=2)' \
     >/dev/null 2>&1; then
@@ -91,5 +88,6 @@ printf '\nCOMPANION STARTED: http://127.0.0.1:8000/health\n'
 printf 'OLLAMA MODEL: %s\n' "$model"
 printf 'ESP32 SERVER URL: http://<UBUNTU-LAN-IP>:8000\n'
 printf 'Config (keep private): %s\n' "$config"
+printf 'Dienstverwaltung: systemctl --user start|stop|restart waveshare-companion\n'
 printf 'ACHTUNG: API ohne Authentifizierung. Port 8000 nur im vertrauenswuerdigen LAN freigeben.\n'
 

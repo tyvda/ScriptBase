@@ -1,4 +1,4 @@
-# Waveshare Local AI Companion – MVP v0.2 (ohne Token)
+# Waveshare Local AI Companion – Backend v0.3 (ohne Token)
 
 Ein lokaler Sprachassistent für das **Waveshare ESP32-S3-Touch-AMOLED-2.16**.
 
@@ -24,6 +24,10 @@ flowchart TD
 - Sprache: Deutsch. Push-to-talk über **KEY3 / GPIO18**.
 - Maximal 12 Sekunden Aufnahme auf dem ESP32, 20 Sekunden im Server-Protokoll.
 - Asynchroner Job: Upload, kurze Job-ID, Status-Polling, WAV-Download.
+- Optionale **Gesprächssitzungen** mit den letzten 8 erfolgreichen Dialogrunden
+  als Ollama-Kontext. Das bisherige API-Protokoll bleibt ohne Session nutzbar.
+- **SSE-Statusereignisse**, bestmöglicher **Job-Abbruch**, Readiness und
+  Capabilities. Maximal 8 gleichzeitig wartende/laufende Turns.
 - Keine externen KI-APIs. Die Ersteinrichtung der lokalen Modelle benötigt
   ggf. Downloads; danach kann das System offline im LAN laufen.
 
@@ -126,8 +130,9 @@ auf TCP-Port 8000 kann Aufnahmen hochladen und über bekannte Job-IDs Antworten
 abrufen. Den Port nicht ins Internet weiterleiten und den Zugang per Firewall
 auf vertrauenswürdige Geräte/Subnetze begrenzen. Für ein dauerhaftes Produkt TLS,
 Pairing und begrenzte Speicherung
-ergänzen. Die MVP-Job-Dateien bleiben bis zum Serverneustart im temporären
-Verzeichnis; es gibt noch keine Langzeit-/Mehrbenutzerverwaltung.
+ergänzen. Sitzungen und WAV-Dateien bleiben nur bis zum Serverneustart im
+Speicher beziehungsweise temporären Verzeichnis; es gibt noch keine
+Langzeit-/Mehrbenutzerverwaltung.
 
 ## 2. Server mit einer WAV-Datei testen
 
@@ -149,9 +154,34 @@ curl -o antwort.wav http://127.0.0.1:8000/api/turns/JOB_ID/audio.wav
 ```
 
 Zustände: `queued → transcribing → thinking → speaking → ready`, bei Fehlern
-`failed`. Der WAV-Download liefert erst im Zustand `ready` HTTP 200, sonst 409.
+`failed`, bei Abbruch `cancelled`. Der WAV-Download liefert erst im Zustand
+`ready` HTTP 200, sonst 409.
 Mit `python -m unittest -v test_app` laufen die API-Tests mit nachgebauten
 KI-Funktionen; dafür müssen Ollama/Piper/Whisper nicht gestartet sein.
+
+### Neue Backend-Funktionen ab v0.3
+
+```bash
+curl -s http://127.0.0.1:8000/api/capabilities
+curl -i http://127.0.0.1:8000/ready
+curl -s -X POST -H 'Content-Type: application/json' \
+  -d '{"label":"Waveshare"}' http://127.0.0.1:8000/api/sessions
+```
+
+Die `id` aus `POST /api/sessions` als `SESSION_ID` in den optionalen
+Upload-Parameter `?session_id=SESSION_ID` übernehmen. So fließen die letzten
+acht erfolgreich beantworteten Turns in den Kontext von Ollama ein.
+
+```bash
+curl -N http://127.0.0.1:8000/api/turns/JOB_ID/events  # SSE-Status
+curl -X DELETE http://127.0.0.1:8000/api/turns/JOB_ID    # Abbruch
+```
+
+Abbruch ist **kooperativ**: Die bereits gestartete Whisper-/Ollama-/Piper-
+Operation kann noch zu Ende laufen. Die API bleibt trotzdem im Zustand
+`cancelled` und gibt keine WAV aus. SSE transportiert nur Status, kein
+gestreamtes Audio. Für den vollständigen Vertrag siehe `API_CONTRACT.md` und
+`openapi-companion-v0.3.yaml`.
 
 ## 3. Arduino-Firmware vorbereiten
 
@@ -191,14 +221,14 @@ physischen Board kompiliert oder ausgeführt.** Besonders zu prüfen:
   und den Ausgang vor dem nächsten Aufnahmezyklus ggf. muten. Erst nach
   echtem Audiotest optimieren.
 
-## 4. Danach: UI, Gesprächskontext, Streaming
+## 4. Danach: UI, persistente Sitzungen und Audiostreaming
 
 Der Prototyp ist bewusst **Push-to-talk** statt Dauer-Mikrofon. Nächste
 Ausbaustufen:
 
 1. AMOLED-UI mit Zuständen (bereit, hört zu, denkt nach, spricht) über LVGL.
-2. Session-ID für mehrturnige Dialoge + einstellbare Lautstärke.
-3. Unterbrechen/Abbrechen, WLAN-Reconnect, Zeitlimits und sichere Jobbereinigung.
-4. Optional Streaming/Voice-Activity-Detection zur Reduktion der Wartezeit,
+2. Persistenz der Sitzungshistorie über Neustarts + einstellbare Lautstärke.
+3. WLAN-Reconnect, Zeitlimits und zeitgesteuerte Jobbereinigung.
+4. Optional **Audio**-Streaming/Voice-Activity-Detection zur Reduktion der Wartezeit,
    danach Wakeword – erst wenn die Basis zuverlässig funktioniert.
 
