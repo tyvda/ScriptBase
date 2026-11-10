@@ -1,0 +1,23 @@
+# Beispiel fuer eine systemd-User-Unit.
+# Das Setup-Skript erzeugt die Datei automatisch mit dem korrekten absoluten Pfad.
+# Speicherort: ~/.config/systemd/user/waveshare-companion.service
+
+[Unit]
+Description=Waveshare ESP32-S3 Local AI Companion
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/DEIN_USER/companion-mvp/server
+EnvironmentFile=/home/DEIN_USER/companion-mvp/server/.env.companion
+ExecStart=/home/DEIN_USER/companion-mvp/server/.venv/bin/uvicorn app:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+NoNewPrivileges=yes
+UMask=0077
+
+[Install]
+WantedBy=default.target
+
