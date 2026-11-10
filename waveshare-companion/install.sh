@@ -4,8 +4,8 @@
 # Ollama must already be installed, running, and have at least one model.
 set -Eeuo pipefail
 
-release_url='https://raw.githubusercontent.com/tyvda/ScriptBase/waveshare-companion-mvp-v0.1/waveshare-companion/waveshare_local_companion_mvp_v0_1.zip'
-expected_sha='0a8519bd0073121cc9440f5240df3b4107e7df38e0d3b5e90e931ca155a0812c'
+release_url='https://raw.githubusercontent.com/tyvda/ScriptBase/waveshare-companion-mvp-v0.2/waveshare-companion/waveshare_local_companion_mvp_v0_2.zip'
+expected_sha='f87e17d12e63112d487a007d1ecb91448c55642df83bf32a904ef5d9f871c92f'
 project_dir="${COMPANION_DIR:-$PWD/companion-mvp}"
 
 for program in wget sha256sum python3 ollama; do
@@ -49,11 +49,9 @@ mv "$tmp_dir/unpacked/companion-mvp" "$project_dir"
 printf 'Installing faster-whisper, Piper and German voice model...\n'
 bash "$project_dir/server/setup_ubuntu.sh"
 
-token="$("$project_dir/server/.venv/bin/python" -c 'import secrets; print(secrets.token_hex(32))')"
 config="$project_dir/server/.env.companion"
 umask 077
 {
-  printf 'COMPANION_TOKEN=%q\n' "$token"
   printf 'OLLAMA_URL=%q\n' 'http://127.0.0.1:11434'
   printf 'OLLAMA_MODEL=%q\n' "$model"
   printf 'PIPER_MODEL=%q\n' "$project_dir/server/models/de_DE-thorsten-medium.onnx"
@@ -92,6 +90,6 @@ fi
 printf '\nCOMPANION STARTED: http://127.0.0.1:8000/health\n'
 printf 'OLLAMA MODEL: %s\n' "$model"
 printf 'ESP32 SERVER URL: http://<UBUNTU-LAN-IP>:8000\n'
-printf 'ESP32 TOKEN (vertraulich): %s\n' "$token"
 printf 'Config (keep private): %s\n' "$config"
+printf 'ACHTUNG: API ohne Authentifizierung. Port 8000 nur im vertrauenswuerdigen LAN freigeben.\n'
 
