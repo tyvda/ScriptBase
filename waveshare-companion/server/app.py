@@ -8,6 +8,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 import importlib.util
 import json
+import logging
 import os
 from pathlib import Path
 import shutil
@@ -25,7 +26,8 @@ import httpx
 import pipeline
 
 
-app = FastAPI(title="Local Companion Bridge", version="0.4.0")
+app = FastAPI(title="Local Companion Bridge", version="0.4.1")
+logger = logging.getLogger("companion.pipeline")
 
 # This MVP intentionally serializes inference to avoid exhausting a local GPU.
 _pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="companion-ai")
@@ -131,6 +133,7 @@ def work(turn_id: str) -> None:
         pipeline.synthesize(answer, folder / "answer.wav")
         update_if_active(turn_id, state="ready")
     except Exception as exc:
+        logger.exception("Turn %s failed in audio pipeline", turn_id)
         update_if_active(turn_id, state="failed", error=str(exc)[:300])
 
 

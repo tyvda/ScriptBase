@@ -1,4 +1,4 @@
-# Waveshare Local AI Companion – Audio-Pipeline v0.4 (ohne Token)
+# Waveshare Local AI Companion – Audio-Pipeline v0.4.1 (ohne Token)
 
 Ein lokaler Sprachassistent für das **Waveshare ESP32-S3-Touch-AMOLED-2.16**.
 
@@ -37,6 +37,11 @@ Das Backend validiert die WAV, speichert sie temporär und lässt nacheinander
 **faster-whisper (Deutsch) → Ollama `/api/chat` → Piper TTS → 16-kHz-WAV** laufen.
 Whisper-Transkript und LLM-Antwort stehen in `GET /api/turns/{id}`; die
 fertige Sprachausgabe liegt bei `GET /api/turns/{id}/audio.wav`.
+
+**Whisper-Fix in v0.4.1:** Der Server liest das validierte 16-kHz-PCM selbst
+und übergibt ein Mono-Float32-Array direkt an faster-whisper. Dadurch wird
+der PyAV-Dateidecoder umgangen, der bei bestimmten faster-whisper/PyAV-
+Kombinationen mit `metadata_errors` scheitert. Der HTTP-Vertrag bleibt gleich.
 
 ## Board-Bezug
 
@@ -200,7 +205,7 @@ Abbruch ist **kooperativ**: Die bereits gestartete Whisper-/Ollama-/Piper-
 Operation kann noch zu Ende laufen. Die API bleibt trotzdem im Zustand
 `cancelled` und gibt keine WAV aus. SSE transportiert nur Status, kein
 gestreamtes Audio. Für den vollständigen Vertrag siehe `API_CONTRACT.md` und
-`openapi-companion-v0.4.yaml`.
+`openapi-companion-v0.4.1.yaml`.
 
 ## 3. Arduino-Firmware vorbereiten
 

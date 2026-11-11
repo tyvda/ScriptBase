@@ -1,4 +1,4 @@
-# Waveshare Local AI Companion – vollständiger Geräte-/Backend-Vertrag v0.4
+# Waveshare Local AI Companion – vollständiger Geräte-/Backend-Vertrag v0.4.1
 
 **Stand:** 2026-11-10  
 **Implementierung:** `server/app.py` und `server/pipeline.py` im Companion-MVP.  
@@ -533,12 +533,12 @@ Job-Verarbeitung mit simulierten KI-Funktionen und Audio-Download ab.
 | ESP32 `secrets.h` | `SERVER_BASE_URL` | `http://<Ubuntu-LAN-IP>:8000` |
 | ESP32 `secrets.h` | WLAN-SSID/Passwort | Netzwerkzugang, nie in Git |
 
-**Für v0.4 gilt:** Pfade, Statuswerte, Feldnamen und PCM-Format nicht ohne
+**Für v0.4.1 gilt:** Pfade, Statuswerte, Feldnamen und PCM-Format nicht ohne
 gleichzeitige Anpassung beider Seiten ändern. Neue Optionen als zusätzliche
 Felder oder neue versionierte Endpunkte einführen, statt bestehende Typen
 unbemerkt umzudeuten.
 
-## 16. Implementierte Whisper-LLM-Piper-Pipeline (v0.4)
+## 16. Implementierte Whisper-LLM-Piper-Pipeline (v0.4.1)
 
 Der Server erwartet **eine abgeschlossene Aufnahme** als `POST /api/turns`.
 Kein Live-Mikrofonstream und kein Multipart-Upload.
@@ -547,8 +547,11 @@ Kein Live-Mikrofonstream und kein Multipart-Upload.
    160.000 Samples bzw. 320.044 Bytes bei kanonischem 44-Byte-Header.
    Größere Bodies → `413`, fehlerhafte WAVs → `422`, falscher Content-Type →
    `415`. Der gültige Upload liefert `202` und eine Turn-ID.
-2. **Whisper:** `faster_whisper.WhisperModel` mit dem konfigurierten Modell
-   (standardmäßig `small`), `language="de"` und `vad_filter=True`. Das erkannte
+2. **Whisper:** Das WAV wird mit dem Python-WAV-Decoder in ein Float32-Array
+   (Mono, 16 kHz, Wertebereich ungefähr -1 bis +1) konvertiert. Dieses Array
+   wird direkt an `faster_whisper.WhisperModel` übergeben, ohne den fehlerhaften
+   `av.open(metadata_errors=...)`-Dateipfad zu nutzen. Modell standardmäßig
+   `small`, `language="de"`, `vad_filter=True`. Das erkannte
    Transkript wird unter `transcript` gespeichert. Kein erkannter Sprachtext
    → Job-Status `failed`.
 3. **Ollama:** `POST` an die lokale Ollama-API `/api/chat` mit
@@ -568,5 +571,5 @@ Kein Live-Mikrofonstream und kein Multipart-Upload.
 deutsche Testfrage mit Piper, erstellt daraus ein maximal 10 Sekunden langes
 WAV und sendet es über die unveränderte HTTP-API durch Whisper → Ollama →
 Piper. Der Test prüft Antworttext und heruntergeladenes Audio. Er benötigt
-  laufende Modelle und kann nicht durch die 13 Mock-Tests ersetzt werden.
+  laufende Modelle und kann nicht durch die 14 Mock-Tests ersetzt werden.
 

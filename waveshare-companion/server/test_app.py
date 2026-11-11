@@ -194,22 +194,35 @@ class PipelineTests(unittest.TestCase):
                 observed["model"] = name
                 observed["device"] = device
 
-            def transcribe(self, path, language, vad_filter):
-                observed["path"] = path
+            def transcribe(self, audio, language, vad_filter):
+                observed["audio"] = audio
                 observed["language"] = language
                 observed["vad_filter"] = vad_filter
                 return [SimpleNamespace(text=" Hallo "), SimpleNamespace(text=" Welt ")], None
 
         pipeline._model = None
         try:
-            with patch.dict(sys.modules, {"faster_whisper": SimpleNamespace(WhisperModel=FakeWhisper)}), \
-                 patch.dict(os.environ, {"WHISPER_MODEL": "small", "WHISPER_DEVICE": "cpu"}):
-                text = pipeline.transcribe(Path("aufnahme.wav"))
+            with TemporaryDirectory() as root:
+                source_path = Path(root) / "aufnahme.wav"
+                source_path.write_bytes(make_wav(frames=1600))
+                with patch.dict(sys.modules, {"faster_whisper": SimpleNamespace(WhisperModel=FakeWhisper)}), \
+                     patch.dict(os.environ, {"WHISPER_MODEL": "small", "WHISPER_DEVICE": "cpu"}):
+                    text = pipeline.transcribe(source_path)
         finally:
             pipeline._model = None
         self.assertEqual(text, "Hallo Welt")
         self.assertEqual(observed["language"], "de")
         self.assertTrue(observed["vad_filter"])
+        self.assertIsInstance(observed["audio"], pipeline.np.ndarray)
+        self.assertEqual(observed["audio"].dtype, pipeline.np.float32)
+        self.assertEqual(observed["audio"].shape, (1600,))
+
+    def test_whisper_rejects_noncanonical_pcm_without_pyav(self):
+        with TemporaryDirectory() as root:
+            path = Path(root) / "wrong-rate.wav"
+            path.write_bytes(make_wav(rate=44100))
+            with self.assertRaisesRegex(ValueError, "16 kHz"):
+                pipeline.transcribe(path)
 
     def test_ollama_receives_transcript_and_session_history(self):
         observed = {}

@@ -14,6 +14,7 @@ import threading
 import wave
 
 import httpx
+import numpy as np
 
 
 _model = None
@@ -21,8 +22,19 @@ _model_lock = threading.Lock()
 
 
 def transcribe(input_wav: Path) -> str:
-    """Transcribe a mono 16 kHz WAV locally with faster-whisper."""
+    """Decode the validated 16-kHz PCM directly; bypass incompatible PyAV APIs."""
     global _model
+    with wave.open(str(input_wav), "rb") as source:
+        if (source.getnchannels(), source.getsampwidth(), source.getframerate(),
+                source.getcomptype()) != (1, 2, 16000, "NONE"):
+            raise ValueError("Whisper input must be 16 kHz mono 16-bit PCM")
+        pcm = source.readframes(source.getnframes())
+    if not pcm or len(pcm) % 2:
+        raise ValueError("Whisper input is empty or truncated")
+
+    # Faster-whisper supports float32 mono waveforms directly. This avoids
+    # av.open(metadata_errors=...), which fails with newer PyAV versions.
+    samples = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
     with _model_lock:
         if _model is None:
             from faster_whisper import WhisperModel
@@ -33,7 +45,7 @@ def transcribe(input_wav: Path) -> str:
                 compute_type=os.getenv("WHISPER_COMPUTE_TYPE", "int8"),
             )
         # Iterating segments performs the actual model inference.
-        segments, _ = _model.transcribe(str(input_wav), language="de", vad_filter=True)
+        segments, _ = _model.transcribe(samples, language="de", vad_filter=True)
         return " ".join(segment.text.strip() for segment in segments).strip()
 
 

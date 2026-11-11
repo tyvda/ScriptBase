@@ -3,9 +3,9 @@
 # Usage: bash download_companion.sh [PUBLIC_HTTPS_ZIP_URL]
 set -euo pipefail
 
-archive='waveshare_local_companion_mvp_v0_4.zip'
-sha256='b54355951ab6b68a988724440ea5b701af99d5ec3c277cca45da5b9dcbae7e9b'
-url="${1:-${COMPANION_DOWNLOAD_URL:-https://raw.githubusercontent.com/tyvda/ScriptBase/waveshare-companion-mvp-v0.4/waveshare-companion/waveshare_local_companion_mvp_v0_4.zip}}"
+archive='waveshare_local_companion_mvp_v0_4_1.zip'
+sha256='a65e845fa49bfba4945f8cd1653be25ccc220eb7c3dff036a39c77fbfa29af9c'
+url="${1:-${COMPANION_DOWNLOAD_URL:-https://raw.githubusercontent.com/tyvda/ScriptBase/waveshare-companion-mvp-v0.4.1/waveshare-companion/waveshare_local_companion_mvp_v0_4_1.zip}}"
 
 if [[ -z "$url" ]]; then
   printf 'Fehler: Oeffentliche HTTPS-URL fehlt.\n'

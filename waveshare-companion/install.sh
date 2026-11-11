@@ -4,9 +4,9 @@
 # Ollama must already be installed, running, and have at least one model.
 set -Eeuo pipefail
 
-release_url='https://raw.githubusercontent.com/tyvda/ScriptBase/waveshare-companion-mvp-v0.4/waveshare-companion/waveshare_local_companion_mvp_v0_4.zip'
-expected_sha='b54355951ab6b68a988724440ea5b701af99d5ec3c277cca45da5b9dcbae7e9b'
-service_url='https://raw.githubusercontent.com/tyvda/ScriptBase/waveshare-companion-mvp-v0.4/waveshare-companion/setup_service.sh'
+release_url='https://raw.githubusercontent.com/tyvda/ScriptBase/waveshare-companion-mvp-v0.4.1/waveshare-companion/waveshare_local_companion_mvp_v0_4_1.zip'
+expected_sha='a65e845fa49bfba4945f8cd1653be25ccc220eb7c3dff036a39c77fbfa29af9c'
+service_url='https://raw.githubusercontent.com/tyvda/ScriptBase/waveshare-companion-mvp-v0.4.1/waveshare-companion/setup_service.sh'
 service_sha='9aa72b7c6fc928cff48fcec49926ed6104cc09e9ef61b495442c5b0602766758'
 project_dir="${COMPANION_DIR:-$PWD/companion-mvp}"
 
